@@ -1,10 +1,46 @@
 'use client'
 
 import Link from 'next/link'
+<<<<<<< HEAD
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion'
 import { ArrowRight, Check, Zap, Target, TrendingUp, Shield } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { useEffect, useState, useRef } from 'react'
+=======
+import { motion } from 'framer-motion'
+import { ArrowUpRight, Play, Activity, HeartPulse, BarChart3, Users } from 'lucide-react'
+import AppLayout from '../components/layout/AppLayout'
+import NeonButton from '../components/ui/NeonButton'
+import NeonCard from '../components/ui/NeonCard'
+import { ParallaxBackground } from '../components/ui/ParallaxBlob'
+
+const ease = [0.16, 1, 0.3, 1]
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.3 },
+  transition: { duration: 0.6, delay, ease },
+})
+
+const features = [
+  { title: 'Readiness', desc: 'HRV, RHR, sleep, and strain fused into a single green-or-not signal.', icon: Activity },
+  { title: 'Load guardrails', desc: 'Acute:chronic and deload prompts so you push without digging a hole.', icon: BarChart3 },
+  { title: 'Recovery cues', desc: 'Precise bedtime, hydration, and breathwork nudges from your WHOOP trends.', icon: HeartPulse },
+]
+
+const personas = [
+  { name: 'Endurance athlete', copy: 'Plan long blocks without red-lining HRV.', accent: 'from-emerald-500/20 to-cyan-500/10' },
+  { name: 'Strength athlete', copy: 'Balance CNS strain with real-time readiness.', accent: 'from-green-500/20 to-lime-500/10' },
+  { name: 'Busy founder', copy: 'Sleep + stress guardrails that fit 5 a.m. to midnight calendars.', accent: 'from-amber-500/15 to-neon-primary/10' },
+]
+
+const insightCards = [
+  { label: 'Recovery', value: 84, baseline: 76 },
+  { label: 'Strain', value: 62, baseline: 58 },
+  { label: 'Sleep', value: 7.8, baseline: 7.1, suffix: 'h' },
+]
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 export default function LandingPage() {
   const { scrollY } = useScroll()
@@ -68,6 +104,7 @@ export default function LandingPage() {
 
   return (
     <AppLayout>
+<<<<<<< HEAD
       {/* Animated Background Blobs with Parallax */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <motion.div 
@@ -778,6 +815,272 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+=======
+      <ParallaxBackground />
+      <main className="relative min-h-screen bg-[#050505] text-white">
+        <HeroSection />
+        <WhatSection />
+        <Features />
+        <Insights />
+        <Personas />
+        <Pricing />
+        <Footer />
+      </main>
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
     </AppLayout>
+  )
+}
+
+function HeroSection() {
+  return (
+    <section className="relative z-10 overflow-hidden">
+      <div className="mx-auto max-w-6xl px-4 md:px-6 pt-14 pb-16 md:pt-24 md:pb-24 grid md:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+        <div className="space-y-6">
+          <motion.div {...fadeUp()}>
+            <span className="inline-flex items-center gap-2 rounded-full border border-neon-primary/30 bg-neon-primary/10 px-3 py-1 text-xs font-medium text-white/85">
+              <span className="h-1.5 w-1.5 rounded-full bg-neon-primary" />
+              WHOOP Insights Pro · AI layer
+            </span>
+          </motion.div>
+
+          <motion.h1
+            {...fadeUp(0.05)}
+            className="text-[clamp(2.4rem,6vw,3.8rem)] font-semibold leading-[1.05] tracking-tight"
+          >
+            Ultra-clear readiness, training guardrails, and coaching—designed for the green zone.
+          </motion.h1>
+
+          <motion.p
+            {...fadeUp(0.12)}
+            className="text-[clamp(1rem,2.5vw,1.25rem)] text-white/70 max-w-2xl"
+          >
+            Matte-black minimalism with neon focus. Every motion, CTA, and color is tied to the signal that matters: how ready you are today.
+          </motion.p>
+
+          <motion.div
+            {...fadeUp(0.18)}
+            className="flex flex-col sm:flex-row items-start sm:items-center gap-3"
+          >
+            <Link href="/login" className="w-full sm:w-auto">
+              <NeonButton className="w-full sm:w-auto" variant="primary">
+                Login <ArrowUpRight className="w-4 h-4" />
+              </NeonButton>
+            </Link>
+            <Link href="/demo" className="w-full sm:w-auto">
+              <NeonButton variant="ghost" className="w-full sm:w-auto">
+                <Play className="w-4 h-4" /> Watch demo
+              </NeonButton>
+            </Link>
+          </motion.div>
+        </div>
+
+        <motion.div
+          {...fadeUp(0.25)}
+          className="relative rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 md:p-8 shadow-neon-card"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-neon-primary/5 to-transparent rounded-3xl" />
+          <div className="relative space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Today</p>
+                <p className="text-4xl font-semibold text-neon-primary leading-tight">84%</p>
+              </div>
+              <div className="text-xs text-white/60">Recovery · WHOOP feed</div>
+            </div>
+            <div className="h-40 rounded-2xl border border-white/10 bg-black/40 p-4 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(0,255,143,0.05),transparent_35%)]" />
+              <div className="absolute inset-x-3 top-1/2 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+              <svg viewBox="0 0 320 140" className="w-full h-full text-neon-primary/70">
+                <defs>
+                  <linearGradient id="recoveryArea" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(0,255,143,0.35)" />
+                    <stop offset="100%" stopColor="rgba(0,255,143,0)" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0 90 C40 78, 80 70, 120 92 S200 130, 240 88 S320 64, 320 64 V140 H0 Z"
+                  fill="url(#recoveryArea)"
+                  className="animate-pulse-slow"
+                />
+                <path
+                  d="M0 90 C40 78, 80 70, 120 92 S200 130, 240 88 S320 64, 320 64"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  fill="none"
+                  className="drop-shadow-[0_0_12px_rgba(0,255,143,0.25)]"
+                />
+                {[0, 40, 80, 120, 200, 240, 320].map((cx, idx) => {
+                  const cyPoints = [90, 78, 70, 92, 130, 88, 64]
+                  const cy = cyPoints[idx]
+                  return (
+                    <circle
+                      key={cx}
+                      cx={cx}
+                      cy={cy}
+                      r="5"
+                      fill="#0A0A0A"
+                      stroke={cy < 90 ? '#00FF8F' : '#f87171'}
+                      strokeWidth="2"
+                    />
+                  )
+                })}
+              </svg>
+              <div className="absolute bottom-3 right-4 text-[11px] text-white/60">Baseline auto-updates</div>
+            </div>
+            <div className="flex items-center justify-between text-sm text-white/70">
+              <span>Baseline updates live as you adjust the window.</span>
+              <span className="inline-flex items-center gap-2 text-neon-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-neon-primary" /> Real-time AI
+              </span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+function WhatSection() {
+  return (
+    <section id="story" className="relative z-10 py-16 md:py-20">
+      <div className="mx-auto max-w-5xl px-4 md:px-6">
+        <motion.div {...fadeUp()}>
+          <h2 className="text-[clamp(2rem,4vw,2.8rem)] font-semibold tracking-tight text-white">
+            What it does
+          </h2>
+          <p className="mt-4 text-[clamp(1rem,2.2vw,1.2rem)] text-white/70 leading-relaxed max-w-3xl">
+            Whoop Insights Pro is a premium AI layer that cleans up the noise: crisp readiness cues, steady load guardrails, and tailored coaching moments that respect your real recovery baseline.
+          </p>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+function Features() {
+  return (
+    <section className="relative z-10 py-16 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 md:px-6 grid gap-6 md:grid-cols-3">
+        {features.map((f, i) => (
+          <motion.div key={f.title} {...fadeUp(i * 0.06)}>
+            <NeonCard className="p-6 border-white/10 group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <f.icon className="w-5 h-5 text-neon-primary" />
+                  <h3 className="text-lg font-semibold text-white">{f.title}</h3>
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-white/60 group-hover:text-neon-primary transition-colors" />
+              </div>
+              <p className="mt-3 text-sm text-white/70 leading-relaxed">{f.desc}</p>
+            </NeonCard>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function Insights() {
+  return (
+    <section className="relative z-10 py-16 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <motion.div {...fadeUp()}>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+              <h3 className="text-[clamp(1.6rem,3vw,2.2rem)] font-semibold">Insights preview</h3>
+              <p className="text-sm text-white/60">Baseline visible. Recovery values flip green/red based on the latest window.</p>
+            </div>
+            <Link href="/dashboard">
+              <NeonButton variant="subtle">Open dashboard</NeonButton>
+            </Link>
+          </div>
+        </motion.div>
+        <div className="grid sm:grid-cols-3 gap-4">
+          {insightCards.map((card, idx) => {
+            const above = card.value > card.baseline
+            return (
+              <motion.div key={card.label} {...fadeUp(idx * 0.08)}>
+                <NeonCard className="p-5">
+                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-white/50">
+                    <span>{card.label}</span>
+                    <span className="flex items-center gap-1">
+                      baseline <span className="text-white/70">{card.baseline}{card.suffix || '%'}</span>
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-end gap-2">
+                    <span className={`text-4xl font-semibold ${above ? 'text-neon-primary' : 'text-rose-400'}`}>
+                      {card.value}{card.suffix || '%'}
+                    </span>
+                    <span className={`text-sm flex items-center gap-1 ${above ? 'text-neon-primary' : 'text-rose-300/80'}`}>
+                      {above ? '↑' : '↓'} {Math.abs(card.value - card.baseline)} {card.suffix || ''}
+                    </span>
+                  </div>
+                </NeonCard>
+              </motion.div>
+            )
+          })}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Personas() {
+  return (
+    <section className="relative z-10 py-16 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <motion.div {...fadeUp()}>
+          <h3 className="text-[clamp(1.6rem,3vw,2.2rem)] font-semibold mb-6">For whom</h3>
+        </motion.div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {personas.map((p, idx) => (
+            <motion.div key={p.name} {...fadeUp(idx * 0.06)}>
+              <NeonCard className={`p-5 bg-gradient-to-br ${p.accent}`}>
+                <h4 className="text-lg font-semibold">{p.name}</h4>
+                <p className="mt-2 text-sm text-white/70 leading-relaxed">{p.copy}</p>
+              </NeonCard>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Pricing() {
+  return (
+    <section id="pricing" className="relative z-10 py-16 md:py-24">
+      <div className="mx-auto max-w-4xl px-4 md:px-6">
+        <motion.div
+          {...fadeUp()}
+          className="rounded-3xl border border-neon-primary/25 bg-white/5 backdrop-blur p-8 md:p-10 shadow-neon-card"
+        >
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-sm uppercase tracking-[0.2em] text-neon-primary">Pro</div>
+              <div className="mt-2 text-4xl font-semibold text-white">$12<span className="text-sm text-white/60">/mo</span></div>
+              <p className="mt-2 text-sm text-white/70 max-w-xl">
+                Precision insights, weekly strategy, and recovery forecasting tuned to your WHOOP data. Built for athletes who want Apple-level polish, not dashboards.
+              </p>
+            </div>
+            <Link href="/login">
+              <NeonButton className="w-full sm:w-auto">Login</NeonButton>
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+function Footer() {
+  return (
+    <footer className="border-t border-white/10 py-6 text-xs text-white/60">
+      <div className="mx-auto max-w-6xl px-4 md:px-6 flex items-center justify-between">
+        <span>© 2024 Whoop Insights Pro</span>
+        <span className="text-neon-primary">Train smarter, stay neon</span>
+      </div>
+    </footer>
   )
 }

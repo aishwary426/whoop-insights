@@ -1,14 +1,21 @@
+<<<<<<< HEAD
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.engine import Engine
 from typing import Generator
 import logging
+=======
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from typing import Generator
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 from app.core_config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+<<<<<<< HEAD
 # SQLite-specific optimizations
 if settings.database_url.startswith("sqlite"):
     # Enable foreign keys for SQLite
@@ -45,6 +52,15 @@ def get_db() -> Generator[Session, None, None]:
         def endpoint(db: Session = Depends(get_db)):
             ...
     """
+=======
+connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+
+def get_db() -> Generator:
+    """FastAPI dependency for DB sessions."""
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
     db = SessionLocal()
     try:
         yield db

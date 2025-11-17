@@ -8,25 +8,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: {
-          start: '#050816',
-          mid: '#0B1020',
-          end: '#1C1033',
+        neon: {
+          primary: '#00FF8F',
+          secondary: '#A6FFCB',
         },
-        accent: {
-          recovery: '#4ADE80',
-          strain: '#FBBF24',
-          sleep: '#38BDF8',
-          primary: '#6366F1',
-          secondary: '#A855F7',
-        }
+        surface: '#0A0A0A',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'sans-serif'],
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-primary': 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+      boxShadow: {
+        'neon-soft': '0 12px 32px rgba(0,255,143,0.2)',
+        'neon-card': '0 10px 28px rgba(0,255,143,0.12)',
+      },
+      transitionTimingFunction: {
+        apple: 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Flame, Target, TrendingUp, Activity } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
+import NeonCard from '../../components/ui/NeonCard'
+import NeonButton from '../../components/ui/NeonButton'
+import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
 import { getCurrentUser } from '../../lib/supabase'
 
 export default function CalorieGPSPage() {
@@ -31,53 +34,67 @@ export default function CalorieGPSPage() {
   }, [recovery, targetCalories])
 
   const calculateResults = () => {
-    // ML-based calculation
-    const baseEfficiency = 10
+    // ML-inspired calculation: base efficiency modulated by recovery
+    const neutralEfficiency = 10 // neutral baseline at 50% recovery
     const recoveryBonus = ((recovery - 50) / 50) * 3
-    const efficiency = baseEfficiency + recoveryBonus
+    const baselineEfficiency = neutralEfficiency + recoveryBonus
+    const baselineTime = targetCalories / baselineEfficiency
 
-    const timeNeeded = targetCalories / efficiency
-
-    const workouts = [
+    const workoutShapes = [
       {
         name: 'High-Intensity Training',
         emoji: '🔥',
-        time: timeNeeded * 0.8,
-        efficiency: efficiency * 1.25,
-        improvement: -20,
+        timeFactor: 0.8,
+        efficiencyFactor: 1.25,
         color: 'from-pink-500/20 to-rose-500/20 border-pink-500/30',
         optimal: recovery >= 67
       },
       {
         name: 'Moderate Training',
         emoji: '💪',
-        time: timeNeeded,
-        efficiency: efficiency,
-        improvement: 0,
+        timeFactor: 1,
+        efficiencyFactor: 1,
         color: 'from-amber-500/20 to-orange-500/20 border-amber-500/30',
         optimal: recovery >= 34 && recovery < 67
       },
       {
         name: 'Long Endurance',
         emoji: '🚴',
-        time: timeNeeded * 1.2,
-        efficiency: efficiency * 0.83,
-        improvement: 20,
+        timeFactor: 1.2,
+        efficiencyFactor: 0.83,
         color: 'from-blue-500/20 to-cyan-500/20 border-blue-500/30',
         optimal: false
       },
       {
         name: 'Light Activity/Walking',
         emoji: '🚶',
-        time: timeNeeded * 1.8,
-        efficiency: efficiency * 0.55,
-        improvement: 80,
+        timeFactor: 1.8,
+        efficiencyFactor: 0.55,
         color: 'from-green-500/20 to-emerald-500/20 border-green-500/30',
         optimal: recovery < 34
       }
     ]
 
+    const workouts = workoutShapes.map((w) => {
+      const efficiency = baselineEfficiency * w.efficiencyFactor
+      const time = baselineTime * w.timeFactor
+      // improvement shown vs neutral baseline to reflect slider changes
+      const improvement = ((efficiency - neutralEfficiency) / neutralEfficiency) * 100
+      return {
+        ...w,
+        time,
+        efficiency,
+        improvement: Math.round(improvement * 10) / 10
+      }
+    })
+
     setResults(workouts)
+  }
+
+  const deltaColor = (val: number) => {
+    if (val > 0) return 'text-green-400'
+    if (val < 0) return 'text-red-400'
+    return 'text-slate-400'
   }
 
   const getRecoveryColor = () => {
@@ -94,93 +111,82 @@ export default function CalorieGPSPage() {
 
   return (
     <AppLayout user={user}>
-      <div className="relative min-h-screen">
-        {/* Background Blobs */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="gradient-blob w-96 h-96 bg-purple-500 top-20 right-1/4" />
-          <div className="gradient-blob w-96 h-96 bg-pink-500 bottom-20 left-1/4" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 md:px-8 py-12">
-          {/* Header */}
+      <ParallaxBackground />
+      <div className="relative min-h-screen bg-[#050505] text-white">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 py-12 space-y-10">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-12"
+            className="text-center space-y-3"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 mb-6">
-              <Target className="w-4 h-4 text-purple-400" />
-              <span className="text-sm font-medium text-purple-300">ML-Powered Optimizer</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon-primary/30 bg-neon-primary/10 text-xs font-semibold text-white/80">
+              <Target className="w-4 h-4 text-neon-primary" />
+              ML-powered optimizer
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Calorie-Burn GPS
-              </span>
+            <h1 className="text-[clamp(2.4rem,6vw,3.6rem)] font-semibold leading-tight">
+              Calorie-Burn GPS
             </h1>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Your personalized workout optimizer. Find the most efficient exercise for your recovery state.
+            <p className="text-white/60 max-w-2xl mx-auto text-[15px]">
+              Minimal, neon-clear optimizer tuned to your recovery state.
             </p>
           </motion.div>
 
-          {/* Input Controls */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.05 }}
             className="grid md:grid-cols-2 gap-6 mb-12 max-w-4xl mx-auto"
           >
-            {/* Recovery Score */}
-            <div className="glass-card p-8">
+            <NeonCard className="p-6 border-white/10">
               <div className="flex items-center justify-between mb-4">
-                <label className="text-lg font-semibold">Recovery Score Today</label>
-                <div className={`text-3xl font-bold ${getRecoveryColor()}`}>
+                <label className="text-lg font-semibold">Recovery today</label>
+                <div className={`text-3xl font-semibold ${getRecoveryColor()}`}>
                   {recovery}%
                 </div>
               </div>
               
-              <div className="relative mb-2">
+              <div className="relative mb-3">
                 <input
                   type="range"
                   min="0"
                   max="100"
                   value={recovery}
                   onChange={(e) => setRecovery(Number(e.target.value))}
-                  className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer"
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/10"
                   style={{
                     background: `linear-gradient(to right, 
-                      ${recovery >= 67 ? '#4ADE80' : recovery >= 34 ? '#FBBF24' : '#EF4444'} ${recovery}%, 
+                      ${recovery >= 67 ? '#00FF8F' : recovery >= 34 ? '#F59E0B' : '#EF4444'} ${recovery}%, 
                       rgba(255,255,255,0.1) ${recovery}%)`
                   }}
                 />
               </div>
               
-              <div className="flex justify-between text-xs text-slate-500">
+              <div className="flex justify-between text-[11px] text-white/50">
                 <span>0%</span>
                 <span>50%</span>
                 <span>100%</span>
               </div>
 
               <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
-                recovery >= 67 ? 'bg-green-500/20 text-green-400' :
-                recovery >= 34 ? 'bg-amber-500/20 text-amber-400' :
-                'bg-red-500/20 text-red-400'
+                recovery >= 67 ? 'bg-neon-primary/20 text-neon-primary' :
+                recovery >= 34 ? 'bg-amber-500/20 text-amber-300' :
+                'bg-red-500/20 text-red-300'
               }`}>
                 <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
                 {getRecoveryLabel()} Zone
               </div>
-            </div>
+            </NeonCard>
 
-            {/* Target Calories */}
-            <div className="glass-card p-8">
+            <NeonCard className="p-6 border-white/10">
               <div className="flex items-center justify-between mb-4">
-                <label className="text-lg font-semibold">Target Calories to Burn</label>
-                <div className="text-3xl font-bold text-purple-400">
+                <label className="text-lg font-semibold">Target calories</label>
+                <div className="text-3xl font-semibold text-neon-primary">
                   {targetCalories}
                 </div>
               </div>
               
-              <div className="relative mb-2">
+              <div className="relative mb-3">
                 <input
                   type="range"
                   min="100"
@@ -188,26 +194,25 @@ export default function CalorieGPSPage() {
                   step="50"
                   value={targetCalories}
                   onChange={(e) => setTargetCalories(Number(e.target.value))}
-                  className="w-full h-2 bg-white/10 rounded-full appearance-none cursor-pointer"
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer bg-white/10"
                   style={{
                     background: `linear-gradient(to right, 
-                      #8B5CF6 ${((targetCalories - 100) / 1400) * 100}%, 
+                      #00FF8F ${((targetCalories - 100) / 1400) * 100}%, 
                       rgba(255,255,255,0.1) ${((targetCalories - 100) / 1400) * 100}%)`
                   }}
                 />
               </div>
               
-              <div className="flex justify-between text-xs text-slate-500">
+              <div className="flex justify-between text-[11px] text-white/50">
                 <span>100</span>
                 <span>750</span>
                 <span>1500</span>
               </div>
 
-              <div className="mt-4 text-sm text-slate-400">
-                <Flame className="w-4 h-4 inline mr-1" />
-                cal
+              <div className="mt-4 text-sm text-white/60">
+                Target set to your calorie goal. Adjust to see shapes update instantly.
               </div>
-            </div>
+            </NeonCard>
           </motion.div>
 
           {/* Results */}
@@ -251,9 +256,8 @@ export default function CalorieGPSPage() {
                       </div>
 
                       <div className="glass-card p-4 bg-white/5">
-                        <div className={`text-4xl font-bold mb-1 ${
-                          results.find((w: any) => w.optimal).improvement < 0 ? 'text-green-400' : 'text-slate-400'
-                        }`}>
+                        <div className={`text-4xl font-bold mb-1 ${deltaColor(results.find((w: any) => w.optimal).improvement)}`}>
+                          {results.find((w: any) => w.optimal).improvement > 0 ? '+' : ''}
                           {results.find((w: any) => w.optimal).improvement}%
                         </div>
                         <div className="text-sm text-slate-400">vs your baseline</div>
@@ -290,9 +294,7 @@ export default function CalorieGPSPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-slate-400">vs Baseline</span>
-                          <span className={`font-bold ${
-                            workout.improvement < 0 ? 'text-green-400' : 'text-slate-400'
-                          }`}>
+                          <span className={`font-bold ${deltaColor(workout.improvement)}`}>
                             {workout.improvement > 0 ? '+' : ''}{workout.improvement}%
                           </span>
                         </div>

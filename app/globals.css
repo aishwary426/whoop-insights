@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-[#050816] via-[#0B1020] to-[#1C1033] text-white antialiased;
+    @apply bg-[#050505] text-white antialiased;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -15,19 +15,19 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/5 rounded-2xl shadow-xl;
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-neon-card;
   }
 
   .glass-nav {
-    @apply bg-black/40 backdrop-blur-xl border-b border-white/5;
+    @apply bg-black/70 backdrop-blur-md border-b border-white/5;
   }
 
   .btn-primary {
-    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-gradient-to-r from-[#6366F1] to-[#A855F7] hover:shadow-lg hover:shadow-purple-500/50 hover:scale-105 active:scale-95;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-[rgb(0,255,143)] text-black shadow-neon-soft hover:shadow-neon-soft hover:scale-[1.03] active:scale-95;
   }
 
   .btn-ghost {
-    @apply relative inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-300 bg-white/5 hover:bg-white/10 border border-white/10;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-white/0 border border-white/15 text-white hover:border-neon-primary/60 hover:scale-[1.03] active:scale-95;
   }
 
   .input-field {
@@ -35,11 +35,23 @@
   }
 
   .stat-card {
-    @apply glass-card p-6 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02];
+    @apply glass-card p-6 transition-all duration-200 ease-apple hover:scale-[1.02] hover:border-neon-primary/40;
   }
 
   .gradient-blob {
     @apply absolute blur-3xl opacity-30 rounded-full;
+  }
+
+  .metric-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+  }
+
+  .range-track {
+    @apply w-full h-2 rounded-full bg-white/10;
+  }
+
+  .range-thumb {
+    @apply h-5 w-5 rounded-full bg-neon-primary border-2 border-black shadow-neon-soft;
   }
 }
 

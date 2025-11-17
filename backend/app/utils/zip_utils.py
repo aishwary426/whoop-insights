@@ -9,6 +9,14 @@ from app.core_config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+<<<<<<< HEAD
+=======
+
+def save_upload_file(user_id: str, upload_id: str, file_obj) -> str:
+    folder = Path(settings.upload_dir) / user_id / upload_id
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "whoop_export.zip"
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 def save_upload_file(user_id: str, upload_id: str, file_obj) -> str:
     """
@@ -40,6 +48,16 @@ def save_upload_file(user_id: str, upload_id: str, file_obj) -> str:
     
     return str(path)
 
+<<<<<<< HEAD
+=======
+
+def unzip_whoop_export(path: str) -> str:
+    upload_dir = Path(path).parent
+    user_dir = upload_dir.parent.name
+    upload_id = upload_dir.name
+    extract_dir = Path(settings.processed_dir) / user_dir / upload_id
+    extract_dir.mkdir(parents=True, exist_ok=True)
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 def unzip_whoop_export(zip_path: str, extract_to: Optional[str] = None) -> str:
     """
@@ -133,3 +151,7 @@ def discover_csv_files(extracted_dir: str) -> dict[str, Path]:
     
     return csv_files
 
+<<<<<<< HEAD
+=======
+    return str(extract_dir)
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)

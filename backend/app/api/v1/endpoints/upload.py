@@ -1,20 +1,32 @@
+<<<<<<< HEAD
 """
 Upload endpoint for WHOOP ZIP files.
 """
 import logging
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
+=======
+import logging
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 from sqlalchemy.orm import Session
 
 from app.db_session import get_db
-from app.services.ingestion.whoop_ingestion import ingest_whoop_zip
 from app.schemas.api import UploadResponse, UploadStatus
+<<<<<<< HEAD
 from app.ml.feature_engineering.daily_features import recompute_daily_features
+=======
+from app.services.ingestion.whoop_ingestion import ingest_whoop_zip
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["upload"])
+logger = logging.getLogger(__name__)
+
 
 
 @router.post("/whoop/upload", response_model=UploadResponse)
+<<<<<<< HEAD
 def upload_whoop_data(
     user_id: str = Query(..., description="User identifier"),
     file: UploadFile = File(..., description="WHOOP export ZIP file"),
@@ -73,3 +85,20 @@ def upload_whoop_data(
             status_code=500,
             detail=f"Failed to process upload: {str(e)}"
         )
+=======
+def upload(user_id: str = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
+    if not file.filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Only ZIP uploads are supported.")
+
+    try:
+        upload_record = ingest_whoop_zip(db, user_id, file.file)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Upload failed", extra={"user_id": user_id})
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return UploadResponse(
+        upload_id=upload_record.id,
+        status=UploadStatus(upload_record.status.value),
+        message="Upload processed and ingested.",
+    )
+>>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
