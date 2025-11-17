@@ -1,3 +1,4 @@
+cat > app/signup/page.js << 'SIGNUP'
 'use client'
 
 import { useState } from 'react'
@@ -178,3 +179,6 @@ export default function SignupPage() {
     </div>
   )
 }
+SIGNUP
+
+echo "✅ Signup page updated!"
