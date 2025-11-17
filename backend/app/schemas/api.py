@@ -32,6 +32,7 @@ class TodayRecommendation(BaseModel):
     focus: str
     workout_type: str
     notes: str
+    optimal_time: Optional[str] = None
 
 class TomorrowPrediction(BaseModel):
     recovery_forecast: float
@@ -47,3 +48,39 @@ class DashboardSummary(BaseModel):
     recommendation: TodayRecommendation
     tomorrow: TomorrowPrediction
     scores: HealthScores
+    risk_flags: List[str] = []
+
+
+# Additional schemas for trends and insights
+class TrendPoint(BaseModel):
+    date: date
+    value: Optional[float]
+
+class TrendsResponse(BaseModel):
+    recovery: List[TrendPoint]
+    strain: List[TrendPoint]
+    sleep: List[TrendPoint]
+    hrv: List[TrendPoint]
+
+
+class InsightItem(BaseModel):
+    id: int
+    insight_type: str
+    title: str
+    description: str
+    confidence: float
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    data: Optional[dict] = None
+
+class InsightsFeed(BaseModel):
+    insights: List[InsightItem]
+
+
+class TrainingSummary(BaseModel):
+    status: str
+    model_version: Optional[str] = None
+    run_id: Optional[str] = None
+    trained_models: List[str] = []
+    metrics: dict = {}
+    data_summary: dict = {}
