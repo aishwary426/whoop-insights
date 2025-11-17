@@ -8,13 +8,25 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
+        background: {
+          start: '#050816',
+          mid: '#0B1020',
+          end: '#1C1033',
         },
+        accent: {
+          recovery: '#4ADE80',
+          strain: '#FBBF24',
+          sleep: '#38BDF8',
+          primary: '#6366F1',
+          secondary: '#A855F7',
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'sans-serif'],
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-primary': 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
       },
     },
   },
