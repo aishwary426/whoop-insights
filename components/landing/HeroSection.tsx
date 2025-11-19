@@ -9,7 +9,7 @@ export default function HeroSection() {
     return (
         <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6">
             {/* Background */}
-            <ParticleBackground particleCount={120} baseSpeed={0.15} accentColor="#00FF8F" />
+            <ParticleBackground particleCount={75} baseSpeed={0.15} accentColor="#00FF8F" />
 
             {/* Content */}
             <div className="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center gap-8 md:gap-10">

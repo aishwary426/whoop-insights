@@ -3,7 +3,7 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Callable, Dict, List, Tuple, Optional
 
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -306,19 +306,23 @@ def ingest_whoop_zip(
     user_id: str,
     file_obj,
     email: Optional[str] = None,
-    name: Optional[str] = None
+    name: Optional[str] = None,
+    upload_id: Optional[str] = None,
+    progress_callback: Optional[Callable[[str, int, str, str, Optional[str]], None]] = None,
+    zip_path: Optional[str] = None,
+    is_mobile: bool = False,
 ) -> Upload:
     """
     Main ingestion orchestrator.
     """
     logger.info(f"Starting ingestion for user {user_id}")
+    upload_id = upload_id or str(uuid.uuid4())
     
     # Step 1: Ensure user exists
     ensure_user(db, user_id, email, name)
     
-    # Step 2: Save ZIP file
-    upload_id = str(uuid.uuid4())
-    zip_path = save_upload_file(user_id=user_id, upload_id=upload_id, file_obj=file_obj)
+    # Step 2: Save ZIP file (unless provided)
+    zip_path = zip_path or save_upload_file(user_id=user_id, upload_id=upload_id, file_obj=file_obj)
 
     # Step 3: Create Upload record
     upload = Upload(
@@ -331,11 +335,17 @@ def ingest_whoop_zip(
     db.add(upload)
     db.commit()
     logger.info(f"Created upload record: {upload_id}")
+    if progress_callback:
+        progress_callback(upload_id, 5, "Upload received", "processing", "received")
     
     try:
         logger.info("Ingestion started", extra={"user_id": user_id, "upload_id": upload_id})
+        if progress_callback:
+            progress_callback(upload_id, 15, "Unpacking WHOOP export...", "processing", "unzip")
         extracted = unzip_whoop_export(zip_path)
         csv_map = discover_whoop_csvs(extracted)
+        if progress_callback:
+            progress_callback(upload_id, 92, "Parsing CSV files... (92%)", "processing", "parsing")
 
         # Check for physiological_cycles.csv (consolidated format)
         if csv_map["physiological_cycles"]:
@@ -354,10 +364,14 @@ def ingest_whoop_zip(
         created_workouts, skipped_workouts = persist_workouts(db, user_id, workouts)
 
         # Ensure aggregated counts and features are refreshed
+        if progress_callback:
+            progress_callback(upload_id, 94, "Computing features... (94%)", "processing", "features")
         recompute_daily_features(db, user_id)
 
         # Train per-user models on newly ingested data (personalized to this upload)
-        training_summary = train_user_models(db, user_id)
+        if progress_callback:
+            progress_callback(upload_id, 96, "Training models... (96%)", "processing", "training")
+        training_summary = train_user_models(db, user_id, is_mobile=is_mobile)
 
         upload.status = UploadStatus.COMPLETED
         upload.completed_at = datetime.utcnow()
@@ -373,6 +387,8 @@ def ingest_whoop_zip(
                 "training_status": training_summary.get("status") if training_summary else "skipped",
             },
         )
+        if progress_callback:
+            progress_callback(upload_id, 100, "Upload complete", "completed", "completed")
         return upload
 
     except Exception as exc:  # noqa: BLE001
@@ -380,5 +396,7 @@ def ingest_whoop_zip(
         upload.status = UploadStatus.FAILED
         upload.error_message = str(exc)
         db.commit()
+        if progress_callback:
+            progress_callback(upload_id, 100, f"Upload failed: {exc}", "failed", "failed")
         logger.exception("Ingestion failed", extra={"user_id": user_id, "upload_id": upload_id})
         raise

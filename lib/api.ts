@@ -2,6 +2,22 @@ import { getCurrentUser } from './supabase'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
 
+export interface UploadProgressEvent {
+    upload_id: string
+    progress: number
+    message: string
+    status: string
+    stage?: string
+    version?: number
+    timestamp?: string
+}
+
+export interface UploadResponse {
+    upload_id: string
+    status: string
+    message: string
+}
+
 export interface DashboardSummary {
     recovery_score: number
     strain_score: number
@@ -77,15 +93,18 @@ export const api = {
         return fetchWithAuth('/dashboard/insights', { regenerate })
     },
 
-    uploadWhoopData: async (file: File) => {
+    uploadWhoopData: async (file: File): Promise<UploadResponse> => {
         const user = await getCurrentUser()
         if (!user) {
             throw new Error('User not authenticated')
         }
 
+        const isMobileDevice = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
         const formData = new FormData()
         formData.append('file', file)
         formData.append('user_id', user.id)
+        formData.append('is_mobile', String(isMobileDevice))
 
         const response = await fetch(`${API_BASE_URL}/whoop/upload`, {
             method: 'POST',
@@ -98,5 +117,29 @@ export const api = {
         }
 
         return response.json()
+    },
+
+    streamUploadProgress: (
+        uploadId: string,
+        onMessage: (event: UploadProgressEvent) => void,
+        onError?: () => void
+    ) => {
+        const source = new EventSource(`${API_BASE_URL}/whoop/upload/progress/${uploadId}`)
+
+        source.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data)
+                onMessage(data)
+            } catch (error) {
+                console.error('Failed to parse progress event', error)
+            }
+        }
+
+        source.onerror = () => {
+            console.error('Progress stream encountered an error')
+            onError?.()
+        }
+
+        return source
     }
 }

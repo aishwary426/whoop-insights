@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Upload, X, FileText, ShieldCheck } from 'lucide-react'
@@ -17,8 +17,10 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [progressMessage, setProgressMessage] = useState('Preparing upload...')
   const [error, setError] = useState('')
   const [dragActive, setDragActive] = useState(false)
+  const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -70,38 +72,53 @@ export default function UploadPage() {
     }
   }
 
+  useEffect(() => {
+    return () => {
+      eventSourceRef.current?.close()
+    }
+  }, [])
+
   const handleUpload = async () => {
     if (!file || !user) return
 
     setUploading(true)
-    setProgress(10)
+    setProgress(5)
+    setProgressMessage('Upload received...')
 
     try {
-      // Simulate progress for better UX since we can't track real upload progress easily with fetch
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
+      // Close any previous stream before starting a new one
+      eventSourceRef.current?.close()
+
+      const response = await api.uploadWhoopData(file)
+
+      eventSourceRef.current = api.streamUploadProgress(
+        response.upload_id,
+        (update) => {
+          setProgress(update.progress)
+          setProgressMessage(update.message || 'Processing...')
+
+          if (update.status === 'completed') {
+            eventSourceRef.current?.close()
+            setTimeout(() => {
+              router.push('/dashboard')
+            }, 800)
+          } else if (update.status === 'failed') {
+            eventSourceRef.current?.close()
+            setError(update.message || 'Upload failed')
+            setUploading(false)
           }
-          return prev + 10
-        })
-      }, 500)
-
-      await api.uploadWhoopData(file)
-
-      clearInterval(progressInterval)
-      setProgress(100)
-
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 1000)
+        },
+        () => {
+          setProgressMessage('Lost connection to progress stream... reconnect by retrying upload.')
+        }
+      )
 
     } catch (error: any) {
       console.error('Upload error:', error)
       setError(error.message || 'Upload failed')
       setUploading(false)
       setProgress(0)
+      eventSourceRef.current?.close()
     }
   }
 
@@ -190,11 +207,12 @@ export default function UploadPage() {
               )}
             </>
           ) : (
-            <div className="text-center py-12">
-              <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
-              <div className="text-xl font-semibold mb-4">Processing your data...</div>
+              <div className="text-center py-12">
+                <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
+                <div className="text-xl font-semibold mb-1">Processing your data...</div>
+                <div className="text-sm text-white/60 mb-4">{progressMessage}</div>
 
-              <div className="max-w-md mx-auto">
+                <div className="max-w-md mx-auto">
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
                   <motion.div
                     initial={{ width: 0 }}

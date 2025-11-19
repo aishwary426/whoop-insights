@@ -75,7 +75,7 @@ def _ensure_dirs(user_id: str) -> Path:
     return version_dir
 
 
-def train_user_models(db: Session, user_id: str) -> Optional[Dict]:
+def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Optional[Dict]:
     """Train per-user models and persist them to disk."""
     df = _load_training_frame(db, user_id)
     if df.empty or len(df) < MIN_ROWS:
@@ -91,11 +91,12 @@ def train_user_models(db: Session, user_id: str) -> Optional[Dict]:
     y_reg = df["target_recovery"]
     y_cls = df["recovery_bucket"]
 
+    estimator_count = 25 if is_mobile else 50
     # Train RandomForest models (baseline)
-    rf_reg_model = RandomForestRegressor(n_estimators=50, random_state=7)
+    rf_reg_model = RandomForestRegressor(n_estimators=estimator_count, random_state=7)
     rf_reg_model.fit(X, y_reg)
 
-    rf_cls_model = RandomForestClassifier(n_estimators=50, random_state=7)
+    rf_cls_model = RandomForestClassifier(n_estimators=estimator_count, random_state=7)
     rf_cls_model.fit(X, y_cls)
 
     version_dir = _ensure_dirs(user_id)
@@ -115,7 +116,7 @@ def train_user_models(db: Session, user_id: str) -> Optional[Dict]:
         try:
             # XGBoost regressor for recovery prediction
             xgb_reg_model = xgb.XGBRegressor(
-                n_estimators=50,
+                n_estimators=estimator_count,
                 max_depth=6,
                 learning_rate=0.1,
                 subsample=0.8,
@@ -128,7 +129,7 @@ def train_user_models(db: Session, user_id: str) -> Optional[Dict]:
             
             # XGBoost classifier for burnout prediction
             xgb_cls_model = xgb.XGBClassifier(
-                n_estimators=50,
+                n_estimators=estimator_count,
                 max_depth=6,
                 learning_rate=0.1,
                 subsample=0.8,

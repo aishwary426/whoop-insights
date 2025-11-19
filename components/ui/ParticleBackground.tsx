@@ -8,9 +8,13 @@ interface ParticleBackgroundProps {
     accentColor?: string
 }
 
+/**
+ * Renders a field of “planets” that orbit subtly and are magnetically attracted
+ * toward the cursor, easing back to their original orbit when the cursor leaves.
+ */
 export default function ParticleBackground({
-    particleCount = 100,
-    baseSpeed = 0.2,
+    particleCount = 70,
+    baseSpeed = 0.15,
     accentColor = '#00FF8F',
 }: ParticleBackgroundProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -23,67 +27,85 @@ export default function ParticleBackground({
         if (!ctx) return
 
         let animationFrameId: number
-        let particles: Particle[] = []
+        let particles: Planet[] = []
         let width = 0
         let height = 0
 
-        // Mouse state
-        let mouseX = 0
-        let mouseY = 0
-        let targetMouseX = 0
-        let targetMouseY = 0
+        // Magnetic cursor state (smoothed for gentle pull)
+        let pointerActive = false
+        let pointerX = 0
+        let pointerY = 0
+        let targetPointerX = 0
+        let targetPointerY = 0
 
-        class Particle {
-            x: number
-            y: number
-            z: number
-            baseX: number
-            baseY: number
+        const accentPalette = [accentColor, '#00D8FF']
+
+        class Planet {
+            centerX: number
+            centerY: number
+            orbitRadiusX: number
+            orbitRadiusY: number
+            angle: number
+            orbitSpeed: number
             size: number
             color: string
-            speed: number
-            angle: number
-            radius: number
+            magnetism: number
+            x: number
+            y: number
 
             constructor() {
-                this.x = Math.random() * width
-                this.y = Math.random() * height
-                this.z = Math.random() * 2 // Depth factor
-                this.baseX = this.x
-                this.baseY = this.y
-                this.size = Math.random() * 1.5 + 0.5
+                this.centerX = Math.random() * width
+                this.centerY = Math.random() * height
 
-                // 15% chance of being neon, otherwise white/grey
-                const isNeon = Math.random() < 0.15
-                this.color = isNeon ? accentColor : `rgba(255, 255, 255, ${Math.random() * 0.3 + 0.1})`
+                // Slightly elliptical orbits
+                const baseOrbit = Math.random() * 120 + 60
+                this.orbitRadiusX = baseOrbit * (Math.random() * 0.6 + 0.7)
+                this.orbitRadiusY = baseOrbit * (Math.random() * 0.6 + 0.7)
 
-                this.speed = baseSpeed * (Math.random() * 0.5 + 0.5)
                 this.angle = Math.random() * Math.PI * 2
-                this.radius = Math.random() * 100 + 50 // Orbit radius for some movement
+                this.orbitSpeed = baseSpeed * (Math.random() * 0.8 + 0.4)
+
+                this.size = Math.random() * 1.8 + 0.8
+                const isAccent = Math.random() < 0.18
+                const chosenAccent = accentPalette[Math.floor(Math.random() * accentPalette.length)]
+                this.color = isAccent ? chosenAccent : `rgba(255, 255, 255, ${Math.random() * 0.35 + 0.1})`
+
+                this.magnetism = Math.random() * 0.8 + 0.6 // how strongly it reacts to the cursor
+                this.x = this.centerX
+                this.y = this.centerY
             }
 
             update() {
-                // Gentle drift
-                this.angle += this.speed * 0.01
+                this.angle += this.orbitSpeed * 0.01
 
-                // Mouse parallax
-                const dx = (mouseX - width / 2) * 0.05 * this.z
-                const dy = (mouseY - height / 2) * 0.05 * this.z
+                // Home orbit position
+                const orbitX = this.centerX + Math.cos(this.angle) * this.orbitRadiusX
+                const orbitY = this.centerY + Math.sin(this.angle) * this.orbitRadiusY
 
-                this.x = this.baseX + Math.cos(this.angle) * 20 + dx
-                this.y = this.baseY + Math.sin(this.angle) * 20 + dy
+                let targetX = orbitX
+                let targetY = orbitY
 
-                // Wrap around screen
-                if (this.x < -50) this.baseX += width + 100
-                if (this.x > width + 50) this.baseX -= width + 100
-                if (this.y < -50) this.baseY += height + 100
-                if (this.y > height + 50) this.baseY -= height + 100
+                if (pointerActive) {
+                    const dx = pointerX - orbitX
+                    const dy = pointerY - orbitY
+                    const distSq = dx * dx + dy * dy
+                    const dist = Math.sqrt(distSq) || 1
+
+                    // Magnetic pull scales down with distance; capped to keep motion smooth
+                    const pull = Math.min(1, (180 * this.magnetism) / (dist + 40))
+                    targetX = orbitX + dx * pull
+                    targetY = orbitY + dy * pull
+                }
+
+                // Ease toward target (orbit or magnetic target)
+                this.x += (targetX - this.x) * 0.08
+                this.y += (targetY - this.y) * 0.08
             }
 
             draw() {
                 if (!ctx) return
                 ctx.beginPath()
-                ctx.arc(this.x, this.y, this.size * (this.z * 0.5 + 0.5), 0, Math.PI * 2)
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
                 ctx.fillStyle = this.color
                 ctx.fill()
             }
@@ -96,8 +118,9 @@ export default function ParticleBackground({
             canvas.height = height
 
             particles = []
-            for (let i = 0; i < particleCount; i++) {
-                particles.push(new Particle())
+            const clampedCount = Math.max(40, Math.min(80, Math.floor(particleCount)))
+            for (let i = 0; i < clampedCount; i++) {
+                particles.push(new Planet())
             }
         }
 
@@ -105,9 +128,9 @@ export default function ParticleBackground({
             if (!ctx) return
             ctx.clearRect(0, 0, width, height)
 
-            // Smooth mouse interpolation
-            mouseX += (targetMouseX - mouseX) * 0.1
-            mouseY += (targetMouseY - mouseY) * 0.1
+            // Smooth cursor easing
+            pointerX += (targetPointerX - pointerX) * 0.12
+            pointerY += (targetPointerY - pointerY) * 0.12
 
             particles.forEach(p => {
                 p.update()
@@ -122,12 +145,18 @@ export default function ParticleBackground({
         }
 
         const handleMouseMove = (e: MouseEvent) => {
-            targetMouseX = e.clientX
-            targetMouseY = e.clientY
+            pointerActive = true
+            targetPointerX = e.clientX
+            targetPointerY = e.clientY
+        }
+
+        const handleMouseLeave = () => {
+            pointerActive = false
         }
 
         window.addEventListener('resize', handleResize)
         window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseleave', handleMouseLeave)
 
         init()
         animate()
@@ -135,6 +164,7 @@ export default function ParticleBackground({
         return () => {
             window.removeEventListener('resize', handleResize)
             window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('mouseleave', handleMouseLeave)
             cancelAnimationFrame(animationFrameId)
         }
     }, [particleCount, baseSpeed, accentColor])
