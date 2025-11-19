@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Heart, Zap, Clock, TrendingUp } from 'lucide-react'
+import { Heart, Zap, Clock, TrendingUp, Flame } from 'lucide-react'
 import NeonCard from '../ui/NeonCard'
 
 interface TodayRecommendationProps {
@@ -10,6 +10,7 @@ interface TodayRecommendationProps {
   workoutType: string
   optimalTime: string
   tomorrowForecast: number
+  calories?: number
 }
 
 export default function TodayRecommendationCard({
@@ -17,7 +18,8 @@ export default function TodayRecommendationCard({
   recommendation,
   workoutType,
   optimalTime,
-  tomorrowForecast
+  tomorrowForecast,
+  calories
 }: TodayRecommendationProps) {
   const getRecoveryColor = (rec: number) => {
     if (rec >= 67) return 'text-green-400'
@@ -51,7 +53,7 @@ export default function TodayRecommendationCard({
 
       <p className="text-lg mb-8 text-white/80 leading-relaxed">{recommendation}</p>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl bg-black/40 border border-white/5">
           <Zap className="w-4 h-4 text-amber-400 mb-2" />
           <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Type</div>
@@ -69,6 +71,14 @@ export default function TodayRecommendationCard({
           <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Forecast</div>
           <div className="font-medium text-sm text-white/90">{tomorrowForecast}%</div>
         </div>
+
+        {calories && (
+          <div className="p-4 rounded-xl bg-black/40 border border-white/5">
+            <Flame className="w-4 h-4 text-orange-500 mb-2" />
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Calorie Target</div>
+            <div className="font-medium text-sm text-white/90">{calories} kcal</div>
+          </div>
+        )}
       </div>
     </NeonCard>
   )

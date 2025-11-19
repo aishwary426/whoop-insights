@@ -44,6 +44,7 @@ class TodayRecommendation(APIBase):
     workout_type: str
     notes: str
     optimal_time: Optional[str] = None
+    calories: Optional[int] = None
 
 
 class TomorrowPrediction(APIBase):
@@ -106,3 +107,17 @@ class TrainingSummary(BaseModel):
     trained_models: List[str] = []
     metrics: dict = {}
     data_summary: dict = {}
+
+
+class WorkoutEfficiency(BaseModel):
+    sport_type: str
+    avg_cal_per_min: float
+    avg_hr: float
+    sample_size: int
+
+
+class CalorieAnalysis(BaseModel):
+    winner: Optional[WorkoutEfficiency] = None
+    explanation: str
+    comparison: List[WorkoutEfficiency] = []
+

@@ -9,6 +9,7 @@ import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
 import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
 import { getCurrentUser } from '../../lib/supabase'
+import CalorieAnalysisSection from '../../components/dashboard/CalorieAnalysisSection'
 
 export default function CalorieGPSPage() {
   const router = useRouter()
@@ -16,6 +17,8 @@ export default function CalorieGPSPage() {
   const [recovery, setRecovery] = useState(70)
   const [targetCalories, setTargetCalories] = useState(500)
   const [results, setResults] = useState<any>(null)
+  const [isPersonalized, setIsPersonalized] = useState(false)
+  const [analysis, setAnalysis] = useState<any>(null)
 
   useEffect(() => {
     const checkUser = async () => {
@@ -24,6 +27,24 @@ export default function CalorieGPSPage() {
         router.push('/login')
       } else {
         setUser(currentUser)
+        // Fetch real data to personalize
+        try {
+          const { api } = await import('../../lib/api')
+          const summary = await api.getDashboardSummary()
+          if (summary?.today?.recovery_score) {
+            setRecovery(Math.round(summary.today.recovery_score))
+            setIsPersonalized(true)
+          }
+          if (summary?.recommendation?.calories) {
+            setTargetCalories(summary.recommendation.calories)
+          }
+
+          // Fetch deep dive analysis
+          const analysisData = await api.getCalorieAnalysis()
+          setAnalysis(analysisData)
+        } catch (e) {
+          console.error("Failed to fetch personalized data", e)
+        }
       }
     }
     checkUser()
@@ -129,6 +150,7 @@ export default function CalorieGPSPage() {
             </h1>
             <p className="text-white/60 max-w-2xl mx-auto text-[15px]">
               Minimal, neon-clear optimizer tuned to your recovery state.
+              {isPersonalized && <span className="text-neon-primary ml-2">● Synced with your data</span>}
             </p>
           </motion.div>
 
@@ -326,6 +348,9 @@ export default function CalorieGPSPage() {
               </motion.div>
             </>
           )}
+
+          {/* Deep Dive Analysis */}
+          <CalorieAnalysisSection analysis={analysis} />
         </div>
       </div>
     </AppLayout>

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import numpy as np
 from app.models.database import DailyMetrics, IntensityLevel
 
 
-def recommend(dm: DailyMetrics) -> dict:
+def recommend(dm: DailyMetrics, models: dict | None = None) -> dict:
     """Simple guard-rail rules to return an actionable plan."""
     strain = float(dm.strain_score or 0)
     recovery = float(dm.recovery_score or 50)
@@ -32,6 +33,35 @@ def recommend(dm: DailyMetrics) -> dict:
         workout_type = "Heavy strength or VO2 max intervals"
         notes = "Push today, but extend cooldown and refuel."
 
+    # Estimate target strain for calorie prediction
+    target_strain = {
+        IntensityLevel.REST: 4.0,
+        IntensityLevel.LIGHT: 8.0,
+        IntensityLevel.MODERATE: 12.0,
+        IntensityLevel.HIGH: 16.0,
+    }.get(intensity, 10.0)
+
+    predicted_calories = None
+    if models and (cal_model := models.get("calorie")):
+        try:
+            # Features: ["strain_score", "sleep_hours", "hrv", "acute_chronic_ratio", "sleep_debt", "consistency_score"]
+            features = np.array([[
+                target_strain,
+                float(dm.sleep_hours or 0),
+                float(dm.hrv or 0),
+                float(dm.acute_chronic_ratio or 0),
+                float(dm.sleep_debt or 0),
+                float(dm.consistency_score or 0),
+            ]])
+            predicted_calories = float(cal_model.predict(features)[0])
+        except Exception:
+            pass
+
+    # Fallback if no model or prediction failed
+    if predicted_calories is None:
+        # Simple heuristic: ~50 cals per strain point? (Very rough)
+        predicted_calories = target_strain * 40 + 200
+
     optimal_time = "Late afternoon (4-7pm)" if sleep < 7 else "Mid-morning (9-11am)"
 
     risk_flags = []
@@ -49,4 +79,5 @@ def recommend(dm: DailyMetrics) -> dict:
         "notes": notes,
         "optimal_time": optimal_time,
         "risk_flags": risk_flags,
+        "predicted_calories": int(predicted_calories),
     }

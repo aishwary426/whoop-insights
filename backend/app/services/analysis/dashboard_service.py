@@ -20,9 +20,13 @@ from app.schemas.api import (
     TrendPoint,
     TrendsResponse,
     TrendsSeries,
+    CalorieAnalysis,
+    WorkoutEfficiency,
 )
-from app.ml.models.model_loader import load_latest_models
+from app.models.database import DailyMetrics, Insight, InsightType, IntensityLevel, Workout
+from sqlalchemy import func
 from app.ml.models.rule_based_recommender import recommend
+from app.ml.models.model_loader import load_latest_models
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +90,8 @@ def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
             risk_flags=[],
         )
 
-    rule_plan = recommend(dm)
     models = load_latest_models(user_id)
+    rule_plan = recommend(dm, models)
 
     feature_vector = np.array(
         [
@@ -151,6 +155,7 @@ def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
             workout_type=rule_plan["workout_type"],
             optimal_time=rule_plan["optimal_time"],
             notes=rule_plan["notes"],
+            calories=rule_plan.get("predicted_calories"),
         ),
         tomorrow=tomorrow,
         scores=scores,
@@ -248,4 +253,66 @@ def generate_insights_for_user(db: Session, user_id: str) -> InsightsFeed:
             )
             for i in insights
         ],
+    )
+
+
+def get_calorie_analysis(db: Session, user_id: str) -> CalorieAnalysis:
+    """Analyze workout history to find the most efficient calorie burners."""
+    # Aggregate stats by sport type
+    # We filter for workouts > 10 mins to avoid noise
+    stats = (
+        db.query(
+            Workout.sport_type,
+            func.avg(Workout.calories / Workout.duration_minutes).label("avg_cal_min"),
+            func.avg(Workout.avg_hr).label("avg_hr"),
+            func.count(Workout.id).label("count")
+        )
+        .filter(Workout.user_id == user_id)
+        .filter(Workout.duration_minutes > 10)
+        .filter(Workout.calories > 0)
+        .group_by(Workout.sport_type)
+        .having(func.count(Workout.id) >= 3)  # Need at least 3 sessions for valid stats
+        .all()
+    )
+
+    if not stats:
+        return CalorieAnalysis(
+            winner=None,
+            explanation="Not enough workout data to analyze efficiency yet. Log at least 3 sessions of different activities.",
+            comparison=[]
+        )
+
+    # Convert to schema objects
+    efficiencies = []
+    for s in stats:
+        efficiencies.append(
+            WorkoutEfficiency(
+                sport_type=s.sport_type,
+                avg_cal_per_min=float(s.avg_cal_min or 0),
+                avg_hr=float(s.avg_hr or 0),
+                sample_size=s.count
+            )
+        )
+
+    # Sort by efficiency
+    efficiencies.sort(key=lambda x: x.avg_cal_per_min, reverse=True)
+    winner = efficiencies[0]
+
+    # Generate explanation
+    explanation = f"Based on your history, **{winner.sport_type}** is your most efficient calorie burner at {winner.avg_cal_per_min:.1f} cal/min."
+    
+    if len(efficiencies) > 1:
+        runner_up = efficiencies[1]
+        diff = ((winner.avg_cal_per_min - runner_up.avg_cal_per_min) / runner_up.avg_cal_per_min) * 100
+        explanation += f" It burns {diff:.0f}% more calories per minute than {runner_up.sport_type}, "
+        
+        if winner.avg_hr < runner_up.avg_hr:
+             explanation += f"surprisingly with a lower average heart rate ({winner.avg_hr:.0f} vs {runner_up.avg_hr:.0f} bpm), suggesting better biomechanical efficiency."
+        else:
+             explanation += f"driven by a higher average heart rate ({winner.avg_hr:.0f} vs {runner_up.avg_hr:.0f} bpm)."
+
+    return CalorieAnalysis(
+        winner=winner,
+        explanation=explanation,
+        comparison=efficiencies
     )

@@ -11,7 +11,8 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sqlalchemy.orm import Session
 
 from app.core_config import get_settings
-from app.models.database import DailyMetrics
+from app.models.database import DailyMetrics, Workout
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,15 @@ def _load_training_frame(db: Session, user_id: str) -> pd.DataFrame:
     if not rows:
         return pd.DataFrame()
 
+    # Aggregate workout calories by date
+    workout_cals = (
+        db.query(Workout.date, func.sum(Workout.calories).label("total_calories"))
+        .filter(Workout.user_id == user_id)
+        .group_by(Workout.date)
+        .all()
+    )
+    cal_map = {w.date: (w.total_calories or 0.0) for w in workout_cals}
+
     payload = []
     for r in rows:
         payload.append(
@@ -50,6 +60,7 @@ def _load_training_frame(db: Session, user_id: str) -> pd.DataFrame:
                 "acute_chronic_ratio": r.acute_chronic_ratio,
                 "sleep_debt": r.sleep_debt,
                 "consistency_score": r.consistency_score,
+                "calories": cal_map.get(r.date, 0.0),
             }
         )
 
@@ -66,6 +77,8 @@ def _load_training_frame(db: Session, user_id: str) -> pd.DataFrame:
     df["consistency_score"] = df["consistency_score"].ffill().fillna(50)
     df = df.dropna(subset=["target_recovery"])
     df = df.fillna(0)
+    # Ensure calories is numeric
+    df["calories"] = df["calories"].fillna(0.0)
     return df
 
 
@@ -90,6 +103,7 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     X = df[feature_cols]
     y_reg = df["target_recovery"]
     y_cls = df["recovery_bucket"]
+    y_cal = df["calories"]
 
     estimator_count = 25 if is_mobile else 50
     # Train RandomForest models (baseline)
@@ -99,9 +113,14 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     rf_cls_model = RandomForestClassifier(n_estimators=estimator_count, random_state=7)
     rf_cls_model.fit(X, y_cls)
 
+    # Train Calorie Model (Regressor)
+    rf_cal_model = RandomForestRegressor(n_estimators=estimator_count, random_state=7)
+    rf_cal_model.fit(X, y_cal)
+
     version_dir = _ensure_dirs(user_id)
     rec_path = version_dir / "recovery_model.joblib"
     burnout_path = version_dir / "burnout_model.joblib"
+    cal_path = version_dir / "calorie_model.joblib"
     xgb_rec_path = version_dir / "xgb_recovery_model.joblib"
     xgb_burnout_path = version_dir / "xgb_burnout_model.joblib"
     cluster_path = version_dir / "behavior_clusters.pkl"
@@ -109,9 +128,10 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     # Save RandomForest models
     joblib.dump(rf_reg_model, rec_path)
     joblib.dump(rf_cls_model, burnout_path)
+    joblib.dump(rf_cal_model, cal_path)
 
     # Train and save XGBoost models (improved performance)
-    trained_models = ["recovery", "burnout_classifier"]
+    trained_models = ["recovery", "burnout_classifier", "calorie"]
     if XGBOOST_AVAILABLE:
         try:
             # XGBoost regressor for recovery prediction
@@ -173,6 +193,7 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
         "end_date": df["date"].max(),
         "recovery_model_path": str(rec_path),
         "burnout_model_path": str(burnout_path),
+        "calorie_model_path": str(cal_path),
         "cluster_model_path": str(cluster_path) if cluster_model else None,
     }
     

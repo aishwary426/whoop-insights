@@ -1,6 +1,20 @@
 import { getCurrentUser } from './supabase'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+const resolveApiBaseUrl = () => {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL
+    }
+
+    if (typeof window !== 'undefined') {
+        // Use same-origin relative path to avoid mixed-content issues in production
+        return '/api/v1'
+    }
+
+    // SSR / fallback (dev)
+    return 'http://localhost:8000/api/v1'
+}
+
+const API_BASE_URL = resolveApiBaseUrl()
 
 export interface UploadProgressEvent {
     upload_id: string
@@ -18,22 +32,55 @@ export interface UploadResponse {
     message: string
 }
 
+export interface TodayMetrics {
+    date: string
+    recovery_score: number | null
+    strain_score: number | null
+    sleep_hours: number | null
+    hrv: number | null
+    resting_hr: number | null
+    workouts_count: number
+}
+
+export interface TodayRecommendation {
+    intensity_level: string
+    focus: string
+    workout_type: string
+    notes: string
+    optimal_time: string
+    calories?: number
+}
+
+export interface TomorrowPrediction {
+    recovery_forecast: number | null
+    confidence: number
+}
+
+export interface HealthScores {
+    consistency: number
+    burnout_risk: number
+    sleep_health: number
+    injury_risk: number
+}
+
+export interface WorkoutEfficiency {
+    sport_type: string
+    avg_cal_per_min: number
+    avg_hr: number
+    sample_size: number
+}
+
+export interface CalorieAnalysis {
+    winner: WorkoutEfficiency | null
+    explanation: string
+    comparison: WorkoutEfficiency[]
+}
+
 export interface DashboardSummary {
-    recovery_score: number
-    strain_score: number
-    sleep_hours: number
-    hrv: number
-    recommendation: {
-        intensity: string
-        focus: string
-        workout_type: string
-        notes: string
-        optimal_time: string
-    }
-    forecast: {
-        tomorrow_recovery: number
-        confidence_interval: [number, number]
-    }
+    today: TodayMetrics
+    recommendation: TodayRecommendation
+    tomorrow: TomorrowPrediction
+    scores: HealthScores
     risk_flags: string[]
 }
 
@@ -55,7 +102,7 @@ async function fetchWithAuth(endpoint: string, params: Record<string, any> = {})
         throw new Error('User not authenticated')
     }
 
-    const url = new URL(`${API_BASE_URL}${endpoint}`)
+    const url = new URL(`${API_BASE_URL}${endpoint}`, typeof window !== 'undefined' ? window.location.origin : undefined)
     url.searchParams.append('user_id', user.id)
 
     Object.entries(params).forEach(([key, value]) => {
@@ -91,6 +138,10 @@ export const api = {
 
     getInsights: async (regenerate = false) => {
         return fetchWithAuth('/dashboard/insights', { regenerate })
+    },
+
+    getCalorieAnalysis: async (): Promise<CalorieAnalysis> => {
+        return fetchWithAuth('/dashboard/calorie-analysis')
     },
 
     uploadWhoopData: async (file: File): Promise<UploadResponse> => {

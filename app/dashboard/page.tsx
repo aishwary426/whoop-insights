@@ -189,6 +189,7 @@ export default function DashboardPage() {
                   workoutType={summary?.recommendation?.workout_type || "Rest"}
                   optimalTime={summary?.recommendation?.optimal_time || "Anytime"}
                   tomorrowForecast={Math.round(summary?.tomorrow?.recovery_forecast || 50)}
+                  calories={summary?.recommendation?.calories}
                 />
 
                 <RecoveryBaselinePanel data={last7Recovery} />
