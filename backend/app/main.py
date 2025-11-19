@@ -5,8 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
 from app.core_config import get_settings
-<<<<<<< HEAD
 from app.utils.logger import setup_logging
+from app.db_session import engine
+from app.models.database import Base
 
 # Initialize logging
 setup_logging()
@@ -19,19 +20,6 @@ app = FastAPI(
     version="1.0.0",
     debug=settings.debug
 )
-=======
-from app.db_session import engine
-from app.models.database import Base
-
-settings = get_settings()
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-)
-
-app = FastAPI(title="Whoop Insights Pro API", debug=settings.debug)
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)

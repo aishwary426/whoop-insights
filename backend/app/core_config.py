@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from pathlib import Path
@@ -14,21 +13,6 @@ class Settings(BaseSettings):
     
     # Redis (optional, for future task queues)
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-=======
-from functools import lru_cache
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-class Settings(BaseSettings):
-    """Application settings with sensible local defaults and easy env overrides."""
-
-    database_url: str = Field(
-        default="sqlite:///./whoop.db",
-        description="SQLAlchemy database URL. Defaults to local SQLite; override for Postgres in prod.",
-    )
-    redis_url: str = "redis://localhost:6379/0"
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
     # Data directories
     upload_dir: str = "./data/raw"
@@ -50,10 +34,10 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file=".env",
-<<<<<<< HEAD
         env_file_encoding="utf-8",
         case_sensitive=False,
         protected_namespaces=("settings_",),
+        extra="ignore"
     )
 
     def __init__(self, **kwargs):
@@ -61,12 +45,6 @@ class Settings(BaseSettings):
         # Ensure directories exist
         for dir_path in [self.upload_dir, self.processed_dir, self.model_dir]:
             Path(dir_path).mkdir(parents=True, exist_ok=True)
-=======
-        case_sensitive=False,
-        protected_namespaces=(),
-        extra="ignore",
-    )
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 
 @lru_cache

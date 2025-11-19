@@ -1,46 +1,14 @@
-<<<<<<< HEAD
-"""
-Comprehensive WHOOP data ingestion service.
-Orchestrates ZIP extraction, CSV parsing, and database population.
-"""
-import uuid
-import logging
-from datetime import datetime, date
-from pathlib import Path
-from typing import Optional
-=======
 import logging
 import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import pandas as pd
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-import pandas as pd
 
-<<<<<<< HEAD
-from app.models.database import (
-    User, Upload, UploadStatus, DailyMetrics, Workout
-)
-from app.utils.zip_utils import (
-    save_upload_file, unzip_whoop_export, discover_csv_files
-)
-from app.services.ingestion.csv_parsers import (
-    parse_sleep_csv, parse_recovery_csv, parse_strain_csv, parse_workout_csv
-)
-from app.core_config import get_settings
-
-logger = logging.getLogger(__name__)
-settings = get_settings()
-
-
-def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Optional[str] = None) -> User:
-    """Ensure user exists in database, create if not."""
-=======
 from app.models.database import DailyMetrics, Upload, UploadStatus, User, Workout
 from app.ml.feature_engineering.daily_features import recompute_daily_features
 from app.ml.models.trainer import train_user_models
@@ -50,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 def ensure_user(db: Session, user_id: str, email: str | None = None, name: str | None = None) -> User:
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         user = User(
@@ -63,8 +30,6 @@ def ensure_user(db: Session, user_id: str, email: str | None = None, name: str |
         logger.info(f"Created new user: {user_id}")
     return user
 
-<<<<<<< HEAD
-=======
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
@@ -73,22 +38,92 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def discover_whoop_csvs(extracted_dir: str) -> Dict[str, List[str]]:
     """Return a map of domain -> list of CSV files found in the unzip folder."""
-    domain_hits = {"sleep": [], "recovery": [], "strain": [], "workouts": []}
+    domain_hits = {"sleep": [], "recovery": [], "strain": [], "workouts": [], "physiological_cycles": []}
     for root, _, files in os.walk(extracted_dir):
         for fname in files:
             if not fname.lower().endswith(".csv"):
                 continue
             lower = fname.lower()
             full_path = str(Path(root) / fname)
-            if "sleep" in lower:
+            
+            if "physiological_cycles" in lower:
+                domain_hits["physiological_cycles"].append(full_path)
+            elif "sleep" in lower:
                 domain_hits["sleep"].append(full_path)
-            if "recovery" in lower:
+            elif "recovery" in lower:
                 domain_hits["recovery"].append(full_path)
-            if "strain" in lower:
+            elif "strain" in lower:
                 domain_hits["strain"].append(full_path)
-            if "workout" in lower:
+            elif "workout" in lower:
                 domain_hits["workouts"].append(full_path)
     return domain_hits
+
+
+def parse_physiological_cycles(paths: List[str]) -> pd.DataFrame:
+    """Parse the consolidated physiological cycles file."""
+    frames = []
+    for path in paths:
+        df = pd.read_csv(path)
+        df = _normalize_columns(df)
+        
+        # Map columns
+        # Cycle start time -> date
+        date_col = next((c for c in df.columns if "cycle_start" in c), None)
+        if not date_col:
+            continue
+            
+        df["date"] = pd.to_datetime(df[date_col]).dt.date
+        
+        # Recovery
+        rec_col = next((c for c in df.columns if "recovery_score" in c), None)
+        df["recovery_score"] = df[rec_col] if rec_col else pd.NA
+        
+        # Strain
+        strain_col = next((c for c in df.columns if "day_strain" in c), None)
+        df["strain_score"] = df[strain_col] if strain_col else pd.NA
+        
+        # HRV
+        hrv_col = next((c for c in df.columns if "heart_rate_variability" in c), None)
+        df["hrv"] = df[hrv_col] if hrv_col else pd.NA
+        
+        # RHR
+        rhr_col = next((c for c in df.columns if "resting_heart_rate" in c), None)
+        df["resting_hr"] = df[rhr_col] if rhr_col else pd.NA
+        
+        # Sleep Hours (Asleep duration is usually in minutes)
+        sleep_dur_col = next((c for c in df.columns if "asleep_duration" in c), None)
+        if sleep_dur_col:
+            df["sleep_hours"] = df[sleep_dur_col] / 60.0
+        else:
+            df["sleep_hours"] = pd.NA
+            
+        # Sleep Debt (minutes)
+        debt_col = next((c for c in df.columns if "sleep_debt" in c), None)
+        if debt_col:
+            df["sleep_debt"] = df[debt_col] / 60.0
+        else:
+            df["sleep_debt"] = pd.NA
+            
+        # Sleep Consistency
+        const_col = next((c for c in df.columns if "sleep_consistency" in c), None)
+        df["consistency_score"] = df[const_col] if const_col else pd.NA
+
+        frames.append(df[[
+            "date", "recovery_score", "strain_score", "hrv", "resting_hr", 
+            "sleep_hours", "sleep_debt", "consistency_score"
+        ]].copy())
+        
+    if not frames:
+        return pd.DataFrame()
+        
+    combined_df = pd.concat(frames)
+    
+    # Deduplicate by date, keeping the one with the highest recovery score (primary cycle)
+    # If recovery score is same or null, we'll just take the first one after sorting
+    combined_df = combined_df.sort_values("recovery_score", ascending=False)
+    combined_df = combined_df.drop_duplicates(subset=["date"], keep="first")
+    
+    return combined_df
 
 
 def parse_sleep(paths: List[str]) -> pd.DataFrame:
@@ -197,6 +232,8 @@ def _merge_daily_metrics(sleep_df: pd.DataFrame, recovery_df: pd.DataFrame, stra
 
     df = None
     for candidate in [sleep_df, recovery_df, strain_df]:
+        if candidate.empty:
+            continue
         if df is None:
             df = candidate
         else:
@@ -249,6 +286,8 @@ def upsert_daily_metrics(db: Session, user_id: str, df: pd.DataFrame) -> int:
             "hrv": _safe_float(row.get("hrv")),
             "resting_hr": _safe_float(row.get("resting_hr")),
             "strain_score": _safe_float(row.get("strain_score")),
+            "sleep_debt": _safe_float(row.get("sleep_debt")),
+            "consistency_score": _safe_float(row.get("consistency_score")),
         }
         if dm:
             for k, v in payload.items():
@@ -262,11 +301,6 @@ def upsert_daily_metrics(db: Session, user_id: str, df: pd.DataFrame) -> int:
     return upserted
 
 
-def ingest_whoop_zip(db: Session, user_id: str, file_obj):
-    """Main orchestrator for WHOOP ZIP ingestion."""
-    ensure_user(db, user_id)
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
-
 def ingest_whoop_zip(
     db: Session,
     user_id: str,
@@ -276,26 +310,6 @@ def ingest_whoop_zip(
 ) -> Upload:
     """
     Main ingestion orchestrator.
-    
-    Flow:
-    1. Ensure user exists
-    2. Save ZIP file
-    3. Create Upload record
-    4. Extract ZIP
-    5. Discover CSVs
-    6. Parse CSVs
-    7. Write to database (DailyMetrics, Workout)
-    8. Update Upload status
-    
-    Args:
-        db: Database session
-        user_id: User identifier
-        file_obj: File-like object (from FastAPI UploadFile)
-        email: Optional user email
-        name: Optional user name
-    
-    Returns:
-        Upload record
     """
     logger.info(f"Starting ingestion for user {user_id}")
     
@@ -319,164 +333,22 @@ def ingest_whoop_zip(
     logger.info(f"Created upload record: {upload_id}")
     
     try:
-<<<<<<< HEAD
-        # Step 4: Extract ZIP
-        processed_dir = Path(settings.processed_dir) / user_id / upload_id
-        processed_dir.mkdir(parents=True, exist_ok=True)
-        
-        extracted_dir = unzip_whoop_export(zip_path, extract_to=str(processed_dir))
-        
-        # Step 5: Discover CSVs
-        csv_files = discover_csv_files(extracted_dir)
-        
-        if not csv_files:
-            raise ValueError("No recognized CSV files found in ZIP")
-        
-        logger.info(f"Discovered CSV files: {list(csv_files.keys())}")
-        
-        # Step 6: Parse CSVs
-        parsed_data = {}
-        
-        if 'sleep' in csv_files:
-            try:
-                parsed_data['sleep'] = parse_sleep_csv(csv_files['sleep'])
-            except Exception as e:
-                logger.warning(f"Failed to parse sleep CSV: {e}")
-        
-        if 'recovery' in csv_files:
-            try:
-                parsed_data['recovery'] = parse_recovery_csv(csv_files['recovery'])
-            except Exception as e:
-                logger.warning(f"Failed to parse recovery CSV: {e}")
-        
-        if 'strain' in csv_files:
-            try:
-                parsed_data['strain'] = parse_strain_csv(csv_files['strain'])
-            except Exception as e:
-                logger.warning(f"Failed to parse strain CSV: {e}")
-        
-        if 'workout' in csv_files:
-            try:
-                parsed_data['workout'] = parse_workout_csv(csv_files['workout'])
-            except Exception as e:
-                logger.warning(f"Failed to parse workout CSV: {e}")
-        
-        # Step 7: Write to database
-        # Merge all daily data into DailyMetrics
-        daily_data = {}
-        
-        # Collect data from all sources
-        for source_type, df in parsed_data.items():
-            if df is None or df.empty:
-                continue
-
-                    for _, row in df.iterrows():
-                row_date = pd.to_datetime(row['date']).date()
-                
-                if row_date not in daily_data:
-                    daily_data[row_date] = {
-                        'date': row_date,
-                        'user_id': user_id,
-                    }
-                
-                # Merge fields
-                if source_type == 'sleep' and 'sleep_hours' in row:
-                    daily_data[row_date]['sleep_hours'] = row['sleep_hours']
-                
-                elif source_type == 'recovery':
-                    if 'recovery_score' in row and pd.notna(row['recovery_score']):
-                        daily_data[row_date]['recovery_score'] = row['recovery_score']
-                    if 'hrv' in row and pd.notna(row['hrv']):
-                        daily_data[row_date]['hrv'] = row['hrv']
-                    if 'resting_hr' in row and pd.notna(row['resting_hr']):
-                        daily_data[row_date]['resting_hr'] = row['resting_hr']
-                
-                elif source_type == 'strain' and 'strain_score' in row:
-                    daily_data[row_date]['strain_score'] = row['strain_score']
-        
-        # Write DailyMetrics
-        daily_count = 0
-        for day_data in daily_data.values():
-            try:
-                # Use merge to handle duplicates
-                existing = db.query(DailyMetrics).filter(
-                    DailyMetrics.user_id == user_id,
-                    DailyMetrics.date == day_data['date']
-                ).first()
-                
-                if existing:
-                    # Update existing record
-                    for key, value in day_data.items():
-                        if key not in ['date', 'user_id'] and value is not None:
-                            setattr(existing, key, value)
-                    existing.updated_at = datetime.utcnow()
-                else:
-                    # Create new record
-                    dm = DailyMetrics(**day_data)
-            db.add(dm)
-                
-                daily_count += 1
-            except Exception as e:
-                logger.warning(f"Error writing daily metric for {day_data['date']}: {e}")
-                continue
-        
-        db.commit()
-        logger.info(f"Wrote {daily_count} daily metrics records")
-        
-        # Write Workouts
-        workout_count = 0
-        if 'workout' in parsed_data and not parsed_data['workout'].empty:
-            for _, row in parsed_data['workout'].iterrows():
-                try:
-                    workout_date = pd.to_datetime(row['date']).date()
-                    
-                    workout = Workout(
-                        user_id=user_id,
-                        workout_id=str(uuid.uuid4()),
-                        date=workout_date,
-                        start_time=pd.to_datetime(row.get('start_time')) if 'start_time' in row and pd.notna(row.get('start_time')) else None,
-                        end_time=pd.to_datetime(row.get('end_time')) if 'end_time' in row and pd.notna(row.get('end_time')) else None,
-                        duration_minutes=float(row.get('duration_minutes', 0)) if pd.notna(row.get('duration_minutes')) else None,
-                        sport_type=str(row.get('sport_type', 'unknown')) if pd.notna(row.get('sport_type')) else 'unknown',
-                        avg_hr=float(row.get('avg_hr')) if 'avg_hr' in row and pd.notna(row.get('avg_hr')) else None,
-                        max_hr=float(row.get('max_hr')) if 'max_hr' in row and pd.notna(row.get('max_hr')) else None,
-                        strain=float(row.get('strain')) if 'strain' in row and pd.notna(row.get('strain')) else None,
-                        calories=float(row.get('calories')) if 'calories' in row and pd.notna(row.get('calories')) else None,
-                    )
-                    db.add(workout)
-                    workout_count += 1
-                except Exception as e:
-                    logger.warning(f"Error writing workout: {e}")
-                    continue
-            
-            db.commit()
-            logger.info(f"Wrote {workout_count} workout records")
-        
-        # Update workout counts in DailyMetrics
-        from app.ml.feature_engineering.daily_features import recompute_daily_features
-        recompute_daily_features(db, user_id)
-        
-        # Step 8: Mark upload as completed
-        upload.status = UploadStatus.COMPLETED
-        upload.completed_at = datetime.utcnow()
-        db.commit()
-
-        logger.info(f"Ingestion completed successfully for upload {upload_id}")
-        return upload
-        
-    except Exception as e:
-        logger.error(f"Ingestion failed for upload {upload_id}: {e}", exc_info=True)
-=======
         logger.info("Ingestion started", extra={"user_id": user_id, "upload_id": upload_id})
         extracted = unzip_whoop_export(zip_path)
         csv_map = discover_whoop_csvs(extracted)
 
-        sleep_df = parse_sleep(csv_map["sleep"])
-        recovery_df = parse_recovery(csv_map["recovery"])
-        strain_df = parse_strain(csv_map["strain"])
-        workouts = parse_workouts(csv_map["workouts"])
+        # Check for physiological_cycles.csv (consolidated format)
+        if csv_map["physiological_cycles"]:
+            logger.info("Found physiological_cycles.csv, using consolidated parsing")
+            metrics_df = parse_physiological_cycles(csv_map["physiological_cycles"])
+        else:
+            logger.info("Using legacy separate CSV parsing")
+            sleep_df = parse_sleep(csv_map["sleep"])
+            recovery_df = parse_recovery(csv_map["recovery"])
+            strain_df = parse_strain(csv_map["strain"])
+            metrics_df = _merge_daily_metrics(sleep_df, recovery_df, strain_df)
 
-        metrics_df = _merge_daily_metrics(sleep_df, recovery_df, strain_df)
+        workouts = parse_workouts(csv_map["workouts"])
 
         upsert_count = upsert_daily_metrics(db, user_id, metrics_df)
         created_workouts, skipped_workouts = persist_workouts(db, user_id, workouts)
@@ -501,9 +373,10 @@ def ingest_whoop_zip(
                 "training_status": training_summary.get("status") if training_summary else "skipped",
             },
         )
+        return upload
+
     except Exception as exc:  # noqa: BLE001
         db.rollback()
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
         upload.status = UploadStatus.FAILED
         upload.error_message = str(exc)
         db.commit()

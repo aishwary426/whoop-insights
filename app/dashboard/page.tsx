@@ -13,8 +13,8 @@ import InteractiveChart from '../../components/dashboard/InteractiveChart'
 import NeonButton from '../../components/ui/NeonButton'
 import NeonCard from '../../components/ui/NeonCard'
 import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
+import { api } from '../../lib/api'
 import { getCurrentUser } from '../../lib/supabase'
-import { getUserStats } from '../../lib/dataParser'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,11 +35,8 @@ export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalWorkouts: 0,
-    avgRecovery: 50,
-    avgStrain: 0
-  })
+  const [summary, setSummary] = useState<any>(null)
+  const [trends, setTrends] = useState<any>(null)
 
   useEffect(() => {
     checkUser()
@@ -51,19 +48,22 @@ export default function DashboardPage() {
       router.push('/login')
     } else {
       setUser(currentUser)
-      setLoading(false)
-      loadUserStats(currentUser.id)
+      loadDashboardData(currentUser.id)
     }
   }
 
-  const loadUserStats = async (userId: string) => {
+  const loadDashboardData = async (userId: string) => {
     try {
-      const userStats = await getUserStats(userId)
-      if (userStats) {
-        setStats(userStats)
-      }
+      const [summaryData, trendsData] = await Promise.all([
+        api.getDashboardSummary(),
+        api.getTrends()
+      ])
+      setSummary(summaryData)
+      setTrends(trendsData)
     } catch (error) {
-      console.error('Error loading stats:', error)
+      console.error('Error loading dashboard data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -80,81 +80,65 @@ export default function DashboardPage() {
     )
   }
 
-  const hasData = stats.totalWorkouts > 0
-  const recovery = typeof stats.avgRecovery === 'number' ? stats.avgRecovery : 50
-  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-  const recoveryHistory = Array.from({ length: 14 }).map((_, idx) => {
-    const baseline = Math.max(45, Math.min(88, recovery + (Math.random() * 14 - 7)))
-    const label = dayLabels[idx % dayLabels.length]
-    return { date: label, recovery: Math.round(baseline) }
-  })
-  const last7 = recoveryHistory.slice(-7)
-  const avgStrain = typeof stats.avgStrain === 'number' ? stats.avgStrain : Number(stats.avgStrain) || 10
+  const hasData = summary && trends && trends.series && trends.series.recovery.length > 0
 
-  const strainData = last7.map(() => Math.round(Math.max(6, Math.min(20, avgStrain + (Math.random() * 4 - 2)))))
-  const sleepData = last7.map(() => Math.round((6.5 + Math.random() * 2) * 10) / 10)
+  // Format data for charts
+  const last7Recovery = trends?.series?.recovery.slice(-7).map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    recovery: item.value
+  })) || []
 
-  const getRecommendation = () => {
-    if (recovery >= 67) return {
-      text: "High recovery today! Perfect day for high-intensity training or strength work.",
-      workout: "HIIT or Strength",
-      time: "Morning (6-9 AM)"
-    }
-    if (recovery >= 34) return {
-      text: "Moderate recovery. Stick to endurance training or moderate cardio.",
-      workout: "Endurance Run",
-      time: "Afternoon (2-5 PM)"
-    }
-    return {
-      text: "Low recovery. Focus on active recovery, yoga, or complete rest.",
-      workout: "Light Walk/Yoga",
-      time: "Anytime"
-    }
-  }
+  const last7Strain = trends?.series?.strain.slice(-7).map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    value: item.value
+  })) || []
 
-  const rec = getRecommendation()
-  const tomorrowForecast = Math.min(100, Math.max(30, recovery + (Math.random() * 20 - 10)))
-
-  const weeklyPlan = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
-    const dayRecovery = Math.max(40, Math.min(90, recovery + (Math.random() * 30 - 15)))
-    return {
-      day,
-      workout: dayRecovery >= 75 ? 'HIIT' : dayRecovery >= 60 ? 'Endurance' : dayRecovery >= 45 ? 'Light' : 'Rest',
-      intensity: (dayRecovery >= 75 ? 'High' : dayRecovery >= 60 ? 'Moderate' : dayRecovery >= 45 ? 'Low' : 'Recovery') as any,
-      recovery: Math.round(dayRecovery)
-    }
-  })
+  const last7Sleep = trends?.series?.sleep.slice(-7).map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+    value: item.value
+  })) || []
 
   const statsData = [
     {
       icon: Heart,
       label: 'Recovery',
-      value: `${recovery}%`,
-      subtitle: '7-day average',
+      value: summary?.today?.recovery_score ? `${Math.round(summary.today.recovery_score)}%` : '--',
+      subtitle: 'Today',
       color: 'from-green-500/20 to-emerald-500/20'
     },
     {
       icon: Dumbbell,
-      label: 'Total Workouts',
-      value: stats.totalWorkouts,
-      subtitle: 'All time',
+      label: 'Strain',
+      value: summary?.today?.strain_score ? summary.today.strain_score.toFixed(1) : '--',
+      subtitle: 'Today',
       color: 'from-purple-500/20 to-pink-500/20'
     },
     {
       icon: Zap,
-      label: 'Avg Strain',
-      value: stats.avgStrain || '--',
-      subtitle: '30-day average',
+      label: 'HRV',
+      value: summary?.today?.hrv ? `${Math.round(summary.today.hrv)} ms` : '--',
+      subtitle: 'Today',
       color: 'from-amber-500/20 to-orange-500/20'
     },
     {
       icon: Moon,
-      label: 'Sleep Quality',
-      value: '8.2h',
+      label: 'Sleep',
+      value: summary?.today?.sleep_hours ? `${summary.today.sleep_hours.toFixed(1)}h` : '--',
       subtitle: 'Last night',
       color: 'from-blue-500/20 to-cyan-500/20'
     }
   ]
+
+  // Generate weekly plan from trends
+  const weeklyPlan = last7Recovery.map((item: any) => {
+    const recovery = item.recovery
+    return {
+      day: item.date,
+      workout: recovery >= 67 ? 'High Intensity' : recovery >= 34 ? 'Moderate' : 'Active Recovery',
+      intensity: (recovery >= 67 ? 'High' : recovery >= 34 ? 'Moderate' : 'Recovery') as any,
+      recovery: Math.round(recovery)
+    }
+  })
 
   return (
     <AppLayout user={user}>
@@ -170,7 +154,7 @@ export default function DashboardPage() {
               Dashboard
             </h1>
             <p className="text-white/60 text-sm max-w-xl">
-              {hasData ? "Your training status at a glance. Recovery is optimized." : 'Upload your WHOOP export to unlock AI-powered insights.'}
+              {hasData ? "Your training status at a glance. AI insights ready." : 'Upload your WHOOP export to unlock AI-powered insights.'}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -200,14 +184,14 @@ export default function DashboardPage() {
               {/* Left Column: Recommendation & Forecast */}
               <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
                 <TodayRecommendationCard
-                  recovery={recovery}
-                  recommendation={rec.text}
-                  workoutType={rec.workout}
-                  optimalTime={rec.time}
-                  tomorrowForecast={Math.round(tomorrowForecast)}
+                  recovery={summary?.today?.recovery_score || 0}
+                  recommendation={summary?.recommendation?.notes || "No recommendation available."}
+                  workoutType={summary?.recommendation?.workout_type || "Rest"}
+                  optimalTime={summary?.recommendation?.optimal_time || "Anytime"}
+                  tomorrowForecast={Math.round(summary?.tomorrow?.recovery_forecast || 50)}
                 />
 
-                <RecoveryBaselinePanel data={recoveryHistory} />
+                <RecoveryBaselinePanel data={last7Recovery} />
               </motion.div>
 
               {/* Right Column: Charts & Gamification */}
@@ -216,31 +200,29 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <p className="text-xs uppercase tracking-[0.2em] text-white/50">Tomorrow</p>
-                      <p className="text-3xl font-semibold text-neon-primary">{Math.round(tomorrowForecast)}%</p>
+                      <p className="text-3xl font-semibold text-neon-primary">
+                        {Math.round(summary?.tomorrow?.recovery_forecast || 0)}%
+                      </p>
                     </div>
                     <div className="text-xs text-white/60 bg-white/5 px-2 py-1 rounded">AI Forecast</div>
                   </div>
                   <p className="text-sm text-white/60 leading-relaxed">
-                    Based on your recent strain and sleep trends, we predict a strong recovery tomorrow.
+                    {(summary?.tomorrow?.recovery_forecast || 0) > 66
+                      ? "Expect high recovery tomorrow. Good day to push."
+                      : "Recovery might be lower tomorrow. Prioritize sleep."}
                   </p>
                 </NeonCard>
 
                 <div className="grid gap-4">
                   <InteractiveChart
                     title="Strain Trend"
-                    data={last7.map((item, idx) => ({
-                      date: item.date,
-                      value: strainData[idx]
-                    }))}
+                    data={last7Strain}
                     color="#22d3ee"
                     height={160}
                   />
                   <InteractiveChart
                     title="Sleep Quality"
-                    data={last7.map((item, idx) => ({
-                      date: item.date,
-                      value: sleepData[idx]
-                    }))}
+                    data={last7Sleep}
                     color="#a855f7"
                     unit="h"
                     height={160}

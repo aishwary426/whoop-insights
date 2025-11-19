@@ -43,11 +43,7 @@ class TodayRecommendation(APIBase):
     focus: str
     workout_type: str
     notes: str
-<<<<<<< HEAD
     optimal_time: Optional[str] = None
-=======
-    optimal_time: str
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
 
 
 class TomorrowPrediction(APIBase):
@@ -67,7 +63,6 @@ class DashboardSummary(APIBase):
     recommendation: TodayRecommendation
     tomorrow: TomorrowPrediction
     scores: HealthScores
-<<<<<<< HEAD
     risk_flags: List[str] = []
 
 
@@ -76,55 +71,31 @@ class TrendPoint(BaseModel):
     date: date
     value: Optional[float]
 
-class TrendsResponse(BaseModel):
-=======
-    risk_flags: List[str] = Field(default_factory=list)
 
-
-class TrainingSummary(APIBase):
-    status: str
-    model_version: Optional[str] = None
-    trained_models: List[str] = Field(default_factory=list)
-    days_used: int = 0
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    message: Optional[str] = None
-
-
-class TrendPoint(APIBase):
-    date: date
-    value: Optional[float]
-
-
-class TrendsSeries(APIBase):
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
+class TrendsSeries(BaseModel):
     recovery: List[TrendPoint]
     strain: List[TrendPoint]
     sleep: List[TrendPoint]
     hrv: List[TrendPoint]
 
 
-<<<<<<< HEAD
-class InsightItem(BaseModel):
-    id: int
-=======
-class TrendsResponse(APIBase):
+class TrendsResponse(BaseModel):
     user_id: str
     series: TrendsSeries
 
 
-class InsightItem(APIBase):
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)
+class InsightItem(BaseModel):
     insight_type: str
     title: str
     description: str
     confidence: float
     period_start: Optional[date] = None
     period_end: Optional[date] = None
-<<<<<<< HEAD
     data: Optional[dict] = None
 
+
 class InsightsFeed(BaseModel):
+    user_id: str
     insights: List[InsightItem]
 
 
@@ -135,15 +106,3 @@ class TrainingSummary(BaseModel):
     trained_models: List[str] = []
     metrics: dict = {}
     data_summary: dict = {}
-=======
-    data: dict | None = None
-
-
-class InsightsFeed(APIBase):
-    user_id: str
-    insights: List[InsightItem]
-
-
-class APIMessage(APIBase):
-    detail: str
->>>>>>> 57703a5 (Initial commit - Whoop Insights Pro)

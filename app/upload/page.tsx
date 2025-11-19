@@ -8,8 +8,8 @@ import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
 import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
-import { getCurrentUser, supabase } from '../../lib/supabase'
-import JSZip from 'jszip'
+import { getCurrentUser } from '../../lib/supabase'
+import { api } from '../../lib/api'
 
 export default function UploadPage() {
   const router = useRouter()
@@ -77,37 +77,20 @@ export default function UploadPage() {
     setProgress(10)
 
     try {
-      const zip = new JSZip()
-      const zipData = await zip.loadAsync(file)
-      setProgress(30)
+      // Simulate progress for better UX since we can't track real upload progress easily with fetch
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 500)
 
-      const csvFiles: Record<string, string> = {}
-      const fileNames = ['workouts.csv', 'sleeps.csv', 'physiological_cycles.csv', 'journal_entries.csv']
+      await api.uploadWhoopData(file)
 
-      for (const fileName of fileNames) {
-        const zipFile = zipData.file(fileName)
-        if (zipFile) {
-          csvFiles[fileName] = await zipFile.async('text')
-        }
-      }
-
-      setProgress(50)
-
-      const uploadId = `${user.id}_${Date.now()}`
-      let uploadedCount = 0
-
-      for (const [fileName, content] of Object.entries(csvFiles)) {
-        const { error: uploadError } = await supabase.storage
-          .from('whoop-data')
-          .upload(`${uploadId}/${fileName}`, content, {
-            contentType: 'text/csv',
-          })
-
-        if (uploadError) throw uploadError
-        uploadedCount++
-        setProgress(50 + (uploadedCount / Object.keys(csvFiles).length) * 40)
-      }
-
+      clearInterval(progressInterval)
       setProgress(100)
 
       setTimeout(() => {
