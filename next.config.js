@@ -6,7 +6,6 @@ const nextConfig = {
   images: {
     domains: ['your-supabase-project.supabase.co'],
   },
-  outputFileTracing: false,
   async rewrites() {
     if (process.env.NODE_ENV === 'development') {
       return [
