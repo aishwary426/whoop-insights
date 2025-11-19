@@ -175,6 +175,28 @@ else
     print_status "Vercel CLI already installed"
 fi
 
+# Link project first (if it exists)
+print_status "Linking Vercel project..."
+vercel link --yes || true
+
+# Add environment variables BEFORE deployment
+echo ""
+echo "=========================================="
+echo "🔐 Environment Variables"
+echo "=========================================="
+echo ""
+echo "Adding Supabase credentials to Vercel..."
+echo ""
+
+# Add environment variables
+echo "https://ioqajwrnwxhczanpkrdp.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL production || true
+echo "https://ioqajwrnwxhczanpkrdp.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL preview || true
+
+echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI" | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production || true
+echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI" | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview || true
+
+print_status "Environment variables added"
+
 # Deploy to Vercel
 echo ""
 echo "=========================================="
@@ -200,23 +222,6 @@ echo ""
 
 # Deploy
 vercel --yes
-
-echo ""
-echo "=========================================="
-echo "🔐 Environment Variables"
-echo "=========================================="
-echo ""
-echo "Adding Supabase credentials to Vercel..."
-echo ""
-
-# Add environment variables
-echo "https://ioqajwrnwxhczanpkrdp.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL production
-echo "https://ioqajwrnwxhczanpkrdp.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL preview
-
-echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI" | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
-echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI" | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
-
-print_status "Environment variables added"
 
 # Deploy to production
 echo ""
