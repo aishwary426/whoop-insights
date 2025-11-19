@@ -112,8 +112,8 @@ export default function CalorieGPSPage() {
   return (
     <AppLayout user={user}>
       <ParallaxBackground />
-      <div className="relative min-h-screen bg-[#050505] text-white">
-        <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 py-12 space-y-10">
+      <div className="relative min-h-screen text-white">
+        <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-12 space-y-10">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -123,7 +123,7 @@ export default function CalorieGPSPage() {
               <Target className="w-4 h-4 text-neon-primary" />
               ML-powered optimizer
             </div>
-            
+
             <h1 className="text-[clamp(2.4rem,6vw,3.6rem)] font-semibold leading-tight">
               Calorie-Burn GPS
             </h1>
@@ -138,14 +138,14 @@ export default function CalorieGPSPage() {
             transition={{ delay: 0.05 }}
             className="grid md:grid-cols-2 gap-6 mb-12 max-w-4xl mx-auto"
           >
-            <NeonCard className="p-6 border-white/10">
+            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
               <div className="flex items-center justify-between mb-4">
                 <label className="text-lg font-semibold">Recovery today</label>
                 <div className={`text-3xl font-semibold ${getRecoveryColor()}`}>
                   {recovery}%
                 </div>
               </div>
-              
+
               <div className="relative mb-3">
                 <input
                   type="range"
@@ -161,31 +161,30 @@ export default function CalorieGPSPage() {
                   }}
                 />
               </div>
-              
+
               <div className="flex justify-between text-[11px] text-white/50">
                 <span>0%</span>
                 <span>50%</span>
                 <span>100%</span>
               </div>
 
-              <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
-                recovery >= 67 ? 'bg-neon-primary/20 text-neon-primary' :
+              <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${recovery >= 67 ? 'bg-neon-primary/20 text-neon-primary' :
                 recovery >= 34 ? 'bg-amber-500/20 text-amber-300' :
-                'bg-red-500/20 text-red-300'
-              }`}>
+                  'bg-red-500/20 text-red-300'
+                }`}>
                 <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
                 {getRecoveryLabel()} Zone
               </div>
             </NeonCard>
 
-            <NeonCard className="p-6 border-white/10">
+            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
               <div className="flex items-center justify-between mb-4">
                 <label className="text-lg font-semibold">Target calories</label>
                 <div className="text-3xl font-semibold text-neon-primary">
                   {targetCalories}
                 </div>
               </div>
-              
+
               <div className="relative mb-3">
                 <input
                   type="range"
@@ -202,7 +201,7 @@ export default function CalorieGPSPage() {
                   }}
                 />
               </div>
-              
+
               <div className="flex justify-between text-[11px] text-white/50">
                 <span>100</span>
                 <span>750</span>
@@ -270,7 +269,7 @@ export default function CalorieGPSPage() {
               {/* Alternative Options */}
               <div className="mb-8">
                 <h3 className="text-2xl font-bold mb-6">Alternative Options</h3>
-                
+
                 <div className="grid md:grid-cols-3 gap-6">
                   {results.filter((w: any) => !w.optimal).map((workout: any, idx: number) => (
                     <motion.div
@@ -282,7 +281,7 @@ export default function CalorieGPSPage() {
                     >
                       <div className="text-5xl mb-4">{workout.emoji}</div>
                       <h3 className="text-xl font-bold mb-4">{workout.name}</h3>
-                      
+
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-slate-400">Time</span>
@@ -318,8 +317,8 @@ export default function CalorieGPSPage() {
                   <div>
                     <h4 className="font-semibold mb-2">How This Works</h4>
                     <p className="text-sm text-slate-400 leading-relaxed">
-                      Our ML model analyzes your recovery state and predicts the most efficient workout type for burning your target calories. 
-                      Higher recovery enables more intense, time-efficient workouts. Lower recovery suggests longer, lower-intensity activities 
+                      Our ML model analyzes your recovery state and predicts the most efficient workout type for burning your target calories.
+                      Higher recovery enables more intense, time-efficient workouts. Lower recovery suggests longer, lower-intensity activities
                       to avoid overtraining while still hitting your calorie goals.
                     </p>
                   </div>

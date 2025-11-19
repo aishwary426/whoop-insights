@@ -27,7 +27,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
 
   useEffect(() => {
     return scrollY.onChange((latest) => {
-      setIsScrolled(latest > 50)
+      setIsScrolled(latest > 20)
     })
   }, [scrollY])
 
@@ -38,80 +38,73 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
   ]
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-bgDark text-white font-sans selection:bg-neon selection:text-black">
       {/* Navigation */}
       <motion.nav
-        initial={{ y: -80 }}
+        initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled ? 'glass-nav border-white/5' : 'bg-[#050505]/70'
-        }`}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-bgDark/80 backdrop-blur-md border-b border-white/5 py-4' : 'bg-transparent py-6'
+          }`}
       >
-        <div className="max-w-6xl mx-auto px-4 md:px-6">
-          <div className="flex items-center justify-between h-14 md:h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group" aria-label="Whoop Insights Pro home">
-              <div className="w-9 h-9 rounded-xl bg-neon-primary/15 border border-neon-primary/30 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Target className="w-5 h-5 text-neon-primary" />
-              </div>
-              <span className="text-sm md:text-base font-semibold tracking-tight">Whoop Insights Pro</span>
-            </Link>
+        <div className="w-full px-6 md:px-8">
+          <div className="flex items-center justify-between">
+            {/* Left Side: Logo + Navigation */}
+            <div className="flex items-center gap-12">
+              {/* Logo */}
+              <Link href="/" className="flex items-center gap-3 group" aria-label="Whoop Insights Pro home">
+                <div className="w-8 h-8 rounded-full bg-neon/10 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
+                  <Target className="w-4 h-4 text-neon" />
+                </div>
+                <span className="text-sm font-medium tracking-wide text-white/90 group-hover:text-white transition-colors">Whoop Insights Pro</span>
+              </Link>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-6">
-              {user
-                ? navItems.map((item) => (
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center gap-8">
+                {user
+                  ? navItems.map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`text-sm font-medium transition-colors ${
-                        pathname === item.href ? 'text-white' : 'text-slate-400 hover:text-white'
-                      }`}
+                      className={`text-sm font-medium transition-colors ${pathname === item.href ? 'text-white' : 'text-white/60 hover:text-white'
+                        }`}
                     >
                       {item.label}
                     </Link>
                   ))
-                : (
-                  <>
-                    <Link href="#story" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
-                      What it does
-                    </Link>
-                    <Link href="#pricing" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
-                      Pricing
-                    </Link>
-                  </>
-                )
-              }
+                  : null
+                }
+              </div>
             </div>
 
-            {/* Right side */}
-            <div className="flex items-center gap-3">
+            {/* Right side: User Menu */}
+            <div className="flex items-center gap-4">
               {user ? (
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="w-9 h-9 rounded-full bg-neon-primary/20 border border-neon-primary/40 flex items-center justify-center font-semibold text-sm text-neon-primary hover:scale-105 transition-transform"
+                    className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-medium text-xs text-white hover:bg-white/20 transition-colors"
                     aria-label="User menu"
                   >
                     {user.name?.charAt(0) || 'U'}
                   </button>
-                  
+
                   {showUserMenu && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute right-0 mt-2 w-52 glass-card p-2"
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className="absolute right-0 mt-2 w-56 bg-[#111] border border-white/10 rounded-xl shadow-2xl overflow-hidden p-1"
                     >
-                      <div className="px-3 py-2 border-b border-white/10">
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-slate-400">{user.email}</p>
+                      <div className="px-3 py-2 border-b border-white/5 mb-1">
+                        <p className="text-sm font-medium text-white">{user.name}</p>
+                        <p className="text-xs text-white/40 truncate">{user.email}</p>
                       </div>
                       <button
                         onClick={() => {
                           setShowUserMenu(false)
                           router.push('/settings')
                         }}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-white/5 rounded-lg flex items-center gap-2"
+                        className="w-full px-3 py-2 text-left text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"
                       >
                         <Settings className="w-4 h-4" />
                         Settings
@@ -130,7 +123,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                             setIsSigningOut(false)
                           }
                         }}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-white/5 rounded-lg flex items-center gap-2 text-red-400 disabled:opacity-70"
+                        className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
                       >
                         <LogOut className="w-4 h-4" />
                         {isSigningOut ? 'Signing out...' : 'Sign Out'}
@@ -139,8 +132,8 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                   )}
                 </div>
               ) : (
-                <Link href="/signup" className="hidden sm:inline-block">
-                  <NeonButton className="text-sm px-4 py-2" variant="primary">
+                <Link href="/signup">
+                  <NeonButton className="text-sm px-5 py-2.5" variant="primary">
                     Get Started
                   </NeonButton>
                 </Link>
@@ -151,7 +144,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
       </motion.nav>
 
       {/* Main Content */}
-      <main className="pt-16 md:pt-20">
+      <main>
         {children}
       </main>
     </div>

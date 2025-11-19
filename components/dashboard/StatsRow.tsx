@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { LucideIcon } from 'lucide-react'
+import NeonCard from '../ui/NeonCard'
 
 interface StatCardProps {
   icon: LucideIcon
@@ -14,22 +15,19 @@ interface StatCardProps {
 
 export function StatCard({ icon: Icon, label, value, subtitle, color, delay = 0 }: StatCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay }}
-      className="stat-card group"
+    <NeonCard
+      className="p-6 border-white/10 group hover:border-neon-primary/30 transition-colors"
     >
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-          <Icon className="w-6 h-6" />
+        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+          <Icon className="w-5 h-5 text-white" />
         </div>
       </div>
-      
-      <div className="text-3xl font-bold mb-2">{value}</div>
-      <div className="text-sm text-slate-400 mb-1">{label}</div>
-      {subtitle && <div className="text-xs text-slate-500">{subtitle}</div>}
-    </motion.div>
+
+      <div className="text-2xl font-bold mb-1 text-white">{value}</div>
+      <div className="text-sm text-white/60 mb-1">{label}</div>
+      {subtitle && <div className="text-[10px] uppercase tracking-wider text-white/30">{subtitle}</div>}
+    </NeonCard>
   )
 }
 

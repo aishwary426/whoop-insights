@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Heart, Dumbbell, Zap, Moon } from 'lucide-react'
+import { motion } from 'framer-motion'
 import AppLayout from '../../components/layout/AppLayout'
 import TodayRecommendationCard from '../../components/dashboard/TodayRecommendationCard'
 import StatsRow from '../../components/dashboard/StatsRow'
@@ -14,6 +15,21 @@ import NeonCard from '../../components/ui/NeonCard'
 import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
 import { getCurrentUser } from '../../lib/supabase'
 import { getUserStats } from '../../lib/dataParser'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+}
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -54,10 +70,10 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center min-h-screen bg-[#050505]">
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-400 text-sm">Loading your insights...</p>
+            <p className="text-white/60 text-sm">Loading your insights...</p>
           </div>
         </div>
       </AppLayout>
@@ -74,12 +90,10 @@ export default function DashboardPage() {
   })
   const last7 = recoveryHistory.slice(-7)
   const avgStrain = typeof stats.avgStrain === 'number' ? stats.avgStrain : Number(stats.avgStrain) || 10
-  
-  // Generate consistent data for charts (using useMemo would be better, but keeping it simple for now)
+
   const strainData = last7.map(() => Math.round(Math.max(6, Math.min(20, avgStrain + (Math.random() * 4 - 2)))))
   const sleepData = last7.map(() => Math.round((6.5 + Math.random() * 2) * 10) / 10)
 
-  // Generate recommendation
   const getRecommendation = () => {
     if (recovery >= 67) return {
       text: "High recovery today! Perfect day for high-intensity training or strength work.",
@@ -101,7 +115,6 @@ export default function DashboardPage() {
   const rec = getRecommendation()
   const tomorrowForecast = Math.min(100, Math.max(30, recovery + (Math.random() * 20 - 10)))
 
-  // Generate weekly plan
   const weeklyPlan = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => {
     const dayRecovery = Math.max(40, Math.min(90, recovery + (Math.random() * 30 - 15)))
     return {
@@ -146,21 +159,23 @@ export default function DashboardPage() {
   return (
     <AppLayout user={user}>
       <ParallaxBackground />
-      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 py-12 space-y-10">
+      <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-12 space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-3 pt-4">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-neon-primary/30 bg-neon-primary/10 px-3 py-1 text-[12px] font-medium text-white/85">
-            Welcome back, {user?.user_metadata?.name || 'Athlete'}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-neon-primary/30 bg-neon-primary/10 px-3 py-1 text-[12px] font-medium text-white/85">
+              Welcome back, {user?.user_metadata?.name || 'Athlete'}
+            </div>
+            <h1 className="text-4xl font-semibold leading-tight">
+              Dashboard
+            </h1>
+            <p className="text-white/60 text-sm max-w-xl">
+              {hasData ? "Your training status at a glance. Recovery is optimized." : 'Upload your WHOOP export to unlock AI-powered insights.'}
+            </p>
           </div>
-          <h1 className="text-[clamp(2.2rem,4vw,3rem)] font-semibold leading-tight">
-            Futuristic, neon-clear insights built on your WHOOP data.
-          </h1>
-          <p className="text-white/60 text-[15px]">
-            {hasData ? "Recovery driven cards, adaptive baselines, and micro-motions tuned for performance." : 'Upload your WHOOP export to unlock AI-powered insights and personalized training plans.'}
-          </p>
           <div className="flex items-center gap-3">
             <NeonButton onClick={() => router.push('/upload')} variant="primary" className="text-sm">
-              Upload new data
+              Upload Data
             </NeonButton>
             <NeonButton onClick={() => router.push('/calorie-gps')} variant="ghost" className="text-sm">
               Calorie GPS
@@ -169,118 +184,81 @@ export default function DashboardPage() {
         </div>
 
         {hasData ? (
-          <>
-            {/* Recovery + recommendation */}
-            <div className="grid md:grid-cols-[1.1fr_0.9fr] gap-6">
-              <TodayRecommendationCard
-                recovery={recovery}
-                recommendation={rec.text}
-                workoutType={rec.workout}
-                optimalTime={rec.time}
-                tomorrowForecast={Math.round(tomorrowForecast)}
-              />
-              <NeonCard className="p-6 border-white/10">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-white/50">Tomorrow forecast</p>
-                    <p className="text-3xl font-semibold text-neon-primary">{Math.round(tomorrowForecast)}%</p>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="space-y-6"
+          >
+            {/* Top Row: Stats */}
+            <motion.div variants={itemVariants}>
+              <StatsRow stats={statsData} />
+            </motion.div>
+
+            {/* Main Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column: Recommendation & Forecast */}
+              <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
+                <TodayRecommendationCard
+                  recovery={recovery}
+                  recommendation={rec.text}
+                  workoutType={rec.workout}
+                  optimalTime={rec.time}
+                  tomorrowForecast={Math.round(tomorrowForecast)}
+                />
+
+                <RecoveryBaselinePanel data={recoveryHistory} />
+              </motion.div>
+
+              {/* Right Column: Charts & Gamification */}
+              <motion.div variants={itemVariants} className="space-y-6">
+                <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-white/50">Tomorrow</p>
+                      <p className="text-3xl font-semibold text-neon-primary">{Math.round(tomorrowForecast)}%</p>
+                    </div>
+                    <div className="text-xs text-white/60 bg-white/5 px-2 py-1 rounded">AI Forecast</div>
                   </div>
-                  <div className="text-xs text-white/60">AI forecast (demo)</div>
+                  <p className="text-sm text-white/60 leading-relaxed">
+                    Based on your recent strain and sleep trends, we predict a strong recovery tomorrow.
+                  </p>
+                </NeonCard>
+
+                <div className="grid gap-4">
+                  <InteractiveChart
+                    title="Strain Trend"
+                    data={last7.map((item, idx) => ({
+                      date: item.date,
+                      value: strainData[idx]
+                    }))}
+                    color="#22d3ee"
+                    height={160}
+                  />
+                  <InteractiveChart
+                    title="Sleep Quality"
+                    data={last7.map((item, idx) => ({
+                      date: item.date,
+                      value: sleepData[idx]
+                    }))}
+                    color="#a855f7"
+                    unit="h"
+                    height={160}
+                  />
                 </div>
-                <p className="text-sm text-white/70">
-                  Baseline-conscious forecasts that mirror your slider changes. Values above baseline glow green; below baseline run red and pull back intensity.
-                </p>
-              </NeonCard>
+              </motion.div>
             </div>
 
-            {/* Baseline-aware metrics */}
-            <RecoveryBaselinePanel data={recoveryHistory} />
-
-            {/* Stats Row */}
-            <StatsRow stats={statsData} />
-
-            {/* Separate Interactive Charts */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/50">Recent 7 days</p>
-                  <h3 className="text-xl font-semibold">Interactive metrics</h3>
-                </div>
-                <span className="text-[12px] text-white/60">Hover to see values</span>
-              </div>
-              <div className="grid md:grid-cols-3 gap-6">
-                <InteractiveChart
-                  title="Recovery"
-                  subtitle="7-day trend"
-                  data={last7.map((item, idx) => ({ date: item.date, value: item.recovery }))}
-                  color="#00FF8F"
-                  unit="%"
-                  height={200}
-                />
-                <InteractiveChart
-                  title="Strain"
-                  subtitle="7-day trend"
-                  data={last7.map((item, idx) => ({ 
-                    date: item.date, 
-                    value: strainData[idx] 
-                  }))}
-                  color="#22d3ee"
-                  unit=""
-                  height={200}
-                />
-                <InteractiveChart
-                  title="Sleep"
-                  subtitle="7-day trend"
-                  data={last7.map((item, idx) => ({ 
-                    date: item.date, 
-                    value: sleepData[idx] 
-                  }))}
-                  color="#a855f7"
-                  unit="h"
-                  height={200}
-                />
-              </div>
-            </div>
-
-            {/* Weekly Plan */}
-            <WeeklyPlan plan={weeklyPlan} />
-
-            {/* Gamification Cards */}
-            <div className="grid md:grid-cols-3 gap-6">
-              <NeonCard className="p-6 border-white/10">
-                <div className="flex items-center gap-4">
-                  <div className="text-5xl">🔥</div>
-                  <div>
-                    <div className="text-3xl font-bold">15</div>
-                    <div className="text-sm text-slate-400">Day Streak</div>
-                  </div>
-                </div>
-              </NeonCard>
-              <NeonCard className="p-6 border-white/10">
-                <div className="flex items-center gap-4">
-                  <div className="text-5xl">🏆</div>
-                  <div>
-                    <div className="text-3xl font-bold">8</div>
-                    <div className="text-sm text-slate-400">Achievements</div>
-                  </div>
-                </div>
-              </NeonCard>
-              <NeonCard className="p-6 border-white/10">
-                <div className="flex items-center gap-4">
-                  <div className="text-5xl">⭐</div>
-                  <div>
-                    <div className="text-3xl font-bold">Top 10%</div>
-                    <div className="text-sm text-slate-400">This Month</div>
-                  </div>
-                </div>
-              </NeonCard>
-            </div>
-          </>
+            {/* Bottom Row: Weekly Plan */}
+            <motion.div variants={itemVariants}>
+              <WeeklyPlan plan={weeklyPlan} />
+            </motion.div>
+          </motion.div>
         ) : (
-          <NeonCard className="p-12 text-center border-white/10">
+          <NeonCard className="p-12 text-center border-white/10 bg-[#0A0A0A]">
             <div className="text-6xl mb-6">📦</div>
             <h3 className="text-2xl font-bold mb-4">No Data Yet</h3>
-            <p className="text-slate-400 mb-8 max-w-md mx-auto">
+            <p className="text-white/60 mb-8 max-w-md mx-auto">
               Upload your WHOOP export to unlock AI-powered insights and personalized training plans
             </p>
             <NeonButton onClick={() => router.push('/upload')}>Upload Data Now</NeonButton>
@@ -290,4 +268,5 @@ export default function DashboardPage() {
     </AppLayout>
   )
 }
+
 

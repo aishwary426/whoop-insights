@@ -1,18 +1,18 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { ButtonHTMLAttributes, ReactNode } from 'react'
+import { motion, HTMLMotionProps } from 'framer-motion'
+import { ReactNode } from 'react'
 import clsx from 'clsx'
 
-type Variant = 'primary' | 'ghost' | 'subtle'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'subtle'
 
-interface NeonButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface NeonButtonProps extends HTMLMotionProps<"button"> {
   children: ReactNode
   variant?: Variant
   fullWidth?: boolean
 }
 
-const ease = [0.16, 1, 0.3, 1]
+const ease: any = [0.16, 1, 0.3, 1]
 
 export default function NeonButton({
   children,
@@ -25,11 +25,13 @@ export default function NeonButton({
 
   const variants: Record<Variant, string> = {
     primary:
-      'bg-neon-primary text-black shadow-neon-soft px-5 py-3 border border-neon-primary/80 hover:shadow-neon-soft hover:-translate-y-0.5 active:translate-y-0',
+      'bg-neon text-black shadow-neon-soft px-8 py-4 border border-neon/80 hover:shadow-neon-soft hover:scale-105 active:scale-95',
+    secondary:
+      'bg-transparent text-white px-8 py-4 border border-neon/50 hover:bg-neon/10 hover:border-neon hover:text-neon active:scale-95',
     ghost:
-      'bg-black/60 text-white px-5 py-3 border border-white/10 hover:border-neon-primary/60 hover:text-neon-primary',
+      'bg-transparent text-white/70 px-6 py-3 hover:text-white hover:bg-white/5',
     subtle:
-      'bg-white/5 text-white px-4 py-2 border border-white/5 hover:border-neon-primary/50 hover:text-neon-primary/90',
+      'bg-white/5 text-white px-4 py-2 border border-white/5 hover:border-neon/50 hover:text-neon/90',
   }
 
   return (

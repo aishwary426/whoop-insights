@@ -1,7 +1,7 @@
 'use client'
 
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
-import { useState, useEffect, useLayoutEffect } from 'react'
+import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate } from 'framer-motion'
+import { useState, useLayoutEffect, useEffect } from 'react'
 import clsx from 'clsx'
 
 interface ParallaxBlobProps {
@@ -12,6 +12,8 @@ interface ParallaxBlobProps {
   oscillate?: number
   delay?: number
   parallax?: number
+  mouseX: any
+  mouseY: any
 }
 
 export function ParallaxBlob({
@@ -22,12 +24,13 @@ export function ParallaxBlob({
   oscillate = 20,
   delay = 0,
   parallax = 32,
+  mouseX,
+  mouseY,
 }: ParallaxBlobProps) {
   const { scrollY } = useScroll()
   const [maxScroll, setMaxScroll] = useState(800)
-  
+
   useLayoutEffect(() => {
-    // Calculate max scroll based on document height
     const updateMaxScroll = () => {
       if (typeof window !== 'undefined') {
         const docHeight = document.documentElement.scrollHeight
@@ -35,21 +38,18 @@ export function ParallaxBlob({
         setMaxScroll(Math.max(400, docHeight - windowHeight + 200))
       }
     }
-    
+
     updateMaxScroll()
     window.addEventListener('resize', updateMaxScroll)
     window.addEventListener('scroll', updateMaxScroll)
-    // Update on content load
     setTimeout(updateMaxScroll, 100)
-    
+
     return () => {
       window.removeEventListener('resize', updateMaxScroll)
       window.removeEventListener('scroll', updateMaxScroll)
     }
   }, [])
-  
-  // Use dynamic range that adapts to page height, with fallback for minimal content
-  // Add spring for smoother animation
+
   const yRaw = useTransform(
     scrollY,
     [0, maxScroll],
@@ -58,11 +58,23 @@ export function ParallaxBlob({
   )
   const y = useSpring(yRaw, { stiffness: 50, damping: 20 })
 
+  // Mouse parallax effect
+  const xMouse = useTransform(mouseX, [0, 1], [-20, 20])
+  const yMouse = useTransform(mouseY, [0, 1], [-20, 20])
+  const xSpring = useSpring(xMouse, { stiffness: 20, damping: 15 })
+  const ySpring = useSpring(yMouse, { stiffness: 20, damping: 15 })
+
   const gradient = `radial-gradient(circle at 30% 30%, ${color} 0%, rgba(0,255,143,0) 60%)`
 
   return (
     <motion.div
-      style={{ y, width: size, height: size, background: gradient }}
+      style={{
+        y,
+        x: xSpring,
+        width: size,
+        height: size,
+        background: gradient
+      }}
       className={clsx(
         'pointer-events-none absolute rounded-full blur-3xl mix-blend-screen',
         className
@@ -70,39 +82,180 @@ export function ParallaxBlob({
       animate={{
         x: [0, oscillate * 0.6, -oscillate * 0.6, 0],
         y: [0, oscillate * 0.25, -oscillate * 0.25, 0],
-        opacity,
+        opacity: [opacity, opacity * 0.8, opacity],
+        scale: [1, 1.05, 0.95, 1],
       }}
       transition={{
         repeat: Infinity,
         duration: 22 + delay * 2,
         ease: 'easeInOut',
         delay,
+        times: [0, 0.33, 0.66, 1],
       }}
     />
   )
 }
+
+function FloatingParticles({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
+  const particleCount = 25
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(particleCount)].map((_, i) => (
+        <Particle key={i} index={i} mouseX={mouseX} mouseY={mouseY} />
+      ))}
+    </div>
+  )
+}
+
+function Particle({ index, mouseX, mouseY }: { index: number, mouseX: any, mouseY: any }) {
+  const size = 2 + (index % 3)
+  const initialX = (index * 17) % 100
+  const initialY = (index * 23) % 100
+  const duration = 20 + (index % 10) * 2
+  const delay = index * 0.5
+
+  // Reactive movement based on mouse
+  // Particles move slightly away from cursor
+  const xOffset = useTransform(mouseX, [0, 1], [index % 2 === 0 ? -30 : 30, index % 2 === 0 ? 30 : -30])
+  const yOffset = useTransform(mouseY, [0, 1], [index % 3 === 0 ? -30 : 30, index % 3 === 0 ? 30 : -30])
+
+  const xSpring = useSpring(xOffset, { stiffness: 15, damping: 20 })
+  const ySpring = useSpring(yOffset, { stiffness: 15, damping: 20 })
+
+  return (
+    <motion.div
+      className="absolute rounded-full bg-white/20"
+      style={{
+        width: size,
+        height: size,
+        left: `${initialX}%`,
+        top: `${initialY}%`,
+        x: xSpring,
+        y: ySpring,
+      }}
+      animate={{
+        y: [0, -100, 0],
+        opacity: [0, 0.5, 0],
+        scale: [0, 1, 0],
+      }}
+      transition={{
+        y: {
+          duration,
+          repeat: Infinity,
+          delay,
+          ease: "linear",
+        },
+        opacity: {
+          duration: duration * 0.5,
+          repeat: Infinity,
+          delay,
+          ease: "easeInOut"
+        },
+        scale: {
+          duration: duration * 0.5,
+          repeat: Infinity,
+          delay,
+          ease: "easeInOut"
+        }
+      }}
+    />
+  )
+}
+
+function DynamicGrid({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
+  const maskImage = useMotionTemplate`radial-gradient(
+    400px circle at ${mouseX}px ${mouseY}px,
+    black,
+    transparent
+  )`
+
+  // Simple grid pattern
+  return (
+    <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none"
+      style={{
+        backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+        backgroundSize: '60px 60px'
+      }}
+    />
+  )
+}
+
 
 interface ParallaxBackgroundProps {
   children?: React.ReactNode
 }
 
 export function ParallaxBackground({ children }: ParallaxBackgroundProps) {
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+  const mouseXPx = useMotionValue(0)
+  const mouseYPx = useMotionValue(0)
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { clientX, clientY } = e
+      const { innerWidth, innerHeight } = window
+      mouseX.set(clientX / innerWidth)
+      mouseY.set(clientY / innerHeight)
+      mouseXPx.set(clientX)
+      mouseYPx.set(clientY)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [mouseX, mouseY, mouseXPx, mouseYPx])
+
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-      <ParallaxBlob className="-left-12 top-12" opacity={0.4} parallax={40} />
-      <ParallaxBlob className="right-6 top-24" size={520} color="rgba(0,255,143,0.25)" delay={4} oscillate={22} parallax={30} opacity={0.3} />
-      <ParallaxBlob className="bottom-4 left-1/3" size={460} color="rgba(160,255,220,0.25)" delay={2} parallax={22} opacity={0.3} />
-      <NeonStructure />
+      <div className="absolute inset-0 bg-[#050505]" />
+      <DynamicGrid mouseX={mouseXPx} mouseY={mouseYPx} />
+      <FloatingParticles mouseX={mouseX} mouseY={mouseY} />
+
+      <ParallaxBlob
+        className="-left-12 top-12"
+        opacity={0.4}
+        parallax={40}
+        mouseX={mouseX}
+        mouseY={mouseY}
+      />
+      <ParallaxBlob
+        className="right-6 top-24"
+        size={520}
+        color="rgba(0,255,143,0.25)"
+        delay={4}
+        oscillate={22}
+        parallax={30}
+        opacity={0.3}
+        mouseX={mouseX}
+        mouseY={mouseY}
+      />
+      <ParallaxBlob
+        className="bottom-4 left-1/3"
+        size={460}
+        color="rgba(160,255,220,0.25)"
+        delay={2}
+        parallax={22}
+        opacity={0.3}
+        mouseX={mouseX}
+        mouseY={mouseY}
+      />
+
+      <NeonStructure mouseX={mouseX} mouseY={mouseY} />
       {children}
     </div>
   )
 }
 
-function NeonStructure() {
+function NeonStructure({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
+  const rotateX = useTransform(mouseY, [0, 1], [5, -5])
+  const rotateY = useTransform(mouseX, [0, 1], [-5, 5])
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
+    <div className="absolute inset-0 flex items-center justify-center perspective-1000">
       <motion.div
         className="relative w-[38rem] h-[38rem] max-w-[90vw]"
+        style={{ rotateX, rotateY }}
         aria-hidden
       >
         {['100%', '78%', '58%'].map((size, idx) => (

@@ -46,7 +46,7 @@ export default function UploadPage() {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0]
       if (droppedFile.name.endsWith('.zip')) {
@@ -83,7 +83,7 @@ export default function UploadPage() {
 
       const csvFiles: Record<string, string> = {}
       const fileNames = ['workouts.csv', 'sleeps.csv', 'physiological_cycles.csv', 'journal_entries.csv']
-      
+
       for (const fileName of fileNames) {
         const zipFile = zipData.file(fileName)
         if (zipFile) {
@@ -95,7 +95,7 @@ export default function UploadPage() {
 
       const uploadId = `${user.id}_${Date.now()}`
       let uploadedCount = 0
-      
+
       for (const [fileName, content] of Object.entries(csvFiles)) {
         const { error: uploadError } = await supabase.storage
           .from('whoop-data')
@@ -109,7 +109,7 @@ export default function UploadPage() {
       }
 
       setProgress(100)
-      
+
       setTimeout(() => {
         router.push('/dashboard')
       }, 1000)
@@ -125,7 +125,7 @@ export default function UploadPage() {
   return (
     <AppLayout user={user}>
       <ParallaxBackground />
-      <div className="relative z-10 max-w-5xl mx-auto px-4 md:px-6 py-16 text-white">
+      <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-16 text-white">
         <div className="relative text-center space-y-3 mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon-primary/30 bg-neon-primary/10 text-xs font-semibold text-white/80">
             <ShieldCheck className="w-4 h-4 text-neon-primary" />
@@ -137,7 +137,7 @@ export default function UploadPage() {
           </p>
         </div>
 
-        <NeonCard className="p-8 border-white/10">
+        <NeonCard className="p-8 border-white/10 bg-[#0A0A0A]">
           {!uploading ? (
             <>
               <div
@@ -146,11 +146,10 @@ export default function UploadPage() {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => document.getElementById('fileInput')?.click()}
-                className={`relative border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 ${
-                  dragActive 
-                    ? 'border-neon-primary/60 bg-neon-primary/5' 
-                    : 'border-white/10 hover:border-neon-primary/40 hover:bg-white/5'
-                }`}
+                className={`relative border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 ${dragActive
+                  ? 'border-neon-primary/60 bg-neon-primary/5'
+                  : 'border-white/10 hover:border-neon-primary/40 hover:bg-white/5'
+                  }`}
               >
                 <input
                   id="fileInput"
@@ -159,7 +158,7 @@ export default function UploadPage() {
                   onChange={handleFileChange}
                   className="hidden"
                 />
-                
+
                 {file ? (
                   <div className="flex items-center justify-center gap-4">
                     <FileText className="w-10 h-10 text-neon-primary" />
@@ -211,7 +210,7 @@ export default function UploadPage() {
             <div className="text-center py-12">
               <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
               <div className="text-xl font-semibold mb-4">Processing your data...</div>
-              
+
               <div className="max-w-md mx-auto">
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
                   <motion.div

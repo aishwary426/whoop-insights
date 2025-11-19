@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import NeonCard from '../ui/NeonCard'
 
 interface DayPlan {
   day: string
@@ -16,10 +17,10 @@ interface WeeklyPlanProps {
 export default function WeeklyPlan({ plan }: WeeklyPlanProps) {
   const getIntensityColor = (intensity: string) => {
     switch (intensity) {
-      case 'High': return 'bg-gradient-to-br from-red-500/20 to-orange-500/20 border-red-500/30'
-      case 'Moderate': return 'bg-gradient-to-br from-amber-500/20 to-yellow-500/20 border-amber-500/30'
-      case 'Low': return 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-blue-500/30'
-      default: return 'bg-gradient-to-br from-slate-500/20 to-gray-500/20 border-slate-500/30'
+      case 'High': return 'bg-red-500/10 border-red-500/20 text-red-200'
+      case 'Moderate': return 'bg-amber-500/10 border-amber-500/20 text-amber-200'
+      case 'Low': return 'bg-blue-500/10 border-blue-500/20 text-blue-200'
+      default: return 'bg-white/5 border-white/10 text-white/40'
     }
   }
 
@@ -33,31 +34,31 @@ export default function WeeklyPlan({ plan }: WeeklyPlanProps) {
   }
 
   return (
-    <div className="glass-card p-8">
-      <div className="flex items-center justify-between mb-6">
+    <NeonCard className="p-8 border-white/10">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold mb-1">Your Optimal Week</h2>
-          <p className="text-sm text-slate-400">AI-generated training schedule</p>
+          <h2 className="text-xl font-semibold mb-1">Your Optimal Week</h2>
+          <p className="text-sm text-white/60">AI-generated training schedule based on your trends</p>
         </div>
-        <div className="text-4xl">📅</div>
+        <div className="text-4xl opacity-50">📅</div>
       </div>
 
-      <div className="grid grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         {plan.map((day, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
-            className={`glass-card p-4 text-center hover:scale-105 transition-all cursor-pointer ${getIntensityColor(day.intensity)}`}
+            className={`p-4 rounded-xl border text-center transition-all hover:scale-105 cursor-default ${getIntensityColor(day.intensity)}`}
           >
-            <div className="font-bold text-sm mb-2">{day.day}</div>
-            <div className="text-3xl mb-3">{getIntensityEmoji(day.intensity)}</div>
-            <div className="text-xs font-semibold mb-2">{day.workout}</div>
-            <div className="text-xs text-slate-400">{day.recovery}%</div>
+            <div className="font-bold text-xs mb-3 opacity-70">{day.day}</div>
+            <div className="text-2xl mb-3">{getIntensityEmoji(day.intensity)}</div>
+            <div className="text-[10px] uppercase tracking-wider font-semibold mb-1">{day.workout}</div>
+            <div className="text-[10px] opacity-50">{day.recovery}% Rec</div>
           </motion.div>
         ))}
       </div>
-    </div>
+    </NeonCard>
   )
 }
