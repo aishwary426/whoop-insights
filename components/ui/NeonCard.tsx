@@ -14,7 +14,7 @@ export default function NeonCard({ children, className, bordered = true }: NeonC
   return (
     <motion.div
       className={clsx(
-        'relative overflow-hidden rounded-2xl bg-[#0A0A0A] text-white/85',
+        'relative overflow-hidden rounded-2xl bg-[#0A0A0A]/60 backdrop-blur-xl text-white/85',
         bordered ? 'border border-white/10' : '',
         'shadow-neon-card transition duration-200 ease-apple',
         className

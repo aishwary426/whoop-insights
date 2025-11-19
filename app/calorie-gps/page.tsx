@@ -7,7 +7,7 @@ import { Flame, Target, TrendingUp, Activity } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
-import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
+import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { getCurrentUser } from '../../lib/supabase'
 import CalorieAnalysisSection from '../../components/dashboard/CalorieAnalysisSection'
 import InteractiveChart from '../../components/dashboard/InteractiveChart'
@@ -139,36 +139,10 @@ export default function CalorieGPSPage() {
     return 'Red'
   }
 
-  const fueling = (() => {
-    if (targetCalories > 800) {
-      return {
-        pre: "Complex carbs 2-3h before (Oats, Rice)",
-        intra: "Electrolytes + 30g carbs/hour",
-        post: "25g Protein + 50g Carbs immediately"
-      }
-    } else if (targetCalories > 400) {
-      return {
-        pre: "Light snack 1h before (Banana, Toast)",
-        intra: "Water + Electrolytes",
-        post: "Balanced meal within 2 hours"
-      }
-    } else {
-      return {
-        pre: "Hydrate well",
-        intra: "Water",
-        post: "Normal meal"
-      }
-    }
-  })()
-
-  const calorieTrendData = trends?.series?.calories?.slice(-30).map((item: any) => ({
-    date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }),
-    value: item.value
-  })) || []
 
   return (
     <AppLayout user={user}>
-      <ParallaxBackground />
+      <TranscendentalBackground />
       <div className="relative min-h-screen text-white">
         <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-12 space-y-10">
           <motion.div
@@ -385,44 +359,7 @@ export default function CalorieGPSPage() {
             </>
           )}
 
-          {/* Fueling Strategy */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="grid md:grid-cols-3 gap-6 mb-12"
-          >
-            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
-              <div className="text-xs uppercase tracking-wider text-white/50 mb-2">Pre-Workout</div>
-              <div className="text-lg font-medium text-white/90">{fueling.pre}</div>
-            </NeonCard>
-            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
-              <div className="text-xs uppercase tracking-wider text-white/50 mb-2">Intra-Workout</div>
-              <div className="text-lg font-medium text-white/90">{fueling.intra}</div>
-            </NeonCard>
-            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
-              <div className="text-xs uppercase tracking-wider text-white/50 mb-2">Post-Workout</div>
-              <div className="text-lg font-medium text-white/90">{fueling.post}</div>
-            </NeonCard>
-          </motion.div>
 
-          {/* Calorie Trend Chart */}
-          {calorieTrendData.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mb-12"
-            >
-              <InteractiveChart
-                title="30-Day Calorie Burn Trend"
-                data={calorieTrendData}
-                color="#F59E0B"
-                unit=" kcal"
-                height={300}
-              />
-            </motion.div>
-          )}
 
           {/* Journal Insights / Recovery Drivers */}
           {journalInsights.length > 0 && (

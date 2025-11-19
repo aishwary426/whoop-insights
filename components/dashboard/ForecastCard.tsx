@@ -4,11 +4,26 @@ import NeonCard from '../ui/NeonCard'
 
 interface ForecastCardProps {
     forecast: number
+    strain?: number
+    sleep?: number
 }
 
-export default function ForecastCard({ forecast }: ForecastCardProps) {
+export default function ForecastCard({ forecast, strain = 0, sleep = 0 }: ForecastCardProps) {
     const roundedForecast = Math.round(forecast)
     const isHighRecovery = roundedForecast > 66
+
+    let explanation = ""
+    if (isHighRecovery) {
+        explanation = "Your metrics indicate you're primed for performance tomorrow."
+    } else {
+        if (strain > 15) {
+            explanation = "High strain today is likely dampening your projected recovery."
+        } else if (sleep > 0 && sleep < 6) {
+            explanation = "Recent sleep duration may be limiting your recovery potential."
+        } else {
+            explanation = "Recovery might be lower tomorrow based on your recent trends. Prioritize sleep."
+        }
+    }
 
     return (
         <NeonCard className="p-6 border-white/10 bg-[#0A0A0A] h-full flex flex-col justify-between">
@@ -24,9 +39,7 @@ export default function ForecastCard({ forecast }: ForecastCardProps) {
                 </div>
             </div>
             <p className="text-sm text-white/60 leading-relaxed">
-                {isHighRecovery
-                    ? "Expect high recovery tomorrow. Good day to push."
-                    : "Recovery might be lower tomorrow. Prioritize sleep."}
+                {explanation}
             </p>
         </NeonCard>
     )

@@ -50,6 +50,7 @@ export default function ParticleBackground({
             magY: number = 0
             vx: number = 0
             vy: number = 0
+            isAccent: boolean = false
 
             constructor() {
                 // Random point in a sphere
@@ -70,6 +71,7 @@ export default function ParticleBackground({
                 // Color palette: White/Grey with subtle accent
                 if (Math.random() > 0.9) {
                     this.color = accentColor
+                    this.isAccent = true
                 } else {
                     const v = Math.floor(Math.random() * 100 + 155)
                     this.color = `rgb(${v}, ${v}, ${v})`
@@ -142,7 +144,7 @@ export default function ParticleBackground({
                 this.z = z2
             }
 
-            draw() {
+            draw(ctx: CanvasRenderingContext2D, overrideColor?: string) {
                 if (!ctx) return
 
                 // Perspective Projection
@@ -158,7 +160,7 @@ export default function ParticleBackground({
                 const x2d = width / 2 + this.x * scale
                 const y2d = height / 2 + this.y * scale
 
-                ctx.fillStyle = this.color
+                ctx.fillStyle = overrideColor || this.color
                 ctx.globalAlpha = alpha
                 ctx.beginPath()
                 ctx.arc(x2d, y2d, this.size * scale, 0, Math.PI * 2)
@@ -201,7 +203,7 @@ export default function ParticleBackground({
 
             // Smooth Interpolation
             // Mouse -> Rotation
-            const targetRotY = (mouseRef.current.targetX / width - 0.5) * 0.2 // Reduced rotation for better magnetic feel
+            const targetRotY = (mouseRef.current.targetX / width - 0.5) * 0.2
             const targetRotX = (mouseRef.current.targetY / height - 0.5) * 0.2
 
             currentRotX += (targetRotX - currentRotX) * 0.05
@@ -210,13 +212,27 @@ export default function ParticleBackground({
             // Scroll -> Z movement
             currentScroll += (scrollRef.current.targetY - currentScroll) * 0.05
 
+            // Calculate dynamic color based on scroll
+            // Scroll 0 -> Hue 160 (Green/Cyan)
+            // Scroll 1000 -> Hue 260 (Purple)
+            // Scroll 2000 -> Hue 320 (Pink)
+            const scrollHueShift = (currentScroll * 0.1) % 360
+            const baseHue = 160 + scrollHueShift
+
             // Auto-rotation (idle)
             const time = Date.now() * 0.0001
             const autoRotY = currentRotY + time
 
             particles.forEach(p => {
                 p.update(currentRotX, autoRotY, currentScroll)
-                p.draw()
+
+                // Dynamic color override
+                // We use the particle's original random variation but shift the hue
+                const pColor = p.isAccent
+                    ? `hsl(${baseHue}, 100%, 60%)`
+                    : `hsl(${baseHue}, 20%, 80%)`
+
+                p.draw(ctx, pColor)
             })
 
             ctx.globalAlpha = 1

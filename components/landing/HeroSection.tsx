@@ -9,7 +9,7 @@ export default function HeroSection() {
     return (
         <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6">
             {/* Background */}
-            <ParticleBackground particleCount={1875} baseSpeed={0.15} accentColor="#00FF8F" />
+            <ParticleBackground particleCount={1875} accentColor="#00FF8F" />
 
             {/* Content */}
             <div className="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center gap-8 md:gap-10">
@@ -54,9 +54,9 @@ export default function HeroSection() {
                     transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.5 }}
                     className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
                 >
-                    <Link href="/signup" className="w-full sm:w-auto">
+                    <Link href="/why" className="w-full sm:w-auto">
                         <NeonButton variant="primary" className="w-full sm:w-auto text-base">
-                            Start Free Trial
+                            Why it is needed?
                         </NeonButton>
                     </Link>
                     <Link href="/login" className="w-full sm:w-auto">

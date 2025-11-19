@@ -8,6 +8,8 @@ import { Target, LogOut, Settings } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { signOut } from '../../lib/supabase'
 import NeonButton from '../ui/NeonButton'
+import Footer from './Footer'
+
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -147,6 +149,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
       <main>
         {children}
       </main>
+      <Footer />
     </div>
   )
 }
