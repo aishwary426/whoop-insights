@@ -86,12 +86,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# backend
-backend/venv/
-backend/__pycache__/
-backend/.pytest_cache/
-*.pyc
 GITIGNORE
     print_status ".gitignore created"
 fi
@@ -102,7 +96,7 @@ git add .
 
 # Commit
 print_status "Committing files..."
-git commit -m "Initial commit - Whoop Insights Pro with premium UI" 2>/dev/null || print_warning "Files already committed"
+git commit -m "Initial commit - Whoop Insights Pro" 2>/dev/null || print_warning "Files already committed"
 
 # Get GitHub username
 echo ""
@@ -134,7 +128,7 @@ echo "Please complete these steps:"
 echo ""
 echo "1. Go to: https://github.com/new"
 echo "2. Repository name: $REPO_NAME"
-echo "3. Description: AI-powered Whoop data analysis platform"
+echo "3. Description: AI-powered Whoop data analysis"
 echo "4. Make it: PUBLIC (or PRIVATE if you prefer)"
 echo "5. DON'T initialize with README, .gitignore, or license"
 echo "6. Click 'Create repository'"
@@ -193,6 +187,7 @@ echo ""
 echo "You'll need to:"
 echo "1. Login to Vercel (browser will open)"
 echo "2. Confirm project settings"
+echo "3. Add environment variables"
 echo ""
 read -p "Press ENTER to continue..."
 
@@ -200,43 +195,26 @@ read -p "Press ENTER to continue..."
 vercel login
 
 echo ""
-print_status "Deploying project to preview..."
+print_status "Deploying project..."
 echo ""
 
-# Deploy to preview first
-PREVIEW_URL=$(vercel --yes 2>&1 | tee /dev/tty | grep -oP 'https://[^\s]+\.vercel\.app' | tail -1)
+# Deploy
+vercel --yes
 
-if [ -n "$PREVIEW_URL" ]; then
-    print_status "Preview deployed successfully!"
-    echo "Preview URL: $PREVIEW_URL"
-fi
+echo ""
+echo "=========================================="
+echo "🔐 Environment Variables"
+echo "=========================================="
+echo ""
+echo "Adding Supabase credentials to Vercel..."
+echo ""
 
 # Add environment variables
-echo ""
-echo "=========================================="
-echo "🔐 Adding Environment Variables"
-echo "=========================================="
-echo ""
+echo "https://ioqajwrnwxhczanpkrdp.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL production
+echo "https://ioqajwrnwxhczanpkrdp.supabase.co" | vercel env add NEXT_PUBLIC_SUPABASE_URL preview
 
-print_status "Adding Supabase configuration..."
-
-# Add Supabase URL
-vercel env add NEXT_PUBLIC_SUPABASE_URL production << EOF
-https://ioqajwrnwxhczanpkrdp.supabase.co
-EOF
-
-vercel env add NEXT_PUBLIC_SUPABASE_URL preview << EOF
-https://ioqajwrnwxhczanpkrdp.supabase.co
-EOF
-
-# Add Supabase Anon Key
-vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production << EOF
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI
-EOF
-
-vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview << EOF
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI
-EOF
+echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI" | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
+echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcWFqd3Jud3hoY3phbnBrcmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMzMzNDIsImV4cCI6MjA3ODkwOTM0Mn0.WgDZ7Z5l3HdpMElV00lurBXQCkNw5D7-JfaSKA3hnyI" | vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
 
 print_status "Environment variables added"
 
@@ -245,7 +223,7 @@ echo ""
 print_status "Deploying to production..."
 echo ""
 
-PROD_URL=$(vercel --prod 2>&1 | tee /dev/tty | grep -oP 'https://[^\s]+\.vercel\.app' | tail -1)
+vercel --prod
 
 echo ""
 echo "=========================================="
@@ -254,21 +232,16 @@ echo "=========================================="
 echo ""
 echo "Your app is now LIVE! 🌍"
 echo ""
-if [ -n "$PROD_URL" ]; then
-    echo "🔗 Production URL: $PROD_URL"
-else
-    echo "🔗 Check your Vercel dashboard for the production URL"
-fi
+echo "📱 Access your app at the URL shown above"
 echo ""
 echo "Next steps:"
-echo "1. Open your production URL in browser"
+echo "1. Open your Vercel URL in browser"
 echo "2. Test signup and login"
 echo "3. Upload Whoop data"
 echo "4. Try Calorie-Burn GPS"
 echo "5. Share with friends!"
 echo ""
-echo "📊 Vercel Dashboard: https://vercel.com/dashboard"
-echo "📁 GitHub Repo: https://github.com/$GITHUB_USERNAME/$REPO_NAME"
+echo "📊 View dashboard: https://vercel.com/dashboard"
 echo ""
 print_status "Deployment script complete!"
 echo ""
