@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, MoveUpRight, MoveDownLeft } from 'lucide-react'
+import { Sparkles, MoveUpRight, MoveDownLeft, Clock } from 'lucide-react'
 import NeonCard from '../ui/NeonCard'
 
 type RecoveryPoint = {
@@ -31,14 +31,16 @@ const defaultData: RecoveryPoint[] = [
   { date: 'Sun', recovery: 77 },
 ]
 
-const WINDOW_DAYS = 7
+const DEFAULT_WINDOW = 7
+const WINDOW_OPTIONS = [7, 14, 21, 28]
 
 export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBaselinePanelProps) {
   const [hoveredBarId, setHoveredBarId] = useState<number | null>(null)
+  const [timeWindow, setTimeWindow] = useState(DEFAULT_WINDOW)
 
   const dataLength = data.length
 
-  const windowSize = useMemo(() => Math.min(WINDOW_DAYS, dataLength || WINDOW_DAYS), [dataLength])
+  const windowSize = useMemo(() => Math.min(timeWindow, dataLength || timeWindow), [dataLength, timeWindow])
   const activeWindow = useMemo(() => {
     if (!dataLength) return []
     return data.slice(-windowSize)
@@ -78,7 +80,7 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
   }, [processedData])
 
   return (
-    <NeonCard className="relative overflow-hidden p-6 md:p-8 border-white/5 bg-gradient-to-br from-[#050505]/95 via-[#0b0b0b]/90 to-[#050505]/95">
+    <NeonCard className="relative overflow-hidden p-6 md:p-8 border-white/5 bg-gradient-to-br from-[#050505]/95 via-[#0b0b0b]/90 to-[#050505]/95 h-full flex flex-col">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between mb-8">
         <div className="space-y-2 max-w-xl">
           <p className="text-[11px] uppercase tracking-[0.45em] text-white/35">Recovery vs baseline</p>
@@ -89,14 +91,28 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
           <p className="text-sm text-white/60">We pin the last seven days in place so you can compare at a glance—no moving targets.</p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] uppercase tracking-[0.45em] text-white/35">7-day window</p>
-          <p className="text-4xl font-semibold text-neon-primary">{baselineWindowSize}d</p>
+          <div className="flex items-center justify-end gap-2 mb-1">
+            <Clock className="w-3 h-3 text-white/40" />
+            <p className="text-[11px] uppercase tracking-[0.45em] text-white/35">Timeline</p>
+          </div>
+          <div className="flex items-center justify-end gap-4">
+            <input
+              type="range"
+              min="0"
+              max="3"
+              step="1"
+              value={WINDOW_OPTIONS.indexOf(timeWindow)}
+              onChange={(e) => setTimeWindow(WINDOW_OPTIONS[parseInt(e.target.value)])}
+              className="w-24 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer relative z-20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neon-primary [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,255,143,0.5)]"
+            />
+            <p className="text-4xl font-semibold text-neon-primary w-[3ch] text-center">{windowSize}d</p>
+          </div>
           <p className="text-xs text-white/60 mt-1">Updated automatically when new recovery data arrives.</p>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] items-start">
-        <div className="relative rounded-[36px] border border-white/10 bg-[rgba(5,5,5,0.7)] p-6 pt-8 md:p-8 md:pt-10 backdrop-blur-xl overflow-hidden">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] items-stretch flex-1">
+        <div className="relative rounded-[36px] border border-white/10 bg-[rgba(5,5,5,0.7)] p-6 pt-8 md:p-8 md:pt-10 backdrop-blur-xl overflow-hidden flex flex-col">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-24 right-0 h-60 w-60 bg-neon-primary/5 blur-[120px]" />
             <div className="absolute bottom-0 left-4 h-48 w-48 bg-rose-400/5 blur-[120px]" />
@@ -105,46 +121,54 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
             <span className="text-white/45">Baseline {baseline}%</span>
             <span className="text-neon-primary/80">{baselineWindowSize}-day window</span>
           </div>
-          <div className="relative mt-8 h-[240px]">
-            <div className="absolute inset-x-6" style={{ top: `${100 - baseline}%` }}>
-              <div className="h-px bg-white/10">
-                <span className="float-right text-[10px] uppercase tracking-[0.4em] text-white/35 -translate-y-2">Baseline</span>
+          <div className="relative mt-8 h-[200px] w-full flex-1 min-h-[200px]">
+            {/* Baseline Line - z-30 to sit on top of bars */}
+            <div className="absolute inset-x-0 z-30 pointer-events-none" style={{ bottom: `${baseline}%` }}>
+              <div className="h-px w-full border-t border-dashed border-white/50 relative">
+                <span className="absolute right-0 -top-5 text-[10px] uppercase tracking-[0.4em] text-white/80 bg-black/50 px-1 backdrop-blur-sm rounded">Baseline</span>
               </div>
             </div>
-            <div className="absolute inset-x-0 bottom-0 px-6 pb-6">
+
+            {/* Bars */}
+            <div className="absolute inset-0 flex items-end z-10">
               {processedData.length ? (
                 <div
-                  className="grid gap-5"
+                  className="grid gap-3 w-full h-full items-end pb-10"
                   style={{ gridTemplateColumns: barGridTemplate }}
                 >
                   {processedData.map((point) => {
-                    const height = Math.max(14, Math.min(chartHeight, (point.recovery / 100) * chartHeight))
+                    // Enforce minimum height of 5% for visibility
+                    const height = `${Math.max(point.recovery, 5)}%`
+
                     const gradient = point.aboveBaseline
-                      ? 'from-emerald-400 via-emerald-500/90 to-emerald-300/80'
-                      : 'from-rose-400 via-rose-500/80 to-rose-300/80'
+                      ? 'from-emerald-400 to-emerald-600/80'
+                      : 'from-rose-400 to-rose-600/80'
+
                     const glow = point.aboveBaseline
-                      ? 'shadow-[0_16px_50px_rgba(21,255,185,0.25)]'
-                      : 'shadow-[0_16px_50px_rgba(244,63,94,0.25)]'
+                      ? 'shadow-[0_0_20px_rgba(52,211,153,0.3)]'
+                      : 'shadow-[0_0_20px_rgba(251,113,133,0.3)]'
+
                     const isHovered = hoveredBarId === point.id
+
                     return (
                       <motion.div
                         key={point.id}
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height, opacity: 1 }}
-                        transition={{ duration: 0.35, ease: 'easeOut' }}
-                        className="flex flex-col items-center gap-3 relative"
+                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                        className="flex flex-col items-center gap-2 relative group"
+                        style={{ height }}
                         onMouseEnter={() => setHoveredBarId(point.id)}
                         onMouseLeave={() => setHoveredBarId(null)}
                       >
                         <motion.div
-                          className={`w-8 md:w-10 rounded-[999px] bg-gradient-to-b ${gradient} ${glow} transition-all duration-200`}
-                          style={{ height }}
+                          className={`w-full max-w-[40px] rounded-t-sm bg-gradient-to-b ${gradient} ${glow} transition-all duration-300`}
+                          style={{ height: '100%' }}
                           animate={{
-                            scale: isHovered ? 1.05 : 1,
-                            filter: isHovered ? 'brightness(1.1)' : 'brightness(1)',
+                            filter: isHovered ? 'brightness(1.2)' : 'brightness(1)',
                           }}
                         />
-                        <span className={`text-[11px] tracking-[0.35em] ${isHovered ? 'text-white' : 'text-white/40'}`}>
+                        <span className={`text-[10px] tracking-widest ${isHovered ? 'text-white' : 'text-white/40'} -rotate-45 origin-top-left translate-y-6 whitespace-nowrap`}>
                           {point.date}
                         </span>
                         <AnimatePresence>
@@ -181,8 +205,8 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
           </div>
         </div>
 
-        <div className="grid gap-4">
-          <div className="rounded-[32px] border border-white/10 bg-[rgba(5,5,5,0.7)] p-6 backdrop-blur-xl">
+        <div className="flex flex-col gap-4 h-full">
+          <div className="rounded-[32px] border border-white/10 bg-[rgba(5,5,5,0.7)] p-6 backdrop-blur-xl flex-1 flex flex-col justify-center">
             <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.35em] text-white/40">
               <span>Current baseline</span>
               <span>{baselineWindowSize}-day avg</span>
@@ -200,9 +224,9 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
           </div>
 
           {latest && (
-            <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[rgba(5,5,5,0.8)] p-6 backdrop-blur-xl">
+            <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[rgba(5,5,5,0.8)] p-6 backdrop-blur-xl flex-1 flex flex-col justify-center">
               <div className="absolute inset-0 bg-gradient-to-br from-neon-primary/20 via-transparent to-transparent opacity-70" />
-              <div className="relative flex items-start justify-between gap-6">
+              <div className="relative flex items-center justify-between gap-6">
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.35em] text-white/40">Latest day</p>
                   <p className={`text-4xl font-semibold mt-4 ${latest.aboveBaseline ? 'text-neon-primary' : 'text-rose-400'}`}>
@@ -210,7 +234,7 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
                   </p>
                   <p className="text-xs text-white/55 mt-2">Snaps to the same baseline logic.</p>
                 </div>
-                <div className="flex flex-col items-end text-sm font-medium">
+                <div className="flex flex-col items-end text-sm font-medium whitespace-nowrap">
                   {latest.aboveBaseline ? (
                     <>
                       <span className="inline-flex items-center gap-1 text-neon-primary">

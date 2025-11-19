@@ -89,11 +89,21 @@ export interface TrendPoint {
     value: number
 }
 
-export interface TrendsResponse {
+export interface TrendsSeries {
     recovery: TrendPoint[]
     strain: TrendPoint[]
     sleep: TrendPoint[]
     hrv: TrendPoint[]
+    calories: TrendPoint[]
+    spo2: TrendPoint[]
+    skin_temp: TrendPoint[]
+    resting_hr: TrendPoint[]
+    respiratory_rate: TrendPoint[]
+}
+
+export interface TrendsResponse {
+    user_id: string
+    series: TrendsSeries
 }
 
 async function fetchWithAuth(endpoint: string, params: Record<string, any> = {}) {
@@ -140,9 +150,8 @@ export const api = {
         return fetchWithAuth('/dashboard/insights', { regenerate })
     },
 
-    getCalorieAnalysis: async (): Promise<CalorieAnalysis> => {
-        return fetchWithAuth('/dashboard/calorie-analysis')
-    },
+    getCalorieAnalysis: () => fetchWithAuth('/dashboard/calorie-analysis'),
+    getJournalInsights: () => fetchWithAuth('/dashboard/journal-insights'),
 
     uploadWhoopData: async (file: File): Promise<UploadResponse> => {
         const user = await getCurrentUser()

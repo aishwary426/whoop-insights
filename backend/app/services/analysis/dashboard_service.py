@@ -172,8 +172,42 @@ def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end
 
     rows = query.order_by(DailyMetrics.date.asc()).all()
 
+    # Fetch calorie data from workouts
+    workout_query = (
+        db.query(Workout.date, func.sum(Workout.calories).label("total_calories"))
+        .filter(Workout.user_id == user_id)
+        .group_by(Workout.date)
+    )
+    if start_date:
+        workout_query = workout_query.filter(Workout.date >= start_date)
+    if end_date:
+        workout_query = workout_query.filter(Workout.date <= end_date)
+    
+    calorie_rows = workout_query.all()
+    calorie_map = {r.date: r.total_calories for r in calorie_rows}
+
     def _series(values: List[DailyMetrics], attr: str) -> List[TrendPoint]:
         return [TrendPoint(date=row.date, value=getattr(row, attr)) for row in values]
+
+    def _calorie_series(values: List[DailyMetrics]) -> List[TrendPoint]:
+        # Use DailyMetrics dates to ensure alignment, but fetch value from calorie_map
+        return [TrendPoint(date=row.date, value=calorie_map.get(row.date, 0)) for row in values]
+
+    def _extra_series(values: List[DailyMetrics], key_part: str) -> List[TrendPoint]:
+        points = []
+        for row in values:
+            val = None
+            if row.extra:
+                # Find key containing key_part (e.g. "blood_oxygen" in "blood_oxygen_%")
+                for k, v in row.extra.items():
+                    if key_part in k:
+                        try:
+                            val = float(v)
+                        except (ValueError, TypeError):
+                            pass
+                        break
+            points.append(TrendPoint(date=row.date, value=val))
+        return points
 
     return TrendsResponse(
         user_id=user_id,
@@ -182,6 +216,11 @@ def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end
             strain=_series(rows, "strain_score"),
             sleep=_series(rows, "sleep_hours"),
             hrv=_series(rows, "hrv"),
+            calories=_calorie_series(rows),
+            spo2=_extra_series(rows, "blood_oxygen"),
+            skin_temp=_extra_series(rows, "skin_temp"),
+            resting_hr=_series(rows, "resting_hr"),
+            respiratory_rate=_extra_series(rows, "respiratory"),
         ),
     )
 
@@ -316,3 +355,86 @@ def get_calorie_analysis(db: Session, user_id: str) -> CalorieAnalysis:
         explanation=explanation,
         comparison=efficiencies
     )
+
+
+def get_journal_insights(db: Session, user_id: str) -> List[InsightItem]:
+    """Analyze how journal entries (from 'extra' column) affect next day's recovery."""
+    rows = (
+        db.query(DailyMetrics)
+        .filter(DailyMetrics.user_id == user_id)
+        .order_by(DailyMetrics.date.asc())
+        .all()
+    )
+    
+    if len(rows) < 7:
+        return []
+
+    # Map date -> recovery_score
+    recovery_map = {r.date: r.recovery_score for r in rows if r.recovery_score is not None}
+    
+    # Collect all potential journal keys
+    journal_keys = set()
+    for r in rows:
+        if r.extra:
+            journal_keys.update(r.extra.keys())
+
+    insights = []
+    
+    for key in journal_keys:
+        # Skip non-journal looking keys if possible, but for now process all
+        # We look for boolean-like values (Yes/No, true/false, 0/1)
+        
+        with_factor = []
+        without_factor = []
+        
+        for i, r in enumerate(rows[:-1]): # Look at today's journal vs tomorrow's recovery
+            next_day = rows[i+1]
+            if next_day.recovery_score is None:
+                continue
+                
+            val = r.extra.get(key) if r.extra else None
+            
+            # Check if "positive" answer
+            is_present = False
+            if isinstance(val, str):
+                is_present = val.lower() in ['yes', 'true', '1']
+            elif isinstance(val, (int, float)):
+                is_present = val > 0
+            elif isinstance(val, bool):
+                is_present = val
+            
+            if is_present:
+                with_factor.append(next_day.recovery_score)
+            else:
+                without_factor.append(next_day.recovery_score)
+        
+        if len(with_factor) < 3 or len(without_factor) < 3:
+            continue
+            
+        avg_with = np.mean(with_factor)
+        avg_without = np.mean(without_factor)
+        diff = avg_with - avg_without
+        
+        # Significant impact threshold (lowered to track everything)
+        if abs(diff) > 0.5:
+            impact = "Positive" if diff > 0 else "Negative"
+            clean_key = key.replace("Question: ", "").replace("_", " ").capitalize()
+            
+            insights.append(
+                InsightItem(
+                    insight_type="journal_impact",
+                    title=f"{clean_key}",
+                    description=f"{impact} Impact: Recovery is {abs(diff):.1f}% {'higher' if diff > 0 else 'lower'} when you do this.",
+                    confidence=0.8, # Simple correlation
+                    data={
+                        "factor": clean_key,
+                        "impact_val": diff,
+                        "avg_with": avg_with,
+                        "avg_without": avg_without
+                    }
+                )
+            )
+            
+    # Sort by absolute impact
+    insights.sort(key=lambda x: abs(x.data["impact_val"]), reverse=True)
+    return insights

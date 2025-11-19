@@ -10,6 +10,7 @@ import NeonButton from '../../components/ui/NeonButton'
 import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
 import { getCurrentUser } from '../../lib/supabase'
 import CalorieAnalysisSection from '../../components/dashboard/CalorieAnalysisSection'
+import InteractiveChart from '../../components/dashboard/InteractiveChart'
 
 export default function CalorieGPSPage() {
   const router = useRouter()
@@ -19,6 +20,8 @@ export default function CalorieGPSPage() {
   const [results, setResults] = useState<any>(null)
   const [isPersonalized, setIsPersonalized] = useState(false)
   const [analysis, setAnalysis] = useState<any>(null)
+  const [trends, setTrends] = useState<any>(null)
+  const [journalInsights, setJournalInsights] = useState<any[]>([])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -40,8 +43,14 @@ export default function CalorieGPSPage() {
           }
 
           // Fetch deep dive analysis
-          const analysisData = await api.getCalorieAnalysis()
+          const [analysisData, trendsData, journalData] = await Promise.all([
+            api.getCalorieAnalysis(),
+            api.getTrends(),
+            api.getJournalInsights()
+          ])
           setAnalysis(analysisData)
+          setTrends(trendsData)
+          setJournalInsights(journalData)
         } catch (e) {
           console.error("Failed to fetch personalized data", e)
         }
@@ -129,6 +138,33 @@ export default function CalorieGPSPage() {
     if (recovery >= 34) return 'Yellow'
     return 'Red'
   }
+
+  const fueling = (() => {
+    if (targetCalories > 800) {
+      return {
+        pre: "Complex carbs 2-3h before (Oats, Rice)",
+        intra: "Electrolytes + 30g carbs/hour",
+        post: "25g Protein + 50g Carbs immediately"
+      }
+    } else if (targetCalories > 400) {
+      return {
+        pre: "Light snack 1h before (Banana, Toast)",
+        intra: "Water + Electrolytes",
+        post: "Balanced meal within 2 hours"
+      }
+    } else {
+      return {
+        pre: "Hydrate well",
+        intra: "Water",
+        post: "Normal meal"
+      }
+    }
+  })()
+
+  const calorieTrendData = trends?.series?.calories?.slice(-30).map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }),
+    value: item.value
+  })) || []
 
   return (
     <AppLayout user={user}>
@@ -347,6 +383,86 @@ export default function CalorieGPSPage() {
                 </div>
               </motion.div>
             </>
+          )}
+
+          {/* Fueling Strategy */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="grid md:grid-cols-3 gap-6 mb-12"
+          >
+            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
+              <div className="text-xs uppercase tracking-wider text-white/50 mb-2">Pre-Workout</div>
+              <div className="text-lg font-medium text-white/90">{fueling.pre}</div>
+            </NeonCard>
+            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
+              <div className="text-xs uppercase tracking-wider text-white/50 mb-2">Intra-Workout</div>
+              <div className="text-lg font-medium text-white/90">{fueling.intra}</div>
+            </NeonCard>
+            <NeonCard className="p-6 border-white/10 bg-[#0A0A0A]">
+              <div className="text-xs uppercase tracking-wider text-white/50 mb-2">Post-Workout</div>
+              <div className="text-lg font-medium text-white/90">{fueling.post}</div>
+            </NeonCard>
+          </motion.div>
+
+          {/* Calorie Trend Chart */}
+          {calorieTrendData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mb-12"
+            >
+              <InteractiveChart
+                title="30-Day Calorie Burn Trend"
+                data={calorieTrendData}
+                color="#F59E0B"
+                unit=" kcal"
+                height={300}
+              />
+            </motion.div>
+          )}
+
+          {/* Journal Insights / Recovery Drivers */}
+          {journalInsights.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="mb-12"
+            >
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <span className="w-1 h-6 bg-neon-primary rounded-full"></span>
+                Recovery Drivers
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {journalInsights.map((insight, i) => (
+                  <NeonCard key={i} className="p-6 border-white/10 bg-[#0A0A0A] flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-medium text-white/90">{insight.title}</h3>
+                        <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${insight.data.impact_val > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                          }`}>
+                          {insight.data.impact_val > 0 ? '+' : ''}{insight.data.impact_val.toFixed(1)}% Recovery
+                        </span>
+                      </div>
+                      <p className="text-sm text-white/60 mb-4">{insight.description}</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-white/40 mt-auto pt-4 border-t border-white/5">
+                      <div>
+                        <span className="block text-white/20 uppercase tracking-wider mb-1">With</span>
+                        <span className="text-white/80 font-mono text-sm">{insight.data.avg_with.toFixed(0)}%</span>
+                      </div>
+                      <div>
+                        <span className="block text-white/20 uppercase tracking-wider mb-1">Without</span>
+                        <span className="text-white/80 font-mono text-sm">{insight.data.avg_without.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </NeonCard>
+                ))}
+              </div>
+            </motion.div>
           )}
 
           {/* Deep Dive Analysis */}

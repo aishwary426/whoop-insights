@@ -78,6 +78,11 @@ class TrendsSeries(BaseModel):
     strain: List[TrendPoint]
     sleep: List[TrendPoint]
     hrv: List[TrendPoint]
+    calories: List[TrendPoint]
+    spo2: List[TrendPoint]
+    skin_temp: List[TrendPoint]
+    resting_hr: List[TrendPoint]
+    respiratory_rate: List[TrendPoint]
 
 
 class TrendsResponse(BaseModel):

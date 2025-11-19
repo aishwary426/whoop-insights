@@ -10,7 +10,8 @@ interface InteractiveChartProps {
   data: { date: string; value: number }[]
   color: string
   unit?: string
-  height?: number
+  height?: number | string
+  className?: string
 }
 
 export default function InteractiveChart({
@@ -20,6 +21,7 @@ export default function InteractiveChart({
   color,
   unit = '',
   height = 200,
+  className,
 }: InteractiveChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
@@ -35,7 +37,7 @@ export default function InteractiveChart({
         <div className="bg-black/90 border border-neon-primary/30 rounded-lg p-3 shadow-neon-card backdrop-blur-xl">
           <p className="text-xs text-white/60 mb-1">{data.date}</p>
           <p className="text-lg font-semibold" style={{ color }}>
-            {data.value}{unit}
+            {typeof data.value === 'number' ? +data.value.toFixed(2) : data.value}{unit}
           </p>
         </div>
       )
@@ -44,12 +46,12 @@ export default function InteractiveChart({
   }
 
   return (
-    <NeonCard className="p-6 border-white/10">
-      <div className="mb-4">
+    <NeonCard className={`p-6 border-white/10 flex flex-col ${className || ''}`}>
+      <div className="mb-4 shrink-0">
         <p className="text-xs uppercase tracking-[0.2em] text-white/50">{title}</p>
         {subtitle && <p className="text-sm text-white/60 mt-1">{subtitle}</p>}
       </div>
-      <div className="relative" style={{ height: `${height}px` }}>
+      <div className="relative flex-1 min-h-[160px]" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}

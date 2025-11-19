@@ -22,7 +22,7 @@ export default function NeonCard({ children, className, bordered = true }: NeonC
       whileHover={{ scale: 1.02, y: -3, boxShadow: '0 18px 42px rgba(0,255,143,0.18)' }}
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="absolute inset-0 opacity-0 mix-blend-screen blur-3xl transition duration-300 group-hover:opacity-70" />
+      <div className="absolute inset-0 opacity-0 mix-blend-screen blur-3xl transition duration-300 group-hover:opacity-70 pointer-events-none" />
       {children}
     </motion.div>
   )

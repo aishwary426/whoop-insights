@@ -35,7 +35,7 @@ export default function TodayRecommendationCard({
 
   return (
     <NeonCard
-      className={`p-8 bg-gradient-to-br ${getRecoveryGradient(recovery)} border-white/10`}
+      className={`p-8 bg-gradient-to-br ${getRecoveryGradient(recovery)} border-white/10 h-full`}
     >
       <div className="flex items-start justify-between mb-6">
         <div>

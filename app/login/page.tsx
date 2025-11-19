@@ -46,7 +46,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-bgDark">
-      <ParticleBackground particleCount={70} baseSpeed={0.15} accentColor="#00FF8F" />
+      <ParticleBackground accentColor="#00FF8F" variant="swirl" />
       <div className="relative z-10">
         <AuthCard
           title="Welcome back"

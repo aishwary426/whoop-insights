@@ -12,12 +12,12 @@ interface AuthCardProps {
 
 export default function AuthCard({ title, subtitle, children }: AuthCardProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-bgDark">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-2xl p-8 shadow-2xl relative overflow-hidden"
+        className="w-full max-w-md bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl relative overflow-hidden"
       >
         {/* Subtle neon glow effect */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-neon/10 rounded-full blur-3xl pointer-events-none" />

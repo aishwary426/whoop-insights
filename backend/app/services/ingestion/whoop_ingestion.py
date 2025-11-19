@@ -1,7 +1,7 @@
 import logging
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple, Optional
 
@@ -38,7 +38,7 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def discover_whoop_csvs(extracted_dir: str) -> Dict[str, List[str]]:
     """Return a map of domain -> list of CSV files found in the unzip folder."""
-    domain_hits = {"sleep": [], "recovery": [], "strain": [], "workouts": [], "physiological_cycles": []}
+    domain_hits = {"sleep": [], "recovery": [], "strain": [], "workouts": [], "physiological_cycles": [], "journal": []}
     for root, _, files in os.walk(extracted_dir):
         for fname in files:
             if not fname.lower().endswith(".csv"):
@@ -56,6 +56,8 @@ def discover_whoop_csvs(extracted_dir: str) -> Dict[str, List[str]]:
                 domain_hits["strain"].append(full_path)
             elif "workout" in lower:
                 domain_hits["workouts"].append(full_path)
+            elif "journal" in lower or "entries" in lower:
+                domain_hits["journal"].append(full_path)
     return domain_hits
 
 
@@ -108,9 +110,30 @@ def parse_physiological_cycles(paths: List[str]) -> pd.DataFrame:
         const_col = next((c for c in df.columns if "sleep_consistency" in c), None)
         df["consistency_score"] = df[const_col] if const_col else pd.NA
 
+        # Capture Journal/Extra Data
+        # Exclude columns we've already mapped or are standard identifiers
+        mapped_cols = {
+            date_col, rec_col, strain_col, hrv_col, rhr_col, 
+            sleep_dur_col, debt_col, const_col, 
+            "cycle_id", "user_id", "created_at", "updated_at", "date"
+        }
+        
+        def _extract_journal(row):
+            data = {}
+            for col in df.columns:
+                if col not in mapped_cols and pd.notna(row[col]):
+                    val = row[col]
+                    # Ensure JSON serializability
+                    if isinstance(val, (datetime, date)):
+                        val = val.isoformat()
+                    data[col] = val
+            return data
+
+        df["extra"] = df.apply(_extract_journal, axis=1)
+
         frames.append(df[[
             "date", "recovery_score", "strain_score", "hrv", "resting_hr", 
-            "sleep_hours", "sleep_debt", "consistency_score"
+            "sleep_hours", "sleep_debt", "consistency_score", "extra"
         ]].copy())
         
     if not frames:
@@ -219,6 +242,32 @@ def parse_workouts(paths: List[str]) -> List[dict]:
     return workouts
 
 
+def parse_journal(paths: List[str]) -> pd.DataFrame:
+    frames = []
+    for path in paths:
+        df = pd.read_csv(path)
+        df = _normalize_columns(df)
+        date_col = "date" if "date" in df.columns else "day"
+        if date_col not in df.columns:
+            continue
+        df["date"] = pd.to_datetime(df[date_col]).dt.date
+        
+        def _extract_journal(row):
+            data = {}
+            for col in df.columns:
+                if col != "date" and col != date_col and pd.notna(row[col]):
+                    val = row[col]
+                    if isinstance(val, (datetime, date)):
+                        val = val.isoformat()
+                    data[col] = val
+            return data
+
+        df["extra"] = df.apply(_extract_journal, axis=1)
+        frames.append(df[["date", "extra"]].copy())
+        
+    return pd.concat(frames) if frames else pd.DataFrame(columns=["date", "extra"])
+
+
 def _safe_float(val):
     try:
         return float(val)
@@ -226,20 +275,39 @@ def _safe_float(val):
         return None
 
 
-def _merge_daily_metrics(sleep_df: pd.DataFrame, recovery_df: pd.DataFrame, strain_df: pd.DataFrame) -> pd.DataFrame:
-    if sleep_df.empty and recovery_df.empty and strain_df.empty:
+def _merge_daily_metrics(sleep_df: pd.DataFrame, recovery_df: pd.DataFrame, strain_df: pd.DataFrame, journal_df: pd.DataFrame = None) -> pd.DataFrame:
+    if sleep_df.empty and recovery_df.empty and strain_df.empty and (journal_df is None or journal_df.empty):
         return pd.DataFrame(columns=["date", "sleep_hours", "recovery_score", "hrv", "resting_hr", "strain_score"])
 
     df = None
-    for candidate in [sleep_df, recovery_df, strain_df]:
-        if candidate.empty:
-            continue
+    candidates = [c for c in [sleep_df, recovery_df, strain_df, journal_df] if c is not None and not c.empty]
+    
+    for candidate in candidates:
         if df is None:
             df = candidate
         else:
             df = df.merge(candidate, on="date", how="outer")
+            
     if df is None:
         return pd.DataFrame()
+        
+    # If we have multiple 'extra' columns (e.g. extra_x, extra_y) from merges, combine them
+    extra_cols = [c for c in df.columns if "extra" in c]
+    if extra_cols:
+        def _combine_extras(row):
+            combined = {}
+            for col in extra_cols:
+                val = row[col]
+                if isinstance(val, dict):
+                    combined.update(val)
+            return combined if combined else None
+            
+        df["extra"] = df.apply(_combine_extras, axis=1)
+        # Drop original extra columns if they were renamed
+        for col in extra_cols:
+            if col != "extra":
+                df = df.drop(columns=[col])
+
     df = df.sort_values("date")
     return df
 
@@ -288,6 +356,7 @@ def upsert_daily_metrics(db: Session, user_id: str, df: pd.DataFrame) -> int:
             "strain_score": _safe_float(row.get("strain_score")),
             "sleep_debt": _safe_float(row.get("sleep_debt")),
             "consistency_score": _safe_float(row.get("consistency_score")),
+            "extra": row.get("extra"),
         }
         if dm:
             for k, v in payload.items():
@@ -348,15 +417,39 @@ def ingest_whoop_zip(
             progress_callback(upload_id, 92, "Parsing CSV files... (92%)", "processing", "parsing")
 
         # Check for physiological_cycles.csv (consolidated format)
+        journal_df = parse_journal(csv_map["journal"])
+        
         if csv_map["physiological_cycles"]:
             logger.info("Found physiological_cycles.csv, using consolidated parsing")
             metrics_df = parse_physiological_cycles(csv_map["physiological_cycles"])
+            
+            # Merge journal_df if it exists
+            if not journal_df.empty:
+                # If metrics_df already has 'extra', merge will create extra_x, extra_y
+                metrics_df = metrics_df.merge(journal_df, on="date", how="outer")
+                
+                # Combine extras logic (duplicated from _merge_daily_metrics but necessary here)
+                extra_cols = [c for c in metrics_df.columns if "extra" in c]
+                if extra_cols:
+                    def _combine_extras(row):
+                        combined = {}
+                        for col in extra_cols:
+                            val = row[col]
+                            if isinstance(val, dict):
+                                combined.update(val)
+                        return combined if combined else None
+                        
+                    metrics_df["extra"] = metrics_df.apply(_combine_extras, axis=1)
+                    for col in extra_cols:
+                        if col != "extra":
+                            metrics_df = metrics_df.drop(columns=[col])
+                            
         else:
             logger.info("Using legacy separate CSV parsing")
             sleep_df = parse_sleep(csv_map["sleep"])
             recovery_df = parse_recovery(csv_map["recovery"])
             strain_df = parse_strain(csv_map["strain"])
-            metrics_df = _merge_daily_metrics(sleep_df, recovery_df, strain_df)
+            metrics_df = _merge_daily_metrics(sleep_df, recovery_df, strain_df, journal_df)
 
         workouts = parse_workouts(csv_map["workouts"])
 
