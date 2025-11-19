@@ -31,159 +31,149 @@ const defaultData: RecoveryPoint[] = [
   { date: 'Sun', recovery: 77 },
 ]
 
+const WINDOW_DAYS = 7
+
 export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBaselinePanelProps) {
-  const [windowDays, setWindowDays] = useState(7)
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
+  const [hoveredBarId, setHoveredBarId] = useState<number | null>(null)
 
   const dataLength = data.length
-  const sliderMin = dataLength ? Math.min(7, dataLength) : 1
-  const sliderMax = Math.max(sliderMin, dataLength || 1)
 
-  useEffect(() => {
-    setWindowDays((prev) => {
-      if (prev > sliderMax) return sliderMax
-      if (prev < sliderMin) return sliderMin
-      return prev
-    })
-  }, [sliderMin, sliderMax])
+  const windowSize = useMemo(() => Math.min(WINDOW_DAYS, dataLength || WINDOW_DAYS), [dataLength])
+  const activeWindow = useMemo(() => {
+    if (!dataLength) return []
+    return data.slice(-windowSize)
+  }, [data, dataLength, windowSize])
 
   const baseline = useMemo(() => {
-    const window = data.slice(-(dataLength ? Math.min(windowDays, dataLength) : windowDays))
-    if (!window.length) return 0
-    return Math.round(window.reduce((sum, point) => sum + point.recovery, 0) / window.length)
-  }, [data, windowDays, dataLength])
+    if (!activeWindow.length) return 0
+    return Math.round(activeWindow.reduce((sum, point) => sum + point.recovery, 0) / activeWindow.length)
+  }, [activeWindow])
 
-  const coloredData = useMemo(
+  const processedData = useMemo(
     () =>
-      data.map((point, idx) => ({
+      activeWindow.map((point, idx) => ({
         ...point,
         id: idx,
         aboveBaseline: point.recovery > baseline,
         delta: point.recovery - baseline,
       })),
-    [data, baseline]
+    [activeWindow, baseline]
   )
 
-  const visibleData = useMemo(() => {
-    if (!coloredData.length) return []
-    const windowSize = dataLength ? Math.min(windowDays, dataLength) : coloredData.length
-    return coloredData.slice(-windowSize)
-  }, [coloredData, dataLength, windowDays])
+  useEffect(() => setHoveredBarId(null), [processedData])
 
-  const latest = coloredData[coloredData.length - 1]
+  const barGridTemplate = useMemo(
+    () => `repeat(${Math.max(processedData.length, 1)}, minmax(0, 1fr))`,
+    [processedData.length]
+  )
+
+  const latest = processedData[processedData.length - 1]
 
   const chartHeight = 200
-  const baselineWindowSize = dataLength ? Math.min(windowDays, dataLength) : windowDays
+  const baselineWindowSize = windowSize
   const variability = useMemo(() => {
-    if (visibleData.length < 2) return 0
-    const values = visibleData.map((point) => point.recovery)
+    if (processedData.length < 2) return 0
+    const values = processedData.map((point) => point.recovery)
     return Math.round(Math.max(...values) - Math.min(...values))
-  }, [visibleData])
+  }, [processedData])
 
   return (
-    <NeonCard className="p-6 md:p-8 border-white/5 bg-gradient-to-br from-[#050505]/95 via-[#0a0a0a]/90 to-[#050505]/95">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
-        <div className="space-y-3 max-w-xl">
-          <p className="text-[11px] uppercase tracking-[0.35em] text-white/40">Recovery vs baseline</p>
+    <NeonCard className="relative overflow-hidden p-6 md:p-8 border-white/5 bg-gradient-to-br from-[#050505]/95 via-[#0b0b0b]/90 to-[#050505]/95">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div className="space-y-2 max-w-xl">
+          <p className="text-[11px] uppercase tracking-[0.45em] text-white/35">Recovery vs baseline</p>
           <div className="flex items-center gap-2">
             <h3 className="text-3xl font-semibold">Adaptive baseline</h3>
             <Sparkles className="w-4 h-4 text-neon-primary" />
           </div>
-          <p className="text-sm text-white/60">
-            Slide the window to re-center your baseline instantly. The bars respond with a subtle color flip so you know what is trending above or below.
-          </p>
+          <p className="text-sm text-white/60">We pin the last seven days in place so you can compare at a glance—no moving targets.</p>
         </div>
-        <div className="w-full lg:w-auto">
-          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-5 py-3">
-            <span className="text-[11px] uppercase tracking-[0.3em] text-white/50">Window</span>
-            <input
-              type="range"
-              min={sliderMin}
-              max={sliderMax}
-              value={windowDays}
-              onChange={(e) => setWindowDays(Number(e.target.value))}
-              className="w-full md:w-40 h-1 bg-transparent accent-neon-primary"
-              style={{ accentColor: '#15ffb9' }}
-            />
-            <span className="text-sm font-semibold text-neon-primary">{windowDays}d</span>
-          </div>
-          <p className="text-[11px] text-white/40 mt-2 text-center lg:text-right">
-            {sliderMin}d - {sliderMax}d adaptive window
-          </p>
+        <div className="text-right">
+          <p className="text-[11px] uppercase tracking-[0.45em] text-white/35">7-day window</p>
+          <p className="text-4xl font-semibold text-neon-primary">{baselineWindowSize}d</p>
+          <p className="text-xs text-white/60 mt-1">Updated automatically when new recovery data arrives.</p>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
-        <div className="relative rounded-[32px] border border-white/10 bg-white/5 p-6 backdrop-blur-xl overflow-hidden">
-          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em]">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] items-start">
+        <div className="relative rounded-[36px] border border-white/10 bg-[rgba(5,5,5,0.7)] p-6 pt-8 md:p-8 md:pt-10 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute -top-24 right-0 h-60 w-60 bg-neon-primary/5 blur-[120px]" />
+            <div className="absolute bottom-0 left-4 h-48 w-48 bg-rose-400/5 blur-[120px]" />
+          </div>
+          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.35em] relative z-10">
             <span className="text-white/45">Baseline {baseline}%</span>
             <span className="text-neon-primary/80">{baselineWindowSize}-day window</span>
           </div>
-          <div className="relative mt-8 h-[220px]">
-            <div
-              className="absolute inset-x-4"
-              style={{ top: `${100 - baseline}%` }}
-            >
-              <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent relative">
-                <span className="absolute -top-4 right-0 text-[10px] uppercase tracking-[0.25em] text-white/40">Baseline</span>
+          <div className="relative mt-8 h-[240px]">
+            <div className="absolute inset-x-6" style={{ top: `${100 - baseline}%` }}>
+              <div className="h-px bg-white/10">
+                <span className="float-right text-[10px] uppercase tracking-[0.4em] text-white/35 -translate-y-2">Baseline</span>
               </div>
             </div>
-            <div className="absolute inset-x-4 bottom-0 flex items-end gap-4">
-              {visibleData.length ? (
-                visibleData.map((point, idx) => {
-                  const height = Math.max(12, Math.min(chartHeight, (point.recovery / 100) * chartHeight))
-                  const gradient = point.aboveBaseline ? 'from-emerald-400/85 to-emerald-500/70' : 'from-rose-400/80 to-rose-500/70'
-                  const shadow = point.aboveBaseline
-                    ? 'shadow-[0_18px_35px_rgba(21,255,185,0.25)]'
-                    : 'shadow-[0_18px_35px_rgba(244,63,94,0.25)]'
-                  const isHovered = hoveredIndex === idx
-                  return (
-                    <motion.div
-                      key={point.id}
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height, opacity: 1 }}
-                      transition={{ duration: 0.35, ease: 'easeOut' }}
-                      className="flex-1 flex flex-col items-center gap-3 relative"
-                      onMouseEnter={() => setHoveredIndex(idx)}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                    >
+            <div className="absolute inset-x-0 bottom-0 px-6 pb-6">
+              {processedData.length ? (
+                <div
+                  className="grid gap-5"
+                  style={{ gridTemplateColumns: barGridTemplate }}
+                >
+                  {processedData.map((point) => {
+                    const height = Math.max(14, Math.min(chartHeight, (point.recovery / 100) * chartHeight))
+                    const gradient = point.aboveBaseline
+                      ? 'from-emerald-400 via-emerald-500/90 to-emerald-300/80'
+                      : 'from-rose-400 via-rose-500/80 to-rose-300/80'
+                    const glow = point.aboveBaseline
+                      ? 'shadow-[0_16px_50px_rgba(21,255,185,0.25)]'
+                      : 'shadow-[0_16px_50px_rgba(244,63,94,0.25)]'
+                    const isHovered = hoveredBarId === point.id
+                    return (
                       <motion.div
-                        className={`w-full rounded-[999px] bg-gradient-to-b ${gradient} ${shadow} transition-all duration-200 cursor-pointer`}
-                        style={{ height }}
-                        animate={{
-                          scale: isHovered ? 1.04 : 1,
-                          filter: isHovered ? 'brightness(1.15)' : 'brightness(1)',
-                        }}
-                      />
-                      <span className={`text-[11px] uppercase tracking-[0.3em] ${isHovered ? 'text-white' : 'text-white/45'}`}>
-                        {point.date}
-                      </span>
-                      <AnimatePresence>
-                        {isHovered && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -12, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute -top-16 left-1/2 -translate-x-1/2 z-20"
-                          >
-                            <div className="bg-[#050505]/95 border border-white/10 rounded-2xl px-3 py-2 shadow-xl backdrop-blur-xl whitespace-nowrap">
-                              <p className="text-[11px] text-white/60 mb-0.5">{point.date}</p>
-                              <p className={`text-lg font-semibold ${point.aboveBaseline ? 'text-neon-primary' : 'text-rose-400'}`}>
-                                {point.recovery}%
-                              </p>
-                              <p className="text-[11px] text-white/50 mt-0.5">
-                                {point.delta > 0 ? '+' : ''}{point.delta.toFixed(0)}% vs baseline
-                              </p>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  )
-                })
+                        key={point.id}
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height, opacity: 1 }}
+                        transition={{ duration: 0.35, ease: 'easeOut' }}
+                        className="flex flex-col items-center gap-3 relative"
+                        onMouseEnter={() => setHoveredBarId(point.id)}
+                        onMouseLeave={() => setHoveredBarId(null)}
+                      >
+                        <motion.div
+                          className={`w-8 md:w-10 rounded-[999px] bg-gradient-to-b ${gradient} ${glow} transition-all duration-200`}
+                          style={{ height }}
+                          animate={{
+                            scale: isHovered ? 1.05 : 1,
+                            filter: isHovered ? 'brightness(1.1)' : 'brightness(1)',
+                          }}
+                        />
+                        <span className={`text-[11px] tracking-[0.35em] ${isHovered ? 'text-white' : 'text-white/40'}`}>
+                          {point.date}
+                        </span>
+                        <AnimatePresence>
+                          {isHovered && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                              transition={{ duration: 0.2 }}
+                              className="absolute -top-20 left-1/2 -translate-x-1/2 z-20"
+                            >
+                              <div className="rounded-2xl border border-white/10 bg-black/90 px-4 py-3 text-center shadow-2xl">
+                                <p className="text-[11px] uppercase tracking-[0.35em] text-white/45">{point.date}</p>
+                                <p className={`text-2xl font-semibold ${point.aboveBaseline ? 'text-neon-primary' : 'text-rose-400'}`}>
+                                  {point.recovery}%
+                                </p>
+                                <p className="text-[11px] text-white/50">
+                                  {point.delta > 0 ? '+' : ''}{point.delta.toFixed(0)}% vs baseline
+                                </p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    )
+                  })}
+                </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-sm text-white/50 h-full">
+                <div className="flex items-center justify-center h-full text-sm text-white/50">
                   Not enough recovery data yet.
                 </div>
               )}
@@ -192,33 +182,33 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
         </div>
 
         <div className="grid gap-4">
-          <div className="rounded-[28px] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-white/45">
+          <div className="rounded-[32px] border border-white/10 bg-[rgba(5,5,5,0.7)] p-6 backdrop-blur-xl">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.35em] text-white/40">
               <span>Current baseline</span>
-              <span className="text-white/40">{baselineWindowSize}-day average</span>
+              <span>{baselineWindowSize}-day avg</span>
             </div>
             <div className="flex items-end justify-between mt-6">
-              <p className="text-5xl font-semibold">{baseline}%</p>
+              <p className="text-5xl font-semibold tracking-tight">{baseline}%</p>
               <div className="text-right">
-                <p className="text-[11px] uppercase tracking-[0.3em] text-white/40">Variability</p>
+                <p className="text-[11px] uppercase tracking-[0.35em] text-white/40">Variability</p>
                 <p className="text-lg font-medium text-white">{variability}% span</p>
               </div>
             </div>
             <p className="mt-4 text-sm text-white/55">
-              Keep the window narrow to respond faster, or widen it for a calmer baseline.
+              A fixed seven-day view smooths noise but still reacts when your recovery trend shifts.
             </p>
           </div>
 
           {latest && (
-            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#040404]/90 p-6 backdrop-blur-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-neon-primary/15 via-transparent to-transparent" />
+            <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[rgba(5,5,5,0.8)] p-6 backdrop-blur-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-neon-primary/20 via-transparent to-transparent opacity-70" />
               <div className="relative flex items-start justify-between gap-6">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.3em] text-white/40">Latest day</p>
+                  <p className="text-[11px] uppercase tracking-[0.35em] text-white/40">Latest day</p>
                   <p className={`text-4xl font-semibold mt-4 ${latest.aboveBaseline ? 'text-neon-primary' : 'text-rose-400'}`}>
                     {latest.recovery}%
                   </p>
-                  <p className="text-xs text-white/55 mt-2">Cards, charts, and deltas stay synced.</p>
+                  <p className="text-xs text-white/55 mt-2">Snaps to the same baseline logic.</p>
                 </div>
                 <div className="flex flex-col items-end text-sm font-medium">
                   {latest.aboveBaseline ? (
@@ -226,20 +216,20 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
                       <span className="inline-flex items-center gap-1 text-neon-primary">
                         <MoveUpRight className="w-4 h-4" /> Above baseline
                       </span>
-                      <span className="text-white/45 text-xs mt-1">+{Math.abs(latest.delta)}% vs average</span>
+                      <span className="text-white/45 text-xs mt-1">+{Math.abs(latest.delta)}% vs avg</span>
                     </>
                   ) : (
                     <>
                       <span className="inline-flex items-center gap-1 text-rose-300/90">
                         <MoveDownLeft className="w-4 h-4" /> Below baseline
                       </span>
-                      <span className="text-white/45 text-xs mt-1">-{Math.abs(latest.delta)}% vs average</span>
+                      <span className="text-white/45 text-xs mt-1">-{Math.abs(latest.delta)}% vs avg</span>
                     </>
                   )}
                 </div>
               </div>
               <p className="relative mt-4 text-sm text-white/60">
-                Nudge your sleep and recovery habits to tilt the next bar back above the line.
+                Rebuild the trend by stacking sleep, hydration, and breathwork habits.
               </p>
             </div>
           )}
