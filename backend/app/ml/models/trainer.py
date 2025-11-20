@@ -4,10 +4,24 @@ import logging
 from pathlib import Path
 from typing import Dict, Optional
 
-import joblib
 import pandas as pd
-from sklearn.cluster import KMeans
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+# Optional ML dependencies
+try:
+    import joblib
+    JOBLIB_AVAILABLE = True
+except ImportError:
+    JOBLIB_AVAILABLE = False
+    joblib = None
+
+try:
+    from sklearn.cluster import KMeans
+    from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    logging.getLogger(__name__).warning("scikit-learn not available, ML features disabled")
+
 from sqlalchemy.orm import Session
 
 from app.core_config import get_settings
@@ -90,6 +104,13 @@ def _ensure_dirs(user_id: str) -> Path:
 
 def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Optional[Dict]:
     """Train per-user models and persist them to disk."""
+    if not SKLEARN_AVAILABLE or not JOBLIB_AVAILABLE:
+        return {
+            "status": "skipped_no_ml_libs",
+            "trained_models": [],
+            "message": "ML libraries not installed (Light Backend mode)",
+        }
+
     df = _load_training_frame(db, user_id)
     if df.empty or len(df) < MIN_ROWS:
         return {

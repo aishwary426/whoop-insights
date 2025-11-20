@@ -1,8 +1,14 @@
 from pathlib import Path
 from typing import Optional
-
-import joblib
 import logging
+
+# Optional ML dependencies
+try:
+    import joblib
+    JOBLIB_AVAILABLE = True
+except ImportError:
+    JOBLIB_AVAILABLE = False
+    joblib = None
 
 from app.core_config import get_settings
 
@@ -20,6 +26,10 @@ def _latest_version_path(base: Path) -> Optional[Path]:
 
 def load_latest_models(user_id: str) -> dict:
     """Load latest saved models for user if they exist."""
+    if not JOBLIB_AVAILABLE:
+        logger.warning("joblib not available, cannot load models")
+        return {}
+    
     user_dir = Path(settings.model_dir) / user_id
     if not user_dir.exists():
         return {}

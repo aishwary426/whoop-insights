@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def save_upload_file(user_id: str, upload_id: str, file_obj) -> str:
+def save_upload_file(user_id: str, upload_id: str, file_obj, max_size: int | None = None) -> str:
     """
     Save uploaded ZIP file to disk.
     
@@ -18,21 +18,44 @@ def save_upload_file(user_id: str, upload_id: str, file_obj) -> str:
         user_id: User identifier
         upload_id: Unique upload identifier
         file_obj: File-like object (from FastAPI UploadFile)
+        max_size: Optional maximum file size in bytes
     
     Returns:
         Path to saved file
+    
+    Raises:
+        ValueError: If file size exceeds max_size
     """
     folder = Path(settings.upload_dir) / user_id
-    folder.mkdir(parents=True, exist_ok=True)
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except (OSError, PermissionError) as e:
+        logger.error(f"Failed to create upload directory {folder}: {e}")
+        raise ValueError(f"Failed to create upload directory: {e}")
     path = folder / f"{upload_id}.zip"
 
     logger.info(f"Saving upload {upload_id} for user {user_id} to {path}")
     
+    total_size = 0
+    chunk_size = 1024 * 1024  # 1MB chunks
+    
     with open(path, "wb") as f:
         while True:
-            chunk = file_obj.read(1024 * 1024)  # 1MB chunks
+            chunk = file_obj.read(chunk_size)
             if not chunk:
                 break
+            
+            total_size += len(chunk)
+            
+            # Check size limit if specified
+            if max_size and total_size > max_size:
+                # Clean up partial file
+                try:
+                    path.unlink()
+                except Exception:
+                    pass
+                raise ValueError(f"File size ({total_size / 1024 / 1024:.2f} MB) exceeds maximum allowed size ({max_size / 1024 / 1024:.2f} MB). Vercel serverless functions have a 4.5MB body size limit.")
+            
             f.write(chunk)
 
     file_size = path.stat().st_size

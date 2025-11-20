@@ -5,7 +5,12 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
+try:
+    from statsmodels.tsa.holtwinters import ExponentialSmoothing
+    STATSMODELS_AVAILABLE = True
+except ImportError:
+    STATSMODELS_AVAILABLE = False
+    logger.warning("statsmodels not available, forecasting disabled")
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +33,9 @@ def forecast_recovery_ts(
     """
     if len(recovery_series) < min_periods:
         logger.warning(f"Insufficient data for time series forecast: {len(recovery_series)} < {min_periods}")
+        return None
+
+    if not STATSMODELS_AVAILABLE:
         return None
     
     try:

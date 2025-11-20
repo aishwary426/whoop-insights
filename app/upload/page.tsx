@@ -52,8 +52,13 @@ export default function UploadPage() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0]
       if (droppedFile.name.endsWith('.zip')) {
-        setFile(droppedFile)
-        setError('')
+        if (droppedFile.size > 4.5 * 1024 * 1024) {
+          setError('File too large. Vercel limits uploads to 4.5MB. Please contact support or try a smaller export.')
+          setFile(null)
+        } else {
+          setFile(droppedFile)
+          setError('')
+        }
       } else {
         setError('Please upload a .zip file')
       }
@@ -64,61 +69,64 @@ export default function UploadPage() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0]
       if (selectedFile.name.endsWith('.zip')) {
-        setFile(selectedFile)
-        setError('')
+        if (selectedFile.size > 4.5 * 1024 * 1024) {
+          setError('File too large. Vercel limits uploads to 4.5MB. Please contact support or try a smaller export.')
+          setFile(null)
+          // Reset input so user can select same file again if they want to see error again
+          e.target.value = ''
+        } else {
+          setFile(selectedFile)
+          setError('')
+        }
       } else {
         setError('Please upload a .zip file')
       }
     }
   }
 
-  useEffect(() => {
-    return () => {
-      eventSourceRef.current?.close()
-    }
-  }, [])
-
   const handleUpload = async () => {
     if (!file || !user) return
 
     setUploading(true)
-    setProgress(5)
-    setProgressMessage('Upload received...')
+    setProgress(0)
+    setProgressMessage('Uploading and processing... This may take up to a minute.')
+    setError('')
 
     try {
-      // Close any previous stream before starting a new one
-      eventSourceRef.current?.close()
-
+      // Synchronous upload
       const response = await api.uploadWhoopData(file)
 
-      eventSourceRef.current = api.streamUploadProgress(
-        response.upload_id,
-        (update) => {
-          setProgress(update.progress)
-          setProgressMessage(update.message || 'Processing...')
+      // If we get here, it means success (axios throws on non-2xx)
+      setProgress(100)
+      setProgressMessage('Upload complete!')
 
-          if (update.status === 'completed') {
-            eventSourceRef.current?.close()
-            setTimeout(() => {
-              router.push('/dashboard')
-            }, 800)
-          } else if (update.status === 'failed') {
-            eventSourceRef.current?.close()
-            setError(update.message || 'Upload failed')
-            setUploading(false)
-          }
-        },
-        () => {
-          setProgressMessage('Lost connection to progress stream... reconnect by retrying upload.')
-        }
-      )
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 800)
 
     } catch (error: any) {
       console.error('Upload error:', error)
-      setError(error.message || 'Upload failed')
+
+      // Extract error message with fallbacks
+      let errorMessage = ''
+
+      if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail
+      } else if (error?.message) {
+        errorMessage = error.message
+      } else {
+        errorMessage = 'Upload failed. Please check your file and connection.'
+      }
+
+      // Clean up the message
+      errorMessage = errorMessage.trim()
+      if (errorMessage.startsWith('Error: ')) {
+        errorMessage = errorMessage.substring('Error: '.length)
+      }
+
+      setError(errorMessage)
       setUploading(false)
       setProgress(0)
-      eventSourceRef.current?.close()
     }
   }
 
@@ -207,20 +215,21 @@ export default function UploadPage() {
               )}
             </>
           ) : (
-              <div className="text-center py-12">
-                <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
-                <div className="text-xl font-semibold mb-1">Processing your data...</div>
-                <div className="text-sm text-white/60 mb-4">{progressMessage}</div>
+            <div className="text-center py-12">
+              <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
+              <div className="text-xl font-semibold mb-1">Processing your data...</div>
+              <div className="text-sm text-white/60 mb-4">{progressMessage}</div>
 
-                <div className="max-w-md mx-auto">
+              <div className="max-w-md mx-auto">
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 20, ease: "linear", repeat: Infinity }}
                     className="h-full bg-neon-primary"
                   />
                 </div>
-                <div className="text-sm text-white/60">{progress}% complete</div>
+                <div className="text-sm text-white/60">Please wait...</div>
               </div>
             </div>
           )}

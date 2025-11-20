@@ -10,9 +10,26 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.models.database import DailyMetrics, Upload, UploadStatus, User, Workout
-from app.ml.feature_engineering.daily_features import recompute_daily_features
-from app.ml.models.trainer import train_user_models
 from app.utils.zip_utils import save_upload_file, unzip_whoop_export
+
+# Lazy import ML features to avoid loading heavy dependencies if not needed
+def _get_ml_features():
+    """Lazy import for ML feature engineering."""
+    try:
+        from app.ml.feature_engineering.daily_features import recompute_daily_features
+        return recompute_daily_features
+    except ImportError as e:
+        logger.warning(f"ML features not available: {e}")
+        return None
+
+def _get_ml_trainer():
+    """Lazy import for ML model training."""
+    try:
+        from app.ml.models.trainer import train_user_models
+        return train_user_models
+    except ImportError as e:
+        logger.warning(f"ML training not available: {e}")
+        return None
 
 logger = logging.getLogger(__name__)
 
@@ -457,14 +474,24 @@ def ingest_whoop_zip(
         created_workouts, skipped_workouts = persist_workouts(db, user_id, workouts)
 
         # Ensure aggregated counts and features are refreshed
-        if progress_callback:
-            progress_callback(upload_id, 94, "Computing features... (94%)", "processing", "features")
-        recompute_daily_features(db, user_id)
+        # Compute features (optional - requires ML dependencies)
+        recompute_features_fn = _get_ml_features()
+        if recompute_features_fn:
+            if progress_callback:
+                progress_callback(upload_id, 94, "Computing features... (94%)", "processing", "features")
+            recompute_features_fn(db, user_id)
+        else:
+            logger.warning("ML features not available, skipping feature recomputation")
 
-        # Train per-user models on newly ingested data (personalized to this upload)
-        if progress_callback:
-            progress_callback(upload_id, 96, "Training models... (96%)", "processing", "training")
-        training_summary = train_user_models(db, user_id, is_mobile=is_mobile)
+        # Train per-user models on newly ingested data (optional - requires ML dependencies)
+        train_models_fn = _get_ml_trainer()
+        training_summary = None
+        if train_models_fn:
+            if progress_callback:
+                progress_callback(upload_id, 96, "Training models... (96%)", "processing", "training")
+            training_summary = train_models_fn(db, user_id, is_mobile=is_mobile)
+        else:
+            logger.warning("ML training not available, skipping model training")
 
         upload.status = UploadStatus.COMPLETED
         upload.completed_at = datetime.utcnow()

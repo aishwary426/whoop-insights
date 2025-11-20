@@ -1,23 +1,65 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from functools import lru_cache
 from pathlib import Path
 import os
 
 
+def _get_default_database_url():
+    """Get default database URL, preferring SQLite on serverless platforms."""
+    # Check if we're on Vercel or similar serverless platform
+    is_vercel = os.getenv("VERCEL") or os.getenv("VERCEL_ENV") or "/var/task" in os.getcwd()
+    
+    if is_vercel:
+        return "sqlite:////tmp/whoop.db"
+    
+    # Check if DATABASE_URL is set to PostgreSQL but psycopg2 isn't available
+    db_url = os.getenv("DATABASE_URL", "")
+    if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
+        try:
+            import psycopg2  # noqa: F401
+        except ImportError:
+            # PostgreSQL URL set but psycopg2 not installed - use SQLite
+            return "sqlite:///./whoop.db"
+    
+    # Default to SQLite for local development
+    return os.getenv("DATABASE_URL", "sqlite:///./whoop.db")
+
+
 class Settings(BaseSettings):
     # Database - defaults to SQLite for dev, easy to switch to Postgres
-    database_url: str = os.getenv(
-        "DATABASE_URL", 
-        "sqlite:///./whoop.db"
-    )
+    # On Vercel/serverless, always use SQLite in /tmp since we don't have persistent storage
+    # and PostgreSQL requires additional setup
+    database_url: str = _get_default_database_url()
+    
+    @field_validator('database_url', mode='before')
+    @classmethod
+    def force_sqlite_on_vercel(cls, v):
+        """Force SQLite on Vercel/serverless even if DATABASE_URL is set to PostgreSQL."""
+        # Check if we're on Vercel or similar serverless platform
+        is_vercel = os.getenv("VERCEL") or os.getenv("VERCEL_ENV") or "/var/task" in os.getcwd()
+        
+        if is_vercel:
+            # On Vercel, always use SQLite in /tmp
+            if not str(v).startswith("sqlite"):
+                return "sqlite:////tmp/whoop.db"
+        elif str(v).startswith(("postgresql://", "postgres://")):
+            # Check if psycopg2 is available for PostgreSQL
+            try:
+                import psycopg2  # noqa: F401
+            except ImportError:
+                # PostgreSQL URL set but psycopg2 not installed - use SQLite
+                return "sqlite:///./whoop.db"
+        
+        return v
     
     # Redis (optional, for future task queues)
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
     # Data directories
-    upload_dir: str = "./data/raw"
-    processed_dir: str = "./data/processed"
-    model_dir: str = "./data/models"
+    upload_dir: str = "/tmp/data/raw" if os.getenv("VERCEL") else "./data/raw"
+    processed_dir: str = "/tmp/data/processed" if os.getenv("VERCEL") else "./data/processed"
+    model_dir: str = "/tmp/data/models" if os.getenv("VERCEL") else "./data/models"
 
     # API config
     api_v1_prefix: str = "/api/v1"
@@ -42,9 +84,15 @@ class Settings(BaseSettings):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Ensure directories exist
+        # Ensure directories exist (with error handling for serverless)
         for dir_path in [self.upload_dir, self.processed_dir, self.model_dir]:
-            Path(dir_path).mkdir(parents=True, exist_ok=True)
+            try:
+                Path(dir_path).mkdir(parents=True, exist_ok=True)
+            except (OSError, PermissionError) as e:
+                # On serverless, directories might be created on-demand
+                # Log warning but don't fail initialization
+                import logging
+                logging.getLogger(__name__).warning(f"Could not create directory {dir_path}: {e}")
 
 
 @lru_cache

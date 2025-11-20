@@ -1,7 +1,11 @@
 import logging
+import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 
 from app.api.v1.router import api_router
 from app.core_config import get_settings
@@ -9,10 +13,24 @@ from app.utils.logger import setup_logging
 from app.db_session import engine
 from app.models.database import Base
 
-# Initialize logging
-setup_logging()
+# Initialize logging (with error handling)
+try:
+    setup_logging()
+    logger = logging.getLogger(__name__)
+except Exception as e:
+    # Fallback to basic logging if setup fails
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.error(f"Failed to setup logging: {e}")
 
-settings = get_settings()
+# Get settings (with error handling)
+try:
+    settings = get_settings()
+except Exception as e:
+    logger.error(f"Failed to get settings: {e}")
+    # Use minimal defaults
+    from app.core_config import Settings
+    settings = Settings()
 
 app = FastAPI(
     title="Whoop Insights Pro API",
@@ -21,8 +39,14 @@ app = FastAPI(
     debug=settings.debug
 )
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables (with error handling for serverless environments)
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to create database tables: {e}")
+    # Don't fail completely - tables might already exist or be created on first use
+    # This is especially important for serverless where the filesystem might be read-only initially
 
 # CORS middleware
 app.add_middleware(
@@ -33,8 +57,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all incoming requests for debugging."""
+    logger.info(f"Incoming request: {request.method} {request.url.path}")
+    response = await call_next(request)
+    logger.info(f"Request processed: {response.status_code}")
+    return response
+
+# Exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle request validation errors."""
+    logger.error(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": exc.errors(),
+            "message": "Invalid request format. Please ensure you're sending a valid ZIP file with user_id."
+        }
+    )
+
+# Exception handler for HTTP exceptions
+@app.exception_handler(FastAPIHTTPException)
+async def http_exception_handler(request: Request, exc: FastAPIHTTPException):
+    """Handle HTTP exceptions to ensure proper JSON format."""
+    logger.error(f"HTTP exception: {exc.status_code} - {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail if exc.detail else "An error occurred"
+        }
+    )
+
+# Global exception handler for unhandled errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch any unhandled exceptions and return proper JSON response."""
+    logger.exception(f"Unhandled exception: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "detail": f"Internal server error: {str(exc)}" if settings.debug else "Internal server error"
+        }
+    )
+
 # Include API router
+# Include API router with prefix (standard)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+# Include API router WITHOUT prefix (fallback for Vercel/Mangum stripping)
+# This ensures /whoop/ingest works even if /api/v1 is stripped
+app.include_router(api_router, prefix="")
+
+
 
 
 @app.get("/healthz")
