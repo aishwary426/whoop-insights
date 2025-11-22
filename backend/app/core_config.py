@@ -57,9 +57,10 @@ class Settings(BaseSettings):
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
     # Data directories
-    upload_dir: str = "/tmp/data/raw" if os.getenv("VERCEL") else "./data/raw"
-    processed_dir: str = "/tmp/data/processed" if os.getenv("VERCEL") else "./data/processed"
-    model_dir: str = "/tmp/data/models" if os.getenv("VERCEL") else "./data/models"
+    # Use /tmp for cloud platforms (Vercel, Railway, Render) since local dirs may not be writable
+    upload_dir: str = "/tmp/data/raw" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/raw"
+    processed_dir: str = "/tmp/data/processed" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/processed"
+    model_dir: str = "/tmp/data/models" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/models"
 
     # API config
     api_v1_prefix: str = "/api/v1"
