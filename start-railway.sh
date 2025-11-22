@@ -68,7 +68,7 @@ EOF
 [program:frontend]
 command=node server.js
 directory=${SERVER_DIR}
-environment=PORT="${PORT}"
+environment=PORT="${PORT}",HOSTNAME="0.0.0.0"
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stdout
