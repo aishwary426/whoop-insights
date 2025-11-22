@@ -1,8 +1,14 @@
 import { getCurrentUser } from './supabase'
 
 const resolveApiBaseUrl = () => {
+    // If API URL is explicitly set, use it
     if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL
+        const url = process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        // If the URL ends with /api, append /v1
+        if (url.endsWith('/api')) {
+            return `${url}/v1`
+        }
+        return url
     }
 
     if (typeof window !== 'undefined') {
