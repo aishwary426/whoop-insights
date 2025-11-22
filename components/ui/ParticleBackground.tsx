@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useTheme } from 'next-themes'
 
 interface ParticleBackgroundProps {
     particleCount?: number
@@ -8,17 +9,16 @@ interface ParticleBackgroundProps {
     variant?: 'magnetic' | 'swirl'
 }
 
-import { useTheme } from 'next-themes'
-
 export default function ParticleBackground({
-    particleCount = 1200,
-    accentColor = '#00FF8F',
+    particleCount = 2000,
+    accentColor,
     variant = 'magnetic',
 }: ParticleBackgroundProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 })
     const scrollRef = useRef({ y: 0, targetY: 0 })
     const { theme } = useTheme()
+    const effectiveAccentColor = accentColor || (theme === 'dark' ? '#00FF8F' : '#3B82F6')
 
     useEffect(() => {
         const canvas = canvasRef.current
@@ -38,7 +38,7 @@ export default function ParticleBackground({
         const BASE_SIZE = 1.5
         const MAGNETIC_RADIUS = variant === 'swirl' ? 400 : 1200
         const MAGNETIC_RADIUS_SQ = MAGNETIC_RADIUS * MAGNETIC_RADIUS
-        const MAGNETIC_FORCE = 0.5
+        const MAGNETIC_FORCE = 0.7 // Increased force for more motion
 
         class Particle {
             x: number
@@ -73,13 +73,22 @@ export default function ParticleBackground({
 
                 this.size = Math.random() * BASE_SIZE + 0.5
 
-                // Color palette: White/Grey with subtle accent
-                if (Math.random() > 0.9) {
-                    this.color = accentColor
+                // Color palette: Black/Blue in light mode, White/Grey in dark mode
+                const isLightMode = theme === 'light' || theme === undefined
+                if (Math.random() > 0.85) {
+                    // Accent particles - blue in light mode, neon green in dark
+                    this.color = effectiveAccentColor
                     this.isAccent = true
                 } else {
-                    const v = Math.floor(Math.random() * 100 + 155)
-                    this.color = `rgb(${v}, ${v}, ${v})`
+                    // Base particles - black/dark in light mode, white/light in dark mode
+                    if (isLightMode) {
+                        // Black particles with slight variation
+                        const v = Math.floor(Math.random() * 30 + 10) // 10-40 for black range
+                        this.color = `rgb(${v}, ${v}, ${v})`
+                    } else {
+                        const v = Math.floor(Math.random() * 100 + 155)
+                        this.color = `rgb(${v}, ${v}, ${v})`
+                    }
                 }
             }
 
@@ -170,9 +179,10 @@ export default function ParticleBackground({
                 ctx.fillStyle = overrideColor || this.color
                 ctx.globalAlpha = alpha
 
-                // Optimization: Use fillRect instead of arc for tiny particles
-                // It's significantly faster to rasterize
-                ctx.fillRect(x2d - size / 2, y2d - size / 2, size, size)
+                // Draw round particles using arc
+                ctx.beginPath()
+                ctx.arc(x2d, y2d, size / 2, 0, Math.PI * 2)
+                ctx.fill()
             }
         }
 
@@ -237,7 +247,7 @@ export default function ParticleBackground({
             const baseHue = 160 + scrollHueShift
 
             // Auto-rotation (idle) - enhanced speed for visible rotation from start
-            const time = Date.now() * 0.00015 // Slightly faster rotation
+            const time = Date.now() * 0.00025 // Faster rotation for more motion
             const autoRotY = currentRotY + time
 
             // Pre-calc auto rotation if needed, but here we mix mouse and auto
@@ -251,15 +261,28 @@ export default function ParticleBackground({
                 // Pass pre-calculated values
                 p.update(finalCosY, finalSinY, cosX, sinX, currentScroll)
 
-                // Dynamic color override
-                // We use the particle's original random variation but shift the hue
+                // Dynamic color override - Black and Blue in light mode
                 let pColor;
                 if (p.isAccent) {
-                    pColor = `hsl(${baseHue}, 100%, 60%)`
+                    // Accent particles - blue in light mode
+                    if (isLightMode) {
+                        // Blue shades: #3B82F6 (blue-500) and variations
+                        const blueShades = ['#3B82F6', '#2563EB', '#1D4ED8', '#60A5FA']
+                        pColor = blueShades[Math.floor(Math.random() * blueShades.length)]
+                    } else {
+                        pColor = `hsl(${baseHue}, 100%, 60%)`
+                    }
                 } else {
-                    // Darker particles in light mode (lightness 30%), lighter in dark mode (lightness 80%)
-                    const lightness = isLightMode ? '30%' : '80%'
-                    pColor = `hsl(${baseHue}, 20%, ${lightness})`
+                    // Base particles - black in light mode
+                    if (isLightMode) {
+                        // Black shades: pure black to dark gray
+                        const blackShades = ['#000000', '#0A0A0A', '#1A1A1A', '#2A2A2A', '#1F1F1F']
+                        pColor = blackShades[Math.floor(Math.random() * blackShades.length)]
+                    } else {
+                        // Dark mode: lighter particles
+                        const lightness = '80%'
+                        pColor = `hsl(${baseHue}, 20%, ${lightness})`
+                    }
                 }
 
                 p.draw(ctx, pColor)
@@ -308,7 +331,7 @@ export default function ParticleBackground({
             window.removeEventListener('scroll', handleScroll)
             cancelAnimationFrame(animationFrameId)
         }
-    }, [particleCount, accentColor, variant, theme])
+        }, [particleCount, effectiveAccentColor, variant, theme])
 
     return (
         <canvas

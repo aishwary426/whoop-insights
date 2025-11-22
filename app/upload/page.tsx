@@ -89,20 +89,32 @@ export default function UploadPage() {
 
     setUploading(true)
     setProgress(0)
-    setProgressMessage('Uploading and processing... This may take up to a minute.')
+    setProgressMessage('Uploading and processing... This may take a minute or two.')
     setError('')
 
     try {
-      // Synchronous upload
+      // Synchronous upload - this call waits until ALL processing is complete:
+      // 1. File upload
+      // 2. Data parsing  
+      // 3. Feature engineering (94% progress)
+      // 4. Model training (96% progress) - including Calorie GPS model
+      // The API only returns when everything is done, so we wait here until complete
+      setProgressMessage('Uploading file and processing data...')
       const response = await api.uploadWhoopData(file)
 
-      // If we get here, it means success (axios throws on non-2xx)
+      // If we get here, upload AND training are complete
+      console.log('Upload and training successful:', response)
       setProgress(100)
-      setProgressMessage('Upload complete!')
+      setProgressMessage('Upload complete! All models trained successfully. Redirecting...')
 
+      // Wait a bit longer to ensure database commit is fully propagated
+      // This helps prevent race conditions where dashboard queries before data is visible
       setTimeout(() => {
-        router.push('/dashboard')
-      }, 800)
+        setUploading(false)
+        setFile(null) // Clear the file
+        // Redirect with timestamp to force refresh
+        router.push(`/dashboard?uploaded=${Date.now()}`)
+      }, 2500) // Increased delay to ensure database commit propagation
 
     } catch (error: any) {
       console.error('Upload error:', error)
@@ -135,11 +147,11 @@ export default function UploadPage() {
       <TranscendentalBackground />
       <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-16 text-gray-900 dark:text-white">
         <div className="relative text-center space-y-3 mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon-primary/30 bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">
-            <ShieldCheck className="w-4 h-4 text-neon-primary" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-600/30 dark:border-neon-primary/30 bg-blue-600/10 dark:bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">
+            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-neon-primary" />
             Private upload · local parsing
           </div>
-          <h1 className="text-[clamp(2.2rem,5vw,3.2rem)] font-semibold leading-tight">Upload your WHOOP export</h1>
+          <h1 className="text-[clamp(2.2rem,5vw,3.2rem)] font-semibold leading-tight text-gray-900 dark:text-white">Upload your WHOOP export</h1>
           <p className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto text-[15px]">
             Drop your ZIP. We unpack, parse, and sync with your dashboard instantly.
           </p>
@@ -155,8 +167,8 @@ export default function UploadPage() {
                 onDrop={handleDrop}
                 onClick={() => document.getElementById('fileInput')?.click()}
                 className={`relative border-2 border-dashed rounded-3xl p-10 text-center cursor-pointer transition-all duration-300 ${dragActive
-                  ? 'border-neon-primary/60 bg-neon-primary/5'
-                  : 'border-gray-300 dark:border-white/10 hover:border-neon-primary/40 hover:bg-gray-50 dark:hover:bg-white/5'
+                  ? 'border-blue-600/60 dark:border-neon-primary/60 bg-blue-600/5 dark:bg-neon-primary/5'
+                  : 'border-gray-300 dark:border-white/10 hover:border-blue-600/40 dark:hover:border-neon-primary/40 hover:bg-gray-50 dark:hover:bg-white/5'
                   }`}
               >
                 <input
@@ -169,7 +181,7 @@ export default function UploadPage() {
 
                 {file ? (
                   <div className="flex items-center justify-center gap-4">
-                    <FileText className="w-10 h-10 text-neon-primary" />
+                    <FileText className="w-10 h-10 text-blue-600 dark:text-neon-primary" />
                     <div className="text-left">
                       <div className="font-semibold">{file.name}</div>
                       <div className="text-sm text-gray-500 dark:text-white/60">
@@ -216,7 +228,7 @@ export default function UploadPage() {
             </>
           ) : (
             <div className="text-center py-12">
-              <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
+              <div className="w-14 h-14 border-4 border-blue-600/15 dark:border-neon-primary/15 border-t-blue-600 dark:border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
               <div className="text-xl font-semibold mb-1">Processing your data...</div>
               <div className="text-sm text-gray-500 dark:text-white/60 mb-4">{progressMessage}</div>
 
@@ -226,7 +238,7 @@ export default function UploadPage() {
                     initial={{ width: "0%" }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 20, ease: "linear", repeat: Infinity }}
-                    className="h-full bg-neon-primary"
+                    className="h-full bg-blue-600 dark:bg-neon-primary"
                   />
                 </div>
                 <div className="text-sm text-gray-500 dark:text-white/60">Please wait...</div>
@@ -241,23 +253,23 @@ export default function UploadPage() {
             </h3>
             <ol className="space-y-3 text-sm text-gray-600 dark:text-white/65">
               <li className="flex gap-3">
-                <span className="font-bold text-neon-primary">1.</span>
+                <span className="font-bold text-blue-600 dark:text-neon-primary">1.</span>
                 <span>Open the WHOOP mobile app</span>
               </li>
               <li className="flex gap-3">
-                <span className="font-bold text-neon-primary">2.</span>
+                <span className="font-bold text-blue-600 dark:text-neon-primary">2.</span>
                 <span>Go to Settings → Privacy → Export Data</span>
               </li>
               <li className="flex gap-3">
-                <span className="font-bold text-neon-primary">3.</span>
+                <span className="font-bold text-blue-600 dark:text-neon-primary">3.</span>
                 <span>Request export and wait for email</span>
               </li>
               <li className="flex gap-3">
-                <span className="font-bold text-neon-primary">4.</span>
+                <span className="font-bold text-blue-600 dark:text-neon-primary">4.</span>
                 <span>Download the ZIP file from email</span>
               </li>
               <li className="flex gap-3">
-                <span className="font-bold text-neon-primary">5.</span>
+                <span className="font-bold text-blue-600 dark:text-neon-primary">5.</span>
                 <span>Upload it here!</span>
               </li>
             </ol>

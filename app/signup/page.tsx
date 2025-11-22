@@ -70,7 +70,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-bgDark">
+    <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark">
       <TranscendentalBackground />
       <div className="relative z-10">
         <AuthCard
@@ -79,44 +79,44 @@ export default function SignupPage() {
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-white/80">Full Name</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-white/80">Full Name</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-neon/50 focus:ring-1 focus:ring-neon/50 transition-all"
+                className="w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500 dark:focus:border-neon/50 focus:ring-1 focus:ring-blue-500 dark:focus:ring-neon/50 transition-all"
                 placeholder="John Doe"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-white/80">Email</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-white/80">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-neon/50 focus:ring-1 focus:ring-neon/50 transition-all"
+                className="w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500 dark:focus:border-neon/50 focus:ring-1 focus:ring-blue-500 dark:focus:ring-neon/50 transition-all"
                 placeholder="john@example.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-white/80">Password</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-white/80">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-neon/50 focus:ring-1 focus:ring-neon/50 transition-all pr-12"
+                  className="w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500 dark:focus:border-neon/50 focus:ring-1 focus:ring-blue-500 dark:focus:ring-neon/50 transition-all pr-12"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -124,19 +124,19 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-white/80">Confirm Password</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-white/80">Confirm Password</label>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-neon/50 focus:ring-1 focus:ring-neon/50 transition-all"
+                className="w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500 dark:focus:border-neon/50 focus:ring-1 focus:ring-blue-500 dark:focus:ring-neon/50 transition-all"
                 placeholder="••••••••"
                 required
               />
             </div>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm">
                 {error}
               </div>
             )}
@@ -153,10 +153,10 @@ export default function SignupPage() {
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
+              <div className="w-full border-t border-gray-300 dark:border-white/10" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#0A0A0A] text-white/40">OR</span>
+              <span className="px-4 bg-white/90 dark:bg-[#0A0A0A] text-gray-500 dark:text-white/40">OR</span>
             </div>
           </div>
 
@@ -175,9 +175,9 @@ export default function SignupPage() {
             Continue with Google
           </NeonButton>
 
-          <p className="mt-8 text-center text-sm text-white/60">
+          <p className="mt-8 text-center text-sm text-gray-600 dark:text-white/60">
             Already have an account?{' '}
-            <Link href="/login" className="text-neon hover:text-neon/80 font-medium transition-colors">
+            <Link href="/login" className="text-blue-500 dark:text-neon hover:text-blue-600 dark:hover:text-neon/80 font-medium transition-colors">
               Sign in
             </Link>
           </p>

@@ -9,7 +9,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.models.database import DailyMetrics, Upload, UploadStatus, User, Workout
+from app.models.database import DailyMetrics, Upload, UploadStatus, User, Workout, Insight
 from app.utils.zip_utils import save_upload_file, unzip_whoop_export
 
 # Lazy import ML features to avoid loading heavy dependencies if not needed
@@ -46,6 +46,32 @@ def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Op
         db.commit()
         logger.info(f"Created new user: {user_id}")
     return user
+
+
+def clear_existing_data(db: Session, user_id: str) -> Tuple[int, int, int]:
+    """
+    Clear all existing data for a user before ingesting new data.
+    This ensures that new uploads replace old data completely.
+    
+    Returns:
+        Tuple of (deleted_metrics_count, deleted_workouts_count, deleted_insights_count)
+    """
+    logger.info(f"Clearing existing data for user {user_id}")
+    
+    # Delete all daily metrics
+    deleted_metrics = db.query(DailyMetrics).filter(DailyMetrics.user_id == user_id).delete()
+    
+    # Delete all workouts
+    deleted_workouts = db.query(Workout).filter(Workout.user_id == user_id).delete()
+    
+    # Delete all insights (they'll be regenerated from new data)
+    deleted_insights = db.query(Insight).filter(Insight.user_id == user_id).delete()
+    
+    db.commit()
+    
+    logger.info(f"Cleared {deleted_metrics} daily metrics, {deleted_workouts} workouts, and {deleted_insights} insights for user {user_id}")
+    
+    return deleted_metrics, deleted_workouts, deleted_insights
 
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -407,10 +433,17 @@ def ingest_whoop_zip(
     # Step 1: Ensure user exists
     ensure_user(db, user_id, email, name)
     
-    # Step 2: Save ZIP file (unless provided)
+    # Step 2: Clear existing data to ensure fresh start with new upload
+    # This ensures that new ZIP files replace old data completely
+    if progress_callback:
+        progress_callback(upload_id, 2, "Clearing existing data...", "processing", "clearing")
+    deleted_metrics, deleted_workouts, deleted_insights = clear_existing_data(db, user_id)
+    logger.info(f"Cleared {deleted_metrics} metrics, {deleted_workouts} workouts, and {deleted_insights} insights before new ingestion")
+    
+    # Step 3: Save ZIP file (unless provided)
     zip_path = zip_path or save_upload_file(user_id=user_id, upload_id=upload_id, file_obj=file_obj)
 
-    # Step 3: Create Upload record
+    # Step 4: Create Upload record
     upload = Upload(
         id=upload_id,
         user_id=user_id,
@@ -489,7 +522,15 @@ def ingest_whoop_zip(
         if train_models_fn:
             if progress_callback:
                 progress_callback(upload_id, 96, "Training models... (96%)", "processing", "training")
+            logger.info(f"Starting model training for user {user_id} (mobile: {is_mobile})")
             training_summary = train_models_fn(db, user_id, is_mobile=is_mobile)
+            if training_summary:
+                trained_models = training_summary.get('trained_models', [])
+                logger.info(f"Model training completed. Trained models: {trained_models}")
+                if 'calorie_gps' in trained_models:
+                    logger.info("✅ Calorie GPS model trained successfully!")
+                else:
+                    logger.info("⚠️ Calorie GPS model not trained (may need more workout data with calories and duration)")
         else:
             logger.warning("ML training not available, skipping model training")
 

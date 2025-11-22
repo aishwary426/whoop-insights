@@ -85,7 +85,9 @@ async def upload_whoop_data(
                 zip_path=zip_path,
                 is_mobile=is_mobile_client,
             )
-            logger.info(f"[{upload_id}] Ingestion completed successfully")
+            # Ensure all changes are flushed to the database
+            db.flush()
+            logger.info(f"[{upload_id}] Ingestion completed successfully, data flushed to database")
             
             return UploadResponse(
                 upload_id=upload_id,

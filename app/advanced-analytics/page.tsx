@@ -110,7 +110,7 @@ export default function AdvancedAnalyticsPage() {
         return (
             <AppLayout>
                 <div className="flex items-center justify-center min-h-screen">
-                    <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin" />
+                    <div className="w-14 h-14 border-4 border-blue-600/15 dark:border-neon-primary/15 border-t-blue-600 dark:border-t-neon-primary rounded-full animate-spin" />
                 </div>
             </AppLayout>
         )

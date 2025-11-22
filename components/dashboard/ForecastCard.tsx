@@ -36,7 +36,7 @@ function ForecastCard({ forecast, strain = 0, sleep = 0 }: ForecastCardProps) {
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-white/50">Tomorrow</p>
-                    <p className="text-3xl font-semibold text-neon-primary mt-1">
+                    <p className="text-3xl font-semibold text-blue-600 dark:text-neon-primary mt-1">
                         {hasForecast ? `${roundedForecast}%` : '—'}
                     </p>
                 </div>

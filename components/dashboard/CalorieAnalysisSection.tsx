@@ -19,22 +19,22 @@ export default function CalorieAnalysisSection({ analysis }: Props) {
             className="mt-12 max-w-4xl mx-auto"
         >
             <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-lg bg-neon-primary/10 border border-neon-primary/20">
-                    <Trophy className="w-5 h-5 text-neon-primary" />
+                <div className="p-2 rounded-lg bg-blue-600/10 dark:bg-neon-primary/10 border border-blue-600/20 dark:border-neon-primary/20">
+                    <Trophy className="w-5 h-5 text-blue-600 dark:text-neon-primary" />
                 </div>
                 <h2 className="text-2xl font-bold">Efficiency Deep Dive</h2>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
                 {/* Winner Card */}
-                <div className="md:col-span-2 glass-card p-6 bg-gradient-to-br from-neon-primary/5 to-transparent border-neon-primary/20">
+                <div className="md:col-span-2 glass-card p-6 bg-gradient-to-br from-blue-600/5 dark:from-neon-primary/5 to-transparent border-blue-600/20 dark:border-neon-primary/20">
                     <div className="flex items-start justify-between mb-4">
                         <div>
-                            <div className="text-sm text-neon-primary font-semibold tracking-wider mb-1">MOST EFFICIENT</div>
+                            <div className="text-sm text-blue-600 dark:text-neon-primary font-semibold tracking-wider mb-1">MOST EFFICIENT</div>
                             <h3 className="text-3xl font-bold text-gray-900 dark:text-white">{analysis.winner.sport_type}</h3>
                         </div>
                         <div className="text-right">
-                            <div className="text-3xl font-bold text-neon-primary">{analysis.winner.avg_cal_per_min.toFixed(1)}</div>
+                            <div className="text-3xl font-bold text-blue-600 dark:text-neon-primary">{analysis.winner.avg_cal_per_min.toFixed(1)}</div>
                             <div className="text-xs text-gray-500 dark:text-white/50">cal/min</div>
                         </div>
                     </div>
@@ -66,13 +66,13 @@ export default function CalorieAnalysisSection({ analysis }: Props) {
                         {analysis.comparison.slice(0, 4).map((item, idx) => (
                             <div key={item.sport_type} className="flex items-center justify-between group">
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-neon-primary text-black' : 'bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-white/60'}`}>
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx === 0 ? 'bg-blue-600 dark:bg-neon-primary text-white dark:text-black' : 'bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-white/60'}`}>
                                         {idx + 1}
                                     </div>
                                     <span className={idx === 0 ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-white/60'}>{item.sport_type}</span>
                                 </div>
                                 <div className="text-sm font-mono">
-                                    <span className={idx === 0 ? 'text-neon-primary' : 'text-gray-400 dark:text-white/40'}>{item.avg_cal_per_min.toFixed(1)}</span>
+                                    <span className={idx === 0 ? 'text-blue-600 dark:text-neon-primary' : 'text-gray-600 dark:text-white/40'}>{item.avg_cal_per_min.toFixed(1)}</span>
                                 </div>
                             </div>
                         ))}

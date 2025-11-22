@@ -33,6 +33,7 @@ from app.ml.models.sleep_optimizer import train_sleep_optimizer
 from app.ml.models.workout_timing_optimizer import train_workout_timing_optimizer
 from app.ml.models.strain_tolerance_model import train_strain_tolerance_model
 from app.ml.models.recovery_velocity import train_recovery_velocity_model
+from app.ml.models.calorie_gps_model import train_calorie_gps_model
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +158,7 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     workout_timing_path = version_dir / "workout_timing_optimizer.joblib"
     strain_tolerance_path = version_dir / "strain_tolerance_model.joblib"
     recovery_velocity_path = version_dir / "recovery_velocity_model.joblib"
+    calorie_gps_path = version_dir / "calorie_gps_model.joblib"
 
     # Save RandomForest models
     joblib.dump(rf_reg_model, rec_path)
@@ -254,6 +256,27 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     except Exception as e:
         logger.warning(f"Failed to train recovery velocity model: {e}", exc_info=True)
     
+    # 5. Calorie GPS Model - hyper-personalized calorie burn prediction
+    try:
+        calorie_gps_result = train_calorie_gps_model(db, user_id, is_mobile)
+        if calorie_gps_result and calorie_gps_result.get('model'):
+            # Save model with all metadata including feature_importance
+            joblib.dump({
+                'model': calorie_gps_result['model'],
+                'xgb_model': calorie_gps_result.get('xgb_model'),
+                'feature_cols': calorie_gps_result['feature_cols'],
+                'mae': calorie_gps_result.get('mae'),
+                'r2': calorie_gps_result.get('r2'),
+                'sample_size': calorie_gps_result.get('sample_size'),
+                'feature_importance': calorie_gps_result.get('feature_importance', {}),
+                'workout_types': calorie_gps_result.get('workout_types', [])
+            }, calorie_gps_path)
+            personalization_models.append("calorie_gps")
+            logger.info(f"Calorie GPS model trained and saved for user {user_id}")
+            logger.info(f"  Metrics: MAE={calorie_gps_result.get('mae', 'N/A'):.2f}, R²={calorie_gps_result.get('r2', 'N/A'):.3f}, samples={calorie_gps_result.get('sample_size', 0)}")
+    except Exception as e:
+        logger.warning(f"Failed to train Calorie GPS model: {e}", exc_info=True)
+    
     # Lightweight clustering to personalize patterns (per user only)
     cluster_model = None
     if len(df) >= 6:
@@ -289,6 +312,7 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
         "workout_timing_path": str(workout_timing_path) if "workout_timing_optimizer" in personalization_models else None,
         "strain_tolerance_path": str(strain_tolerance_path) if "strain_tolerance" in personalization_models else None,
         "recovery_velocity_path": str(recovery_velocity_path) if "recovery_velocity" in personalization_models else None,
+        "calorie_gps_path": str(calorie_gps_path) if "calorie_gps" in personalization_models else None,
     }
     
     if XGBOOST_AVAILABLE:

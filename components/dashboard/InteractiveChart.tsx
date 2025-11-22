@@ -55,7 +55,7 @@ function InteractiveChart({
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
-        <div className="bg-white/90 dark:bg-black/90 border border-neon-primary/30 rounded-lg p-3 shadow-lg dark:shadow-neon-card backdrop-blur-xl">
+        <div className="bg-white/90 dark:bg-black/90 border border-blue-600/30 dark:border-neon-primary/30 rounded-lg p-3 shadow-lg dark:shadow-neon-card backdrop-blur-xl">
           <p className="text-xs text-gray-600 dark:text-white/60 mb-1">{data.date}</p>
           <p className="text-lg font-semibold" style={{ color }}>
             {typeof data.value === 'number' ? +data.value.toFixed(2) : data.value}{unit}

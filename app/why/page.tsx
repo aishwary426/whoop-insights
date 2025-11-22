@@ -13,7 +13,7 @@ const points = [
         icon: Brain,
         title: 'From "Here’s your data" to "Here’s what to do"',
         description: 'The WHOOP app shows recovery scores, HRV, and trends. But it rarely answers "What should I do differently today?". Whoop-Insights turns every data point into actionable advice in plain language.',
-        color: 'text-neon-primary'
+        color: 'text-blue-600 dark:text-neon-primary'
     },
     {
         icon: Target,
@@ -117,7 +117,7 @@ export default function WhyPage() {
                             className="text-xl text-gray-700 dark:text-white/80 max-w-3xl mx-auto leading-relaxed"
                         >
                             WHOOP is great at tracking. <br />
-                            <span className="text-neon-primary font-medium">Whoop-Insights is built for people who actually want to change.</span>
+                            <span className="text-blue-600 dark:text-neon-primary font-medium">Whoop-Insights is built for people who actually want to change.</span>
                         </motion.p>
 
                         <motion.p

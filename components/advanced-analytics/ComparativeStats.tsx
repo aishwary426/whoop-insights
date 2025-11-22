@@ -65,7 +65,7 @@ export default function ComparativeStats({ data, metrics, period }: ComparativeS
                             </p>
                         </div>
 
-                        <div className={`flex items-center gap-1 text-sm font-medium ${stat.percentChange > 0 ? 'text-emerald-500' : stat.percentChange < 0 ? 'text-rose-500' : 'text-gray-400'
+                        <div className={`flex items-center gap-1 text-sm font-medium ${stat.percentChange > 0 ? 'text-emerald-500' : stat.percentChange < 0 ? 'text-rose-500' : 'text-gray-600 dark:text-gray-400'
                             }`}>
                             {stat.percentChange > 0 ? (
                                 <ArrowUp className="w-4 h-4" />

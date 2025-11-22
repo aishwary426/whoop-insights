@@ -75,13 +75,13 @@ export default function CorrelationScatterPlot({ data, metrics }: CorrelationSca
                     <p className="text-sm text-gray-500 dark:text-white/50">
                         {getMetricLabel(metricX)} vs {getMetricLabel(metricY)}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-white/40 mt-2 max-w-[250px] leading-relaxed">
-                        Measures relationship strength. <span className="text-neon-primary">+1.0</span> means they rise together, <span className="text-red-400">-1.0</span> means one falls as the other rises.
+                    <p className="text-xs text-gray-600 dark:text-white/40 mt-2 max-w-[250px] leading-relaxed">
+                        Measures relationship strength. <span className="text-blue-600 dark:text-neon-primary">+1.0</span> means they rise together, <span className="text-red-400">-1.0</span> means one falls as the other rises.
                     </p>
                 </div>
                 <div className="text-right">
-                    <p className="text-xs uppercase tracking-widest text-gray-400 dark:text-white/40">Correlation</p>
-                    <p className={`text-2xl font-bold ${Math.abs(correlation) > 0.5 ? 'text-neon-primary' : 'text-gray-500 dark:text-white/50'}`}>
+                    <p className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40">Correlation</p>
+                    <p className={`text-2xl font-bold ${Math.abs(correlation) > 0.5 ? 'text-blue-600 dark:text-neon-primary' : 'text-gray-500 dark:text-white/50'}`}>
                         {correlation.toFixed(2)}
                     </p>
                 </div>

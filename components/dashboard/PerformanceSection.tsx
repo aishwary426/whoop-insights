@@ -55,6 +55,21 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
         return data.map((d, i) => ({ ...d, index: i }))
     }, [view, filteredStrain, filteredSleep])
 
+    // Calculate Y-axis domain based on actual data
+    const yAxisDomain = useMemo(() => {
+        if (!chartData || chartData.length === 0) return [0, 10]
+        const values = chartData.map(d => view === 'compare' ? [d.strain, d.sleep] : [d.value]).flat().filter(v => v != null && !isNaN(v))
+        if (values.length === 0) return [0, 10]
+        const min = Math.min(...values)
+        const max = Math.max(...values)
+        if (view === 'strain') {
+            return [Math.max(0, Math.floor(min) - 1), Math.ceil(max) + 1]
+        } else if (view === 'sleep') {
+            return [Math.max(0, Math.floor(min * 2) / 2 - 0.5), Math.ceil(max * 2) / 2 + 0.5]
+        }
+        return [Math.max(0, min - (max - min) * 0.1), max + (max - min) * 0.1]
+    }, [chartData, view])
+
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
@@ -66,7 +81,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                             <span className="text-gray-900 dark:text-white font-bold text-lg font-inter">
                                 {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
                             </span>
-                            <span className="text-gray-400 dark:text-white/40 text-xs uppercase font-inter">{entry.name}</span>
+                            <span className="text-gray-600 dark:text-white/40 text-xs uppercase font-inter">{entry.name}</span>
                         </div>
                     ))}
                 </div>
@@ -141,8 +156,8 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                     {/* Time Slider */}
                     <div className="flex items-center gap-2 md:gap-4 bg-gray-100 dark:bg-white/5 backdrop-blur-md rounded-full px-4 md:px-6 py-2 md:py-3 border border-gray-200 dark:border-white/10 w-full md:w-auto">
                         <div className="flex items-center gap-1.5 md:gap-2">
-                            <Clock className="w-3.5 md:w-4 h-3.5 md:h-4 text-gray-400 dark:text-white/40" />
-                            <span className="text-[10px] md:text-xs uppercase tracking-wider text-gray-400 dark:text-white/40 font-inter">Timeline</span>
+                            <Clock className="w-3.5 md:w-4 h-3.5 md:h-4 text-gray-600 dark:text-white/40" />
+                            <span className="text-[10px] md:text-xs uppercase tracking-wider text-gray-600 dark:text-white/40 font-inter">Timeline</span>
                         </div>
                         <input
                             type="range"
@@ -151,9 +166,9 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                             step="1"
                             value={WINDOW_OPTIONS.indexOf(timeWindow)}
                             onChange={(e) => setTimeWindow(WINDOW_OPTIONS[parseInt(e.target.value)])}
-                            className="flex-1 md:w-32 h-1 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer relative z-20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 md:[&::-webkit-slider-thumb]:w-4 md:[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neon-primary [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,255,143,0.5)]"
+                            className="flex-1 md:w-32 h-1 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer relative z-20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 md:[&::-webkit-slider-thumb]:w-4 md:[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 dark:[&::-webkit-slider-thumb]:bg-neon-primary [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,102,255,0.5)] dark:[&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,255,143,0.5)]"
                         />
-                        <span className="text-base md:text-lg font-semibold text-neon-primary w-[3ch] text-center font-inter">{timeWindow}d</span>
+                        <span className="text-base md:text-lg font-semibold text-blue-600 dark:text-neon-primary w-[3ch] text-center font-inter">{timeWindow}d</span>
                     </div>
                 </div>
 
@@ -171,7 +186,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                         {view === 'sleep' && 'Sleep Performance'}
                                         {view === 'compare' && 'Strain vs Sleep'}
                                     </h3>
-                                    <p className="text-gray-400 dark:text-white/40 text-xs md:text-sm uppercase tracking-wider font-inter">Last {timeWindow} Days</p>
+                                    <p className="text-gray-600 dark:text-white/40 text-xs md:text-sm uppercase tracking-wider font-inter">Last {timeWindow} Days</p>
                                 </div>
                                 {/* Legend */}
                                 <div className="flex gap-4">
@@ -201,7 +216,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart
                                             data={chartData}
-                                            margin={{ top: 10, right: 25, bottom: 45, left: 5 }}
+                                            margin={{ top: 5, right: 10, bottom: 10, left: 5 }}
                                             onMouseMove={(e: any) => {
                                                 if (e && e.activeTooltipIndex !== undefined) {
                                                     setHoveredIndex(e.activeTooltipIndex)
@@ -224,19 +239,31 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                                 dataKey="date"
                                                 axisLine={false}
                                                 tickLine={false}
-                                                tick={{ fill: tickColor, fontSize: isMobile ? 8 : 10, fontFamily: 'Inter, sans-serif' }}
-                                                dy={isMobile ? 5 : 10}
-                                                interval={isMobile ? Math.ceil(chartData.length / 3) : (timeWindow > 14 ? 2 : 0)}
-                                                height={isMobile ? 50 : 55}
-                                                tickMargin={isMobile ? 4 : 8}
-                                                padding={{ left: 5, right: 15 }}
-                                                angle={isMobile ? -45 : 0}
-                                                textAnchor={isMobile ? 'end' : 'middle'}
+                                                tick={isMobile ? false : { fill: tickColor, fontSize: 10, fontFamily: 'Inter, sans-serif' }}
+                                                dy={0}
+                                                interval={isMobile ? 'preserveStartEnd' : (timeWindow > 14 ? 2 : 0)}
+                                                height={isMobile ? 10 : 35}
+                                                tickMargin={isMobile ? 0 : 3}
+                                                padding={{ left: 0, right: 5 }}
+                                                angle={isMobile ? 0 : 0}
+                                                textAnchor={isMobile ? 'middle' : 'middle'}
+                                                hide={isMobile}
                                             />
                                             <YAxis
                                                 axisLine={false}
                                                 tickLine={false}
-                                                tick={{ fill: tickColor, fontSize: 12, fontFamily: 'Inter, sans-serif' }}
+                                                tick={{ fill: tickColor, fontSize: isMobile ? 10 : 12, fontFamily: 'Inter, sans-serif' }}
+                                                domain={yAxisDomain}
+                                                width={isMobile ? 35 : 45}
+                                                tickFormatter={(value) => {
+                                                    if (value > 1000) return value.toFixed(0)
+                                                    if (view === 'strain') {
+                                                        return value.toFixed(1)
+                                                    } else if (view === 'sleep') {
+                                                        return value.toFixed(1)
+                                                    }
+                                                    return value.toFixed(1)
+                                                }}
                                             />
                                             <Tooltip content={<CustomTooltip />} cursor={{ stroke: cursorColor, strokeWidth: 2 }} />
 

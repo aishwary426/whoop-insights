@@ -39,10 +39,11 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
     { href: '/advanced-analytics', label: 'Advanced Analytics' },
     { href: '/upload', label: 'Upload' },
     { href: '/calorie-gps', label: 'Calorie GPS' },
+    { href: '/model-metrics', label: 'Model Metrics' },
   ]
 
   return (
-    <div className="min-h-screen bg-white dark:bg-bgDark text-gray-900 dark:text-white font-sans selection:bg-neon selection:text-black">
+    <div className="min-h-screen bg-white dark:bg-bgDark text-gray-900 dark:text-white font-sans selection:bg-blue-600 dark:selection:bg-neon selection:text-white dark:selection:text-black">
       {/* Navigation */}
       <motion.nav
         initial={{ y: -100 }}
@@ -70,9 +71,9 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
             {/* Left Side: Logo + Navigation */}
             <div className="flex items-center gap-4 md:gap-12">
               {/* Logo */}
-              <Link href="/" className="flex items-center gap-2 md:gap-3 group" aria-label="Whoop Insights Pro home">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-neon/10 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
-                  <Target className="w-3.5 h-3.5 md:w-4 md:h-4 text-neon-primary" />
+              <Link href="/dashboard" className="flex items-center gap-2 md:gap-3 group" aria-label="Whoop Insights Pro dashboard">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-600/10 dark:bg-neon/10 flex items-center justify-center group-hover:bg-blue-600/20 dark:group-hover:bg-neon/20 transition-colors">
+                  <Target className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 dark:text-neon-primary" />
                 </div>
                 <span className="text-xs md:text-sm font-medium tracking-wide text-gray-900 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors hidden sm:inline">Whoop Insights Pro</span>
               </Link>
@@ -112,10 +113,10 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center font-medium text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                    className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center font-medium text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors uppercase"
                     aria-label="User menu"
                   >
-                    {user.name?.charAt(0) || 'U'}
+                    {user.name?.split(' ')[0]?.charAt(0).toUpperCase() || 'U'}
                   </button>
 
                   {showUserMenu && (

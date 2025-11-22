@@ -3,14 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Flame, Target, TrendingUp, Activity } from 'lucide-react'
+import { Flame, Target, TrendingUp, Activity, BarChart3, Brain, Users, Zap } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { getCurrentUser } from '../../lib/supabase'
-import CalorieAnalysisSection from '../../components/dashboard/CalorieAnalysisSection'
-import InteractiveChart from '../../components/dashboard/InteractiveChart'
 
 export default function CalorieGPSPage() {
   const router = useRouter()
@@ -19,9 +17,22 @@ export default function CalorieGPSPage() {
   const [targetCalories, setTargetCalories] = useState(500)
   const [results, setResults] = useState<any>(null)
   const [isPersonalized, setIsPersonalized] = useState(false)
-  const [analysis, setAnalysis] = useState<any>(null)
+  const [modelMetrics, setModelMetrics] = useState<any>(null)
   const [trends, setTrends] = useState<any>(null)
   const [journalInsights, setJournalInsights] = useState<any[]>([])
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Detect dark mode
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark') || 
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+    }
+    checkDarkMode()
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -42,13 +53,11 @@ export default function CalorieGPSPage() {
             setTargetCalories(summary.recommendation.calories)
           }
 
-          // Fetch deep dive analysis
-          const [analysisData, trendsData, journalData] = await Promise.all([
-            api.getCalorieAnalysis(),
+          // Fetch journal insights for recovery drivers
+          const [trendsData, journalData] = await Promise.all([
             api.getTrends(),
             api.getJournalInsights()
           ])
-          setAnalysis(analysisData)
           setTrends(trendsData)
           setJournalInsights(journalData)
         } catch (e) {
@@ -61,10 +70,104 @@ export default function CalorieGPSPage() {
 
   useEffect(() => {
     calculateResults()
-  }, [recovery, targetCalories])
+  }, [recovery, targetCalories, user])
 
-  const calculateResults = () => {
-    // ML-inspired calculation: base efficiency modulated by recovery
+  const calculateResults = async () => {
+    if (!user) {
+      // Fallback to rule-based if no user
+      calculateRuleBasedResults()
+      return
+    }
+
+    try {
+      const { api } = await import('../../lib/api')
+      
+      // Get additional user metrics if available from dashboard summary
+      let strainScore: number | undefined
+      let sleepHours: number | undefined
+      let hrv: number | undefined
+      let restingHr: number | undefined
+      let acuteChronicRatio: number | undefined
+      let sleepDebt: number | undefined
+      let consistencyScore: number | undefined
+      
+      try {
+        const summary = await api.getDashboardSummary()
+        if (summary?.today) {
+          strainScore = summary.today.strain_score ?? undefined
+          sleepHours = summary.today.sleep_hours ?? undefined
+          hrv = summary.today.hrv ?? undefined
+          restingHr = summary.today.resting_hr ?? undefined
+        }
+        // Note: acute_chronic_ratio, sleep_debt, consistency_score not in TodayMetrics
+        // These would need to be fetched separately if needed
+      } catch (e) {
+        console.debug("Could not fetch additional metrics, using defaults", e)
+      }
+      
+      // Call ML-powered API endpoint
+      const response = await api.getCalorieGPSRecommendations(
+        recovery,
+        targetCalories,
+        strainScore,
+        sleepHours,
+        hrv,
+        restingHr,
+        acuteChronicRatio,
+        sleepDebt,
+        consistencyScore
+      )
+      
+      if (response && response.recommendations) {
+        // Convert API response to workout format
+        const workouts = response.recommendations.map((rec: any) => ({
+          name: rec.name,
+          emoji: rec.emoji,
+          color: rec.color,
+          efficiency: rec.efficiency,
+          time: rec.time,
+          optimal: rec.optimal,
+          improvement: rec.improvement
+        }))
+        
+        setResults(workouts)
+        setIsPersonalized(response.is_personalized || false)
+        
+        // Store model metrics if available - log full response for debugging
+        console.log('Calorie GPS API Response:', {
+          is_personalized: response.is_personalized,
+          model_confidence: response.model_confidence,
+          model_metrics: response.model_metrics,
+          has_model_metrics: !!response.model_metrics
+        })
+        
+        if (response.model_metrics) {
+          console.log('✅ Model metrics received:', {
+            r2: response.model_metrics.r2,
+            mae: response.model_metrics.mae,
+            sample_size: response.model_metrics.sample_size,
+            model_type: response.model_metrics.model_type,
+            feature_importance: response.model_metrics.feature_importance
+          })
+          setModelMetrics(response.model_metrics)
+        } else {
+          console.warn('⚠️ No model metrics in response. Response keys:', Object.keys(response))
+          setModelMetrics(null)
+        }
+      } else {
+        // Fallback to rule-based
+        calculateRuleBasedResults()
+        setModelMetrics(null)
+      }
+    } catch (error) {
+      console.error("Error fetching Calorie GPS recommendations:", error)
+      // Fallback to rule-based calculation
+      calculateRuleBasedResults()
+    }
+  }
+
+  const calculateRuleBasedResults = () => {
+    // Fallback rule-based calculation (same as before)
     const neutralEfficiency = 10 // neutral baseline at 50% recovery
     const recoveryBonus = ((recovery - 50) / 50) * 3
     const baselineEfficiency = neutralEfficiency + recoveryBonus
@@ -119,16 +222,18 @@ export default function CalorieGPSPage() {
     })
 
     setResults(workouts)
+    setIsPersonalized(false)
+    setModelMetrics(null)
   }
 
   const deltaColor = (val: number) => {
-    if (val > 0) return 'text-green-400'
+    if (val > 0) return 'text-blue-500 dark:text-green-400'
     if (val < 0) return 'text-red-400'
-    return 'text-slate-400'
+    return 'text-slate-600 dark:text-slate-400'
   }
 
   const getRecoveryColor = () => {
-    if (recovery >= 67) return 'text-green-400'
+    if (recovery >= 67) return 'text-blue-500 dark:text-green-400'
     if (recovery >= 34) return 'text-amber-400'
     return 'text-red-400'
   }
@@ -150,17 +255,17 @@ export default function CalorieGPSPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center space-y-3"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon-primary/30 bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">
-              <Target className="w-4 h-4 text-neon-primary" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 dark:border-neon-primary/30 bg-blue-500/10 dark:bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">
+              <Target className="w-4 h-4 text-blue-500 dark:text-neon-primary" />
               ML-powered optimizer
             </div>
 
-            <h1 className="text-[clamp(2.4rem,6vw,3.6rem)] font-semibold leading-tight">
+            <h1 className="text-[clamp(2.4rem,6vw,3.6rem)] font-semibold leading-tight text-gray-900 dark:text-white">
               Calorie-Burn GPS
             </h1>
             <p className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto text-[15px]">
               Minimal, neon-clear optimizer tuned to your recovery state.
-              {isPersonalized && <span className="text-neon-primary ml-2">● Synced with your data</span>}
+              {isPersonalized && <span className="text-blue-500 dark:text-neon-primary ml-2">● Synced with your data</span>}
             </p>
           </motion.div>
 
@@ -188,7 +293,7 @@ export default function CalorieGPSPage() {
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gray-200 dark:bg-white/10"
                   style={{
                     background: `linear-gradient(to right, 
-                      ${recovery >= 67 ? '#00FF8F' : recovery >= 34 ? '#F59E0B' : '#EF4444'} ${recovery}%, 
+                      ${recovery >= 67 ? (isDarkMode ? '#00FF8F' : '#3B82F6') : recovery >= 34 ? '#F59E0B' : '#EF4444'} ${recovery}%, 
                       rgba(255,255,255,0.1) ${recovery}%)`
                   }}
                 />
@@ -200,9 +305,9 @@ export default function CalorieGPSPage() {
                 <span>100%</span>
               </div>
 
-              <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${recovery >= 67 ? 'bg-neon-primary/20 text-neon-primary' :
-                recovery >= 34 ? 'bg-amber-500/20 text-amber-300' :
-                  'bg-red-500/20 text-red-300'
+              <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${recovery >= 67 ? 'bg-blue-500/20 dark:bg-neon-primary/20 text-blue-500 dark:text-neon-primary' :
+                recovery >= 34 ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300' :
+                  'bg-red-500/20 text-red-700 dark:text-red-300'
                 }`}>
                 <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
                 {getRecoveryLabel()} Zone
@@ -212,7 +317,7 @@ export default function CalorieGPSPage() {
             <NeonCard className="p-6 border-gray-200 dark:border-white/10 bg-white/80 dark:bg-[#0A0A0A]">
               <div className="flex items-center justify-between mb-4">
                 <label className="text-lg font-semibold">Target calories</label>
-                <div className="text-3xl font-semibold text-neon-primary">
+                <div className="text-3xl font-semibold text-blue-500 dark:text-neon-primary">
                   {targetCalories}
                 </div>
               </div>
@@ -228,7 +333,7 @@ export default function CalorieGPSPage() {
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gray-200 dark:bg-white/10"
                   style={{
                     background: `linear-gradient(to right, 
-                      #00FF8F ${((targetCalories - 100) / 1400) * 100}%, 
+                      ${isDarkMode ? '#00FF8F' : '#3B82F6'} ${((targetCalories - 100) / 1400) * 100}%, 
                       rgba(255,255,255,0.1) ${((targetCalories - 100) / 1400) * 100}%)`
                   }}
                 />
@@ -257,46 +362,86 @@ export default function CalorieGPSPage() {
                 className="mb-8"
               >
                 {results.find((w: any) => w.optimal) && (
-                  <div className={`glass-card p-8 bg-gradient-to-br ${results.find((w: any) => w.optimal).color} border-2`}>
-                    <div className="flex items-start justify-between mb-6">
-                      <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-sm font-medium mb-3">
-                          <TrendingUp className="w-4 h-4" />
+                  <div className={`glass-card p-4 sm:p-6 md:p-8 bg-gradient-to-br ${results.find((w: any) => w.optimal).color} border-2`}>
+                    <div className="flex items-start justify-between mb-4 sm:mb-6">
+                      <div className="flex-1 min-w-0">
+                        <div className="inline-flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full bg-white/10 text-xs sm:text-sm font-medium mb-2 sm:mb-3">
+                          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
                           OPTIMAL CHOICE
                         </div>
-                        <h2 className="text-3xl font-bold mb-2 flex items-center gap-3">
-                          <span className="text-5xl">{results.find((w: any) => w.optimal).emoji}</span>
-                          {results.find((w: any) => w.optimal).name}
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2 sm:gap-3 flex-wrap">
+                          <span className="text-3xl sm:text-4xl md:text-5xl">{results.find((w: any) => w.optimal).emoji}</span>
+                          <span className="break-words">{results.find((w: any) => w.optimal).name}</span>
                         </h2>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="glass-card p-4 bg-white/5">
-                        <div className="text-4xl font-bold mb-1">
-                          {results.find((w: any) => w.optimal).time.toFixed(1)}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">minutes needed</div>
+                          <div className="text-2xl sm:text-3xl md:text-4xl font-bold break-words overflow-hidden whitespace-nowrap">
+                            {results.find((w: any) => w.optimal).time.toFixed(1)}
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-400">minutes needed</div>
                       </div>
 
                       <div className="glass-card p-4 bg-white/5">
-                        <div className="text-4xl font-bold mb-1">
-                          {results.find((w: any) => w.optimal).efficiency.toFixed(1)}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">cal/min efficiency</div>
+                          <div className="text-2xl sm:text-3xl md:text-4xl font-bold break-words overflow-hidden whitespace-nowrap">
+                            {results.find((w: any) => w.optimal).efficiency.toFixed(1)}
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-400">cal/min efficiency</div>
                       </div>
 
                       <div className="glass-card p-4 bg-white/5">
-                        <div className={`text-4xl font-bold mb-1 ${deltaColor(results.find((w: any) => w.optimal).improvement)}`}>
-                          {results.find((w: any) => w.optimal).improvement > 0 ? '+' : ''}
-                          {results.find((w: any) => w.optimal).improvement}%
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">vs your baseline</div>
+                          <div className={`text-2xl sm:text-3xl md:text-4xl font-bold break-words overflow-hidden whitespace-nowrap ${deltaColor(results.find((w: any) => w.optimal).improvement)}`}>
+                            {results.find((w: any) => w.optimal).improvement > 0 ? '+' : ''}
+                            {results.find((w: any) => w.optimal).improvement}%
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-400">vs your baseline</div>
                       </div>
                     </div>
                   </div>
                 )}
               </motion.div>
+
+              {/* Link to Model Metrics Page */}
+              {isPersonalized && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="mb-8"
+                >
+                  <NeonCard className="p-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                          <Brain className="w-6 h-6 text-cyan-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                            View Model Parameters
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-white/60">
+                            See detailed metrics for all your trained ML models
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => router.push('/model-metrics')}
+                        className="px-6 py-3 rounded-xl bg-blue-500/20 dark:bg-neon-primary/20 hover:bg-blue-500/30 dark:hover:bg-neon-primary/30 border border-blue-500/30 dark:border-neon-primary/30 text-blue-500 dark:text-neon-primary font-semibold transition-all whitespace-nowrap"
+                      >
+                        View Metrics
+                      </button>
+                    </div>
+                  </NeonCard>
+                </motion.div>
+              )}
 
               {/* Alternative Options */}
               <div className="mb-8">
@@ -316,15 +461,15 @@ export default function CalorieGPSPage() {
 
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-slate-400">Time</span>
+                          <span className="text-sm text-slate-600 dark:text-slate-400">Time</span>
                           <span className="font-bold">{workout.time.toFixed(1)} min</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-slate-400">Efficiency</span>
+                          <span className="text-sm text-slate-600 dark:text-slate-400">Efficiency</span>
                           <span className="font-bold">{workout.efficiency.toFixed(1)} cal/min</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-slate-400">vs Baseline</span>
+                          <span className="text-sm text-slate-600 dark:text-slate-400">vs Baseline</span>
                           <span className={`font-bold ${deltaColor(workout.improvement)}`}>
                             {workout.improvement > 0 ? '+' : ''}{workout.improvement}%
                           </span>
@@ -348,7 +493,7 @@ export default function CalorieGPSPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2">How This Works</h4>
-                    <p className="text-sm text-slate-400 leading-relaxed">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                       Our ML model analyzes your recovery state and predicts the most efficient workout type for burning your target calories.
                       Higher recovery enables more intense, time-efficient workouts. Lower recovery suggests longer, lower-intensity activities
                       to avoid overtraining while still hitting your calorie goals.
@@ -356,6 +501,7 @@ export default function CalorieGPSPage() {
                   </div>
                 </div>
               </motion.div>
+
             </>
           )}
 
@@ -370,7 +516,7 @@ export default function CalorieGPSPage() {
               className="mb-12"
             >
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                <span className="w-1 h-6 bg-neon-primary rounded-full"></span>
+                <span className="w-1 h-6 bg-blue-500 dark:bg-neon-primary rounded-full"></span>
                 Recovery Drivers
               </h2>
               <div className="grid md:grid-cols-2 gap-6">
@@ -379,7 +525,7 @@ export default function CalorieGPSPage() {
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-medium text-gray-900 dark:text-white/90">{insight.title}</h3>
-                        <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${insight.data.impact_val > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                        <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${insight.data.impact_val > 0 ? 'bg-blue-500/20 dark:bg-green-500/20 text-blue-500 dark:text-green-400' : 'bg-red-500/20 text-red-400'
                           }`}>
                           {insight.data.impact_val > 0 ? '+' : ''}{insight.data.impact_val.toFixed(1)}% Recovery
                         </span>
@@ -388,11 +534,11 @@ export default function CalorieGPSPage() {
                     </div>
                     <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-white/40 mt-auto pt-4 border-t border-gray-200 dark:border-white/5">
                       <div>
-                        <span className="block text-gray-400 dark:text-white/20 uppercase tracking-wider mb-1">With</span>
+                        <span className="block text-gray-600 dark:text-white/20 uppercase tracking-wider mb-1">With</span>
                         <span className="text-gray-800 dark:text-white/80 font-mono text-sm">{insight.data.avg_with.toFixed(0)}%</span>
                       </div>
                       <div>
-                        <span className="block text-gray-400 dark:text-white/20 uppercase tracking-wider mb-1">Without</span>
+                        <span className="block text-gray-600 dark:text-white/20 uppercase tracking-wider mb-1">Without</span>
                         <span className="text-gray-800 dark:text-white/80 font-mono text-sm">{insight.data.avg_without.toFixed(0)}%</span>
                       </div>
                     </div>
@@ -402,8 +548,6 @@ export default function CalorieGPSPage() {
             </motion.div>
           )}
 
-          {/* Deep Dive Analysis */}
-          <CalorieAnalysisSection analysis={analysis} />
         </div>
       </div>
     </AppLayout>

@@ -7,7 +7,7 @@ interface CosmicParticleBackgroundProps {
 }
 
 export default function CosmicParticleBackground({
-    particleCount = 200
+    particleCount = 400
 }: CosmicParticleBackgroundProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -42,9 +42,23 @@ export default function CosmicParticleBackground({
             angle: number
             speed: number
             life: number // 0 to 1, decreases as particle falls
+            isAccent?: boolean
         }
 
-        const neonGreen = { r: 0, g: 255, b: 143 }
+        const getNeonColor = () => {
+          const isDark = document.documentElement.classList.contains('dark') || 
+                        window.matchMedia('(prefers-color-scheme: dark)').matches
+          // Blue in light mode, green in dark mode
+          return isDark ? { r: 0, g: 255, b: 143 } : { r: 59, g: 130, b: 246 } // blue-500
+        }
+        const getBaseColor = () => {
+          const isDark = document.documentElement.classList.contains('dark') || 
+                        window.matchMedia('(prefers-color-scheme: dark)').matches
+          // Black in light mode, white in dark mode
+          return isDark ? { r: 255, g: 255, b: 255 } : { r: 0, g: 0, b: 0 }
+        }
+        const neonColor = getNeonColor()
+        const baseColor = getBaseColor()
         const circleX = width / 2
         const circleY = height * 0.2 // Top area
         const circleRadius = 80
@@ -54,19 +68,21 @@ export default function CosmicParticleBackground({
         // Function to create new particles from the circle
         const createParticle = () => {
             const angle = Math.random() * Math.PI * 2
-            const speed = 0.5 + Math.random() * 1.5
+            const speed = 0.8 + Math.random() * 2.0 // Increased speed for more motion
             const distance = circleRadius + Math.random() * 20
+            const isAccent = Math.random() > 0.7 // 30% accent particles
             
             particles.push({
                 x: circleX + Math.cos(angle) * distance,
                 y: circleY + Math.sin(angle) * distance,
-                vx: Math.cos(angle) * speed * 0.3, // Horizontal spread
-                vy: 0.5 + Math.random() * 1.5, // Downward velocity
-                size: 2 + Math.random() * 3,
+                vx: Math.cos(angle) * speed * 0.5, // Increased horizontal spread
+                vy: 0.8 + Math.random() * 2.0, // Increased downward velocity
+                size: 2 + Math.random() * 4, // Slightly larger particles
                 opacity: 0.8 + Math.random() * 0.2,
                 angle: angle,
                 speed: speed,
-                life: 1.0
+                life: 1.0,
+                isAccent: isAccent // Track if this is an accent particle
             })
         }
 
@@ -77,19 +93,19 @@ export default function CosmicParticleBackground({
             ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'
             ctx.fillRect(0, 0, width, height)
 
-            // Create new particles periodically
-            if (particles.length < particleCount && Math.random() < 0.3) {
+            // Create new particles periodically - more frequent for more motion
+            if (particles.length < particleCount && Math.random() < 0.5) {
                 createParticle()
             }
 
-            // Draw the neon green circle
+            // Draw the neon circle (green in dark, blue in light)
             const circleGlow = ctx.createRadialGradient(
                 circleX, circleY, 0,
                 circleX, circleY, circleRadius * 2
             )
-            circleGlow.addColorStop(0, 'rgba(0, 255, 143, 0.6)')
-            circleGlow.addColorStop(0.5, 'rgba(0, 255, 143, 0.3)')
-            circleGlow.addColorStop(1, 'rgba(0, 255, 143, 0)')
+            circleGlow.addColorStop(0, `rgba(${neonColor.r}, ${neonColor.g}, ${neonColor.b}, 0.6)`)
+            circleGlow.addColorStop(0.5, `rgba(${neonColor.r}, ${neonColor.g}, ${neonColor.b}, 0.3)`)
+            circleGlow.addColorStop(1, `rgba(${neonColor.r}, ${neonColor.g}, ${neonColor.b}, 0)`)
             
             ctx.fillStyle = circleGlow
             ctx.beginPath()
@@ -97,13 +113,13 @@ export default function CosmicParticleBackground({
             ctx.fill()
 
             // Main circle
-            ctx.fillStyle = 'rgba(0, 255, 143, 0.8)'
+            ctx.fillStyle = `rgba(${neonColor.r}, ${neonColor.g}, ${neonColor.b}, 0.8)`
             ctx.beginPath()
             ctx.arc(circleX, circleY, circleRadius, 0, Math.PI * 2)
             ctx.fill()
 
             // Inner glow
-            ctx.fillStyle = 'rgba(0, 255, 143, 1)'
+            ctx.fillStyle = `rgba(${neonColor.r}, ${neonColor.g}, ${neonColor.b}, 1)`
             ctx.beginPath()
             ctx.arc(circleX, circleY, circleRadius * 0.6, 0, Math.PI * 2)
             ctx.fill()
@@ -112,12 +128,16 @@ export default function CosmicParticleBackground({
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i]
 
-                // Update position
+                // Update position with more motion
                 p.x += p.vx
                 p.y += p.vy
 
-                // Increase downward velocity (gravity effect)
-                p.vy += 0.05
+                // Add slight random motion for more dynamic effect
+                p.vx += (Math.random() - 0.5) * 0.02
+                p.vy += (Math.random() - 0.5) * 0.01
+
+                // Increase downward velocity (gravity effect) - stronger
+                p.vy += 0.08
 
                 // Decrease life as particle falls
                 p.life -= 0.008
@@ -134,14 +154,17 @@ export default function CosmicParticleBackground({
                     continue
                 }
 
+                // Determine particle color - accent (blue) or base (black/white)
+                const particleColor = p.isAccent ? neonColor : baseColor
+                
                 // Draw particle with glow
                 const glowRadius = p.size * 2
                 const glowGradient = ctx.createRadialGradient(
                     p.x, p.y, 0,
                     p.x, p.y, glowRadius
                 )
-                glowGradient.addColorStop(0, `rgba(${neonGreen.r}, ${neonGreen.g}, ${neonGreen.b}, ${p.opacity * 0.6})`)
-                glowGradient.addColorStop(0.5, `rgba(${neonGreen.r}, ${neonGreen.g}, ${neonGreen.b}, ${p.opacity * 0.2})`)
+                glowGradient.addColorStop(0, `rgba(${particleColor.r}, ${particleColor.g}, ${particleColor.b}, ${p.opacity * 0.6})`)
+                glowGradient.addColorStop(0.5, `rgba(${particleColor.r}, ${particleColor.g}, ${particleColor.b}, ${p.opacity * 0.2})`)
                 glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
 
                 ctx.fillStyle = glowGradient
@@ -151,7 +174,7 @@ export default function CosmicParticleBackground({
 
                 // Main particle
                 ctx.globalAlpha = p.opacity
-                ctx.fillStyle = `rgb(${neonGreen.r}, ${neonGreen.g}, ${neonGreen.b})`
+                ctx.fillStyle = `rgb(${particleColor.r}, ${particleColor.g}, ${particleColor.b})`
                 ctx.beginPath()
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
                 ctx.fill()
@@ -164,8 +187,15 @@ export default function CosmicParticleBackground({
 
         animate()
 
+        // Watch for theme changes
+        const observer = new MutationObserver(() => {
+            // Re-initialize color when theme changes
+        })
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
         return () => {
             window.removeEventListener('resize', resize)
+            observer.disconnect()
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId)
             }

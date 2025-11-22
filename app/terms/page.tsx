@@ -23,7 +23,7 @@ export default function TermsPage() {
                         {/* Section 1: Acceptance */}
                         <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-8">
                             <div className="flex items-center gap-3 mb-4">
-                                <CheckCircle className="w-6 h-6 text-neon-primary" />
+                                <CheckCircle className="w-6 h-6 text-blue-600 dark:text-neon-primary" />
                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">1. Acceptance of Terms</h2>
                             </div>
                             <p className="text-gray-700 dark:text-white/70 leading-relaxed">

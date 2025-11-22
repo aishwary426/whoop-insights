@@ -66,7 +66,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-bgDark">
+    <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark">
       <TranscendentalBackground />
       <div className="relative z-10">
         <AuthCard
@@ -75,50 +75,50 @@ function LoginForm() {
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-white/80">Email</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-white/80">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-neon/50 focus:ring-1 focus:ring-neon/50 transition-all"
+                className="w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500 dark:focus:border-neon/50 focus:ring-1 focus:ring-blue-500 dark:focus:ring-neon/50 transition-all"
                 placeholder="your@email.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-white/80">Password</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-white/80">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-neon/50 focus:ring-1 focus:ring-neon/50 transition-all pr-12"
+                  className="w-full px-4 py-3 rounded-lg bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500 dark:focus:border-neon/50 focus:ring-1 focus:ring-blue-500 dark:focus:ring-neon/50 transition-all pr-12"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm text-white/60">
-              <label className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors">
-                <input type="checkbox" className="rounded border-white/20 bg-white/5 text-neon focus:ring-neon/50" />
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-white/60">
+              <label className="flex items-center gap-2 cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors">
+                <input type="checkbox" className="rounded border-gray-300 dark:border-white/20 bg-white dark:bg-white/5 text-blue-500 dark:text-neon focus:ring-blue-500 dark:focus:ring-neon/50" />
                 <span>Remember me</span>
               </label>
-              <Link href="/forgot-password" className="text-neon hover:text-neon/80 transition-colors">
+              <Link href="/forgot-password" className="text-blue-500 dark:text-neon hover:text-blue-600 dark:hover:text-neon/80 transition-colors">
                 Forgot password?
               </Link>
             </div>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm">
                 {error}
               </div>
             )}
@@ -135,10 +135,10 @@ function LoginForm() {
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
+              <div className="w-full border-t border-gray-300 dark:border-white/10" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[#0A0A0A] text-white/40">OR</span>
+              <span className="px-4 bg-white/90 dark:bg-[#0A0A0A] text-gray-500 dark:text-white/40">OR</span>
             </div>
           </div>
 
@@ -157,9 +157,9 @@ function LoginForm() {
             Continue with Google
           </NeonButton>
 
-          <p className="mt-8 text-center text-sm text-white/60">
+          <p className="mt-8 text-center text-sm text-gray-600 dark:text-white/60">
             Don't have an account?{' '}
-            <Link href="/signup" className="text-neon hover:text-neon/80 font-medium transition-colors">
+            <Link href="/signup" className="text-blue-500 dark:text-neon hover:text-blue-600 dark:hover:text-neon/80 font-medium transition-colors">
               Sign up free
             </Link>
           </p>
@@ -172,9 +172,9 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="relative min-h-screen overflow-hidden bg-bgDark flex items-center justify-center">
+      <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark flex items-center justify-center">
         <TranscendentalBackground />
-        <div className="relative z-10 text-white">Loading...</div>
+        <div className="relative z-10 text-gray-900 dark:text-white">Loading...</div>
       </div>
     }>
       <LoginForm />

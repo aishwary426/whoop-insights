@@ -126,3 +126,29 @@ class CalorieAnalysis(BaseModel):
     explanation: str
     comparison: List[WorkoutEfficiency] = []
 
+
+class CalorieGPSWorkout(BaseModel):
+    type: str
+    name: str
+    emoji: str
+    color: str
+    efficiency: float  # cal/min
+    time: float  # minutes needed
+    optimal: bool
+    improvement: float  # % vs baseline
+
+
+class CalorieGPSModelMetrics(BaseModel):
+    mae: Optional[float] = None  # Mean Absolute Error
+    r2: Optional[float] = None  # R² Score
+    sample_size: Optional[int] = None  # Number of workouts used for training
+    feature_importance: Optional[dict] = None  # Feature importance scores
+    model_type: Optional[str] = None  # e.g., "GradientBoosting" or "XGBoost"
+
+
+class CalorieGPSResponse(BaseModel):
+    recommendations: List[CalorieGPSWorkout]
+    is_personalized: bool
+    model_confidence: Optional[float] = None
+    model_metrics: Optional[CalorieGPSModelMetrics] = None  # Model performance metrics
+

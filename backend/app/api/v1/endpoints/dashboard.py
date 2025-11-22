@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db_session import get_db
-from app.schemas.api import DashboardSummary, InsightsFeed, TrendsResponse, CalorieAnalysis, InsightItem
+from app.schemas.api import DashboardSummary, InsightsFeed, TrendsResponse, CalorieAnalysis, InsightItem, CalorieGPSResponse
 from app.services.analysis.dashboard_service import (
     generate_insights_for_user,
     get_dashboard_summary,
@@ -13,6 +13,8 @@ from app.services.analysis.dashboard_service import (
     get_calorie_analysis,
     get_journal_insights,
     get_personalization_insights,
+    get_calorie_gps_recommendations,
+    get_all_model_metrics,
 )
 
 logger = logging.getLogger(__name__)
@@ -50,3 +52,39 @@ def journal_insights(user_id: str, db: Session = Depends(get_db)):
 def personalization_insights(user_id: str, db: Session = Depends(get_db)):
     """Get personalized ML insights: optimal sleep windows, workout timing, and strain tolerance."""
     return get_personalization_insights(db, user_id)
+
+
+@router.get("/calorie-gps/recommendations", response_model=CalorieGPSResponse)
+def calorie_gps_recommendations(
+    user_id: str,
+    recovery_score: float,
+    target_calories: float,
+    strain_score: Optional[float] = None,
+    sleep_hours: Optional[float] = None,
+    hrv: Optional[float] = None,
+    resting_hr: Optional[float] = None,
+    acute_chronic_ratio: Optional[float] = None,
+    sleep_debt: Optional[float] = None,
+    consistency_score: Optional[float] = None,
+    db: Session = Depends(get_db)
+):
+    """Get hyper-personalized calorie GPS workout recommendations using ML model."""
+    return get_calorie_gps_recommendations(
+        db=db,
+        user_id=user_id,
+        recovery_score=recovery_score,
+        target_calories=target_calories,
+        strain_score=strain_score,
+        sleep_hours=sleep_hours,
+        hrv=hrv,
+        resting_hr=resting_hr,
+        acute_chronic_ratio=acute_chronic_ratio,
+        sleep_debt=sleep_debt,
+        consistency_score=consistency_score
+    )
+
+
+@router.get("/model-metrics")
+def model_metrics(user_id: str):
+    """Get all trained model metrics for a user."""
+    return get_all_model_metrics(user_id)

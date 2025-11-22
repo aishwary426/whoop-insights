@@ -62,7 +62,7 @@ export default function DistributionHistogram({ data, metrics }: DistributionHis
                     <p className="text-sm text-gray-500 dark:text-white/50">
                         Frequency of {getMetricLabel(selectedMetric)} values
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-white/40 mt-2 max-w-[250px] leading-relaxed">
+                    <p className="text-xs text-gray-600 dark:text-white/40 mt-2 max-w-[250px] leading-relaxed">
                         Shows your typical range. Taller bars mean that value occurs more often. Useful for spotting consistency or outliers.
                     </p>
                 </div>

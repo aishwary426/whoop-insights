@@ -58,7 +58,7 @@ export default function TranscendentalBackground() {
                 initial={false}
             >
                 <div className="absolute inset-0">
-                    <ParticleBackground accentColor="#22d3ee" />
+                    <ParticleBackground particleCount={2000} accentColor="#3B82F6" />
                 </div>
             </motion.div>
 

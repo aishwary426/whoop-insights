@@ -19,7 +19,7 @@ interface ParallaxBlobProps {
 
 export function ParallaxBlob({
   size = 420,
-  color = 'rgba(0,255,143,0.4)',
+  color,
   opacity = 0.35,
   className,
   oscillate = 20,
@@ -28,8 +28,10 @@ export function ParallaxBlob({
   mouseX,
   mouseY,
 }: ParallaxBlobProps) {
+  const { theme } = useTheme()
   const { scrollY } = useScroll()
   const [maxScroll, setMaxScroll] = useState(800)
+  const effectiveColor = color || (theme === 'dark' ? 'rgba(0,255,143,0.4)' : 'rgba(0,102,255,0.4)')
 
   useLayoutEffect(() => {
     let resizeTimeout: NodeJS.Timeout
@@ -80,7 +82,8 @@ export function ParallaxBlob({
   const xSpring = useSpring(xMouse, { stiffness: 20, damping: 15 })
   const ySpring = useSpring(yMouse, { stiffness: 20, damping: 15 })
 
-  const gradient = `radial-gradient(circle at 30% 30%, ${color} 0%, rgba(0,255,143,0) 60%)`
+  const gradientEnd = theme === 'dark' ? 'rgba(0,255,143,0)' : 'rgba(0,102,255,0)'
+  const gradient = `radial-gradient(circle at 30% 30%, ${effectiveColor} 0%, ${gradientEnd} 60%)`
 
   return (
     <motion.div
@@ -256,7 +259,6 @@ export function ParallaxBackground({ children }: ParallaxBackgroundProps) {
       <ParallaxBlob
         className="right-6 top-24"
         size={520}
-        color="rgba(0,255,143,0.25)"
         delay={4}
         oscillate={22}
         parallax={30}
@@ -267,7 +269,6 @@ export function ParallaxBackground({ children }: ParallaxBackgroundProps) {
       <ParallaxBlob
         className="bottom-4 left-1/3"
         size={460}
-        color="rgba(160,255,220,0.25)"
         delay={2}
         parallax={22}
         opacity={0.3}
@@ -308,7 +309,10 @@ function NeonStructure({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
           transition={{ duration: 48, ease: 'linear', repeat: Infinity }}
         />
         <motion.div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(0,255,143,0.18),transparent_35%)] mix-blend-screen blur-2xl"
+          className="absolute inset-0 mix-blend-screen blur-2xl"
+          style={{
+            background: `radial-gradient(circle at 30% 30%, ${theme === 'dark' ? 'rgba(0,255,143,0.18)' : 'rgba(0,102,255,0.18)'}, transparent 35%)`
+          }}
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 16, ease: 'easeInOut', repeat: Infinity }}
         />

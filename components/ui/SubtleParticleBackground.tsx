@@ -10,7 +10,7 @@ interface SubtleParticleBackgroundProps {
 }
 
 export default function SubtleParticleBackground({
-    particleCount = 150,
+    particleCount = 300,
     opacity = 0.12,
     glowIntensity = 0.2
 }: SubtleParticleBackgroundProps) {
@@ -72,10 +72,17 @@ export default function SubtleParticleBackground({
             ctx.clearRect(0, 0, width, height)
 
             // Simplified rendering - no expensive shadow blur
-            const color = theme === 'dark' ? '#00FF8F' : '#00FF8F'
+            const isLightMode = theme === 'light' || theme === undefined
+            const accentColor = isLightMode ? '#3B82F6' : '#00FF8F' // Blue in light, green in dark
+            const baseColor = isLightMode ? '#000000' : '#FFFFFF' // Black in light, white in dark
 
-            particles.forEach((p) => {
-                // Update position
+            particles.forEach((p, index) => {
+                // Update position with more motion
+                p.vx += (Math.random() - 0.5) * 0.01 // Add slight random acceleration
+                p.vy += (Math.random() - 0.5) * 0.01
+                p.vx *= 0.98 // Slight damping
+                p.vy *= 0.98
+                
                 p.x += p.vx
                 p.y += p.vy
 
@@ -84,6 +91,10 @@ export default function SubtleParticleBackground({
                 if (p.x > width) p.x = 0
                 if (p.y < 0) p.y = height
                 if (p.y > height) p.y = 0
+
+                // Alternate between accent and base colors
+                const useAccent = index % 5 === 0 // 20% accent particles
+                const color = useAccent ? accentColor : baseColor
 
                 // Simple particle - no pulsing for better performance
                 ctx.globalAlpha = opacity

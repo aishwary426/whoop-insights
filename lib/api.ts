@@ -112,7 +112,7 @@ export interface TrendsResponse {
     series: TrendsSeries
 }
 
-async function fetchWithAuth(endpoint: string, params: Record<string, any> = {}) {
+async function fetchWithAuth(endpoint: string, params: Record<string, any> = {}, timeoutMs = 30000) {
     const user = await getCurrentUser()
     if (!user) {
         throw new Error('User not authenticated')
@@ -127,17 +127,33 @@ async function fetchWithAuth(endpoint: string, params: Record<string, any> = {})
         }
     })
 
-    const response = await fetch(url.toString(), {
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    })
+    // Create abort controller for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-    if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`)
+    try {
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => '')
+            throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`)
+        }
+
+        return response.json()
+    } catch (error: any) {
+        clearTimeout(timeoutId)
+        if (error.name === 'AbortError') {
+            throw new Error(`Request timeout after ${timeoutMs/1000} seconds`)
+        }
+        throw error
     }
-
-    return response.json()
 }
 
 export const api = {
@@ -159,6 +175,37 @@ export const api = {
     getCalorieAnalysis: () => fetchWithAuth('/dashboard/calorie-analysis'),
     getJournalInsights: () => fetchWithAuth('/dashboard/journal-insights'),
     getPersonalizationInsights: () => fetchWithAuth('/dashboard/personalization-insights'),
+    
+    getCalorieGPSRecommendations: async (
+        recoveryScore: number,
+        targetCalories: number,
+        strainScore?: number,
+        sleepHours?: number,
+        hrv?: number,
+        restingHr?: number,
+        acuteChronicRatio?: number,
+        sleepDebt?: number,
+        consistencyScore?: number
+    ) => {
+        const params: Record<string, any> = {
+            recovery_score: recoveryScore,
+            target_calories: targetCalories,
+        }
+        
+        if (strainScore !== undefined) params.strain_score = strainScore
+        if (sleepHours !== undefined) params.sleep_hours = sleepHours
+        if (hrv !== undefined) params.hrv = hrv
+        if (restingHr !== undefined) params.resting_hr = restingHr
+        if (acuteChronicRatio !== undefined) params.acute_chronic_ratio = acuteChronicRatio
+        if (sleepDebt !== undefined) params.sleep_debt = sleepDebt
+        if (consistencyScore !== undefined) params.consistency_score = consistencyScore
+        
+        return fetchWithAuth('/calorie-gps/recommendations', params)
+    },
+
+    getModelMetrics: async (): Promise<any> => {
+        return fetchWithAuth('/model-metrics')
+    },
 
     uploadWhoopData: async (file: File): Promise<UploadResponse> => {
         const user = await getCurrentUser()

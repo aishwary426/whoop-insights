@@ -21,7 +21,7 @@ export default function HeroSection() {
                     transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
                     className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 backdrop-blur-sm"
                 >
-                    <span className="w-2 h-2 rounded-full bg-neon animate-pulse"></span>
+                    <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-neon animate-pulse"></span>
                     <span className="text-xs md:text-sm font-medium text-gray-800 dark:text-white/80 tracking-wide uppercase">AI for WHOOP Athletes</span>
                 </motion.div>
 

@@ -22,12 +22,16 @@ from app.schemas.api import (
     TrendsSeries,
     CalorieAnalysis,
     WorkoutEfficiency,
+    CalorieGPSResponse,
+    CalorieGPSWorkout,
+    CalorieGPSModelMetrics,
 )
 from app.ml.models.model_loader import load_latest_models
 from app.ml.models.sleep_optimizer import predict_optimal_bedtime
 from app.ml.models.workout_timing_optimizer import predict_optimal_workout_time
 from app.ml.models.strain_tolerance_model import predict_burnout_risk
 from app.ml.models.recovery_velocity import predict_recovery_days
+from app.ml.models.calorie_gps_model import predict_workout_recommendations
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -705,3 +709,235 @@ def get_journal_insights(db: Session, user_id: str) -> List[InsightItem]:
 
     insights.sort(key=lambda x: abs(x.data["impact_val"]), reverse=True)
     return insights
+
+
+def get_calorie_gps_recommendations(
+    db: Session, 
+    user_id: str, 
+    recovery_score: float, 
+    target_calories: float,
+    strain_score: Optional[float] = None,
+    sleep_hours: Optional[float] = None,
+    hrv: Optional[float] = None,
+    resting_hr: Optional[float] = None,
+    acute_chronic_ratio: Optional[float] = None,
+    sleep_debt: Optional[float] = None,
+    consistency_score: Optional[float] = None
+) -> CalorieGPSResponse:
+    """Get hyper-personalized calorie GPS workout recommendations using ML model."""
+    
+    # Try to load Calorie GPS model
+    models = load_latest_models(user_id)
+    calorie_gps_model_data = models.get("calorie_gps")
+    
+    # If model is available, use ML predictions
+    if calorie_gps_model_data and isinstance(calorie_gps_model_data, dict):
+        try:
+            model = calorie_gps_model_data.get('model')
+            xgb_model = calorie_gps_model_data.get('xgb_model')
+            feature_cols = calorie_gps_model_data.get('feature_cols', [])
+            
+            # Get latest daily metrics if not provided
+            dm = _latest_daily_metrics(db, user_id)
+            if dm:
+                strain_score = strain_score if strain_score is not None else (dm.strain_score or 0)
+                sleep_hours = sleep_hours if sleep_hours is not None else (dm.sleep_hours or 7)
+                hrv = hrv if hrv is not None else (dm.hrv or 50)
+                resting_hr = resting_hr if resting_hr is not None else (dm.resting_hr or 60)
+                acute_chronic_ratio = acute_chronic_ratio if acute_chronic_ratio is not None else (dm.acute_chronic_ratio or 1.0)
+                sleep_debt = sleep_debt if sleep_debt is not None else (dm.sleep_debt or 0)
+                consistency_score = consistency_score if consistency_score is not None else (dm.consistency_score or 50)
+            
+            # Use defaults if still None
+            strain_score = strain_score or 0
+            sleep_hours = sleep_hours or 7
+            hrv = hrv or 50
+            resting_hr = resting_hr or 60
+            acute_chronic_ratio = acute_chronic_ratio or 1.0
+            sleep_debt = sleep_debt or 0
+            consistency_score = consistency_score or 50
+            
+            # Get ML predictions
+            recommendations = predict_workout_recommendations(
+                model=model,
+                xgb_model=xgb_model,
+                feature_cols=feature_cols,
+                recovery_score=recovery_score,
+                target_calories=target_calories,
+                strain_score=strain_score,
+                sleep_hours=sleep_hours,
+                hrv=hrv,
+                resting_hr=resting_hr,
+                acute_chronic_ratio=acute_chronic_ratio,
+                sleep_debt=sleep_debt,
+                consistency_score=consistency_score
+            )
+            
+            # Convert to response format
+            workout_recommendations = [
+                CalorieGPSWorkout(
+                    type=r['type'],
+                    name=r['name'],
+                    emoji=r['emoji'],
+                    color=r['color'],
+                    efficiency=r['efficiency'],
+                    time=r['time'],
+                    optimal=r['optimal'],
+                    improvement=r['improvement']
+                )
+                for r in recommendations
+            ]
+            
+            model_confidence = calorie_gps_model_data.get('r2', 0.7)  # Use R² as confidence
+            
+            # Always include model metrics if model is available
+            model_type = 'XGBoost' if calorie_gps_model_data.get('xgb_model') else 'GradientBoosting'
+            model_metrics = CalorieGPSModelMetrics(
+                mae=calorie_gps_model_data.get('mae'),
+                r2=calorie_gps_model_data.get('r2'),
+                sample_size=calorie_gps_model_data.get('sample_size'),
+                feature_importance=calorie_gps_model_data.get('feature_importance', {}),
+                model_type=model_type
+            )
+            
+            logger.debug(f"Calorie GPS model metrics: MAE={model_metrics.mae}, R²={model_metrics.r2}, samples={model_metrics.sample_size}")
+            
+            return CalorieGPSResponse(
+                recommendations=workout_recommendations,
+                is_personalized=True,
+                model_confidence=float(model_confidence),
+                model_metrics=model_metrics
+            )
+        except Exception as e:
+            logger.warning(f"Error using Calorie GPS ML model: {e}", exc_info=True)
+    
+    # Fallback to rule-based recommendations
+    return _rule_based_calorie_gps(
+        recovery_score=recovery_score,
+        target_calories=target_calories
+    )
+
+
+def get_all_model_metrics(user_id: str) -> dict:
+    """Get metrics for all trained models for a user."""
+    from app.ml.models.model_loader import load_latest_models
+    
+    models = load_latest_models(user_id)
+    all_metrics = {}
+    
+    # Calorie GPS Model
+    calorie_gps_data = models.get("calorie_gps")
+    if calorie_gps_data and isinstance(calorie_gps_data, dict):
+        all_metrics["calorie_gps"] = {
+            "model_type": "XGBoost" if calorie_gps_data.get('xgb_model') else "GradientBoosting",
+            "r2": calorie_gps_data.get('r2'),
+            "mae": calorie_gps_data.get('mae'),
+            "sample_size": calorie_gps_data.get('sample_size'),
+            "feature_importance": calorie_gps_data.get('feature_importance', {}),
+        }
+    
+    # Recovery Velocity Model
+    recovery_velocity_data = models.get("recovery_velocity")
+    if recovery_velocity_data and isinstance(recovery_velocity_data, dict):
+        all_metrics["recovery_velocity"] = {
+            "model_type": "Linear Regression",
+            "r2": recovery_velocity_data.get('r2'),
+            "mae": recovery_velocity_data.get('mae'),
+            "sample_size": recovery_velocity_data.get('sample_size'),
+        }
+    
+    # Strain Tolerance Model
+    strain_tolerance_data = models.get("strain_tolerance")
+    if strain_tolerance_data and isinstance(strain_tolerance_data, dict):
+        all_metrics["strain_tolerance"] = {
+            "model_type": "Random Forest Classifier",
+            "accuracy": strain_tolerance_data.get('accuracy'),
+            "sample_size": strain_tolerance_data.get('sample_size'),
+        }
+    
+    # Workout Timing Optimizer
+    workout_timing_data = models.get("workout_timing")
+    if workout_timing_data and isinstance(workout_timing_data, dict):
+        all_metrics["workout_timing"] = {
+            "model_type": "Random Forest Regressor",
+            "r2": workout_timing_data.get('r2'),
+            "sample_size": workout_timing_data.get('sample_size'),
+        }
+    
+    # Sleep Optimizer
+    sleep_optimizer_data = models.get("sleep_optimizer")
+    if sleep_optimizer_data and isinstance(sleep_optimizer_data, dict):
+        all_metrics["sleep_optimizer"] = {
+            "model_type": "Random Forest Regressor",
+            "r2": sleep_optimizer_data.get('r2'),
+            "sample_size": sleep_optimizer_data.get('sample_size'),
+        }
+    
+    # Recovery Model (XGBoost or RandomForest)
+    if models.get("xgb_recovery"):
+        all_metrics["recovery_forecast"] = {
+            "model_type": "XGBoost Regressor",
+            "available": True,
+        }
+    elif models.get("recovery"):
+        all_metrics["recovery_forecast"] = {
+            "model_type": "Random Forest Regressor",
+            "available": True,
+        }
+    
+    # Burnout Risk Model
+    if models.get("xgb_burnout"):
+        all_metrics["burnout_risk"] = {
+            "model_type": "XGBoost Classifier",
+            "available": True,
+        }
+    elif models.get("burnout"):
+        all_metrics["burnout_risk"] = {
+            "model_type": "Random Forest Classifier",
+            "available": True,
+        }
+    
+    return all_metrics
+
+
+def _rule_based_calorie_gps(recovery_score: float, target_calories: float) -> CalorieGPSResponse:
+    """Fallback rule-based calorie GPS recommendations."""
+    from app.ml.models.calorie_gps_model import WORKOUT_TYPES
+    
+    # Simple rule-based calculation
+    neutral_efficiency = 10  # neutral baseline at 50% recovery
+    recovery_bonus = ((recovery_score - 50) / 50) * 3
+    baseline_efficiency = neutral_efficiency + recovery_bonus
+    
+    recommendations = []
+    
+    for wtype, wconfig in WORKOUT_TYPES.items():
+        efficiency = baseline_efficiency * wconfig['base_efficiency'] / 10.0
+        time = target_calories / efficiency if efficiency > 0 else 999
+        improvement = ((efficiency - neutral_efficiency) / neutral_efficiency) * 100
+        
+        # Determine if optimal based on recovery
+        is_optimal = False
+        if recovery_score >= 67:
+            is_optimal = wtype == 'high_intensity'
+        elif recovery_score >= 34:
+            is_optimal = wtype == 'moderate'
+        else:
+            is_optimal = wtype == 'light'
+        
+        recommendations.append(CalorieGPSWorkout(
+            type=wtype,
+            name=wconfig['name'],
+            emoji=wconfig['emoji'],
+            color=wconfig['color'],
+            efficiency=round(efficiency, 1),
+            time=round(time, 1),
+            optimal=is_optimal,
+            improvement=round(improvement, 1)
+        ))
+    
+    return CalorieGPSResponse(
+        recommendations=recommendations,
+        is_personalized=False,
+        model_confidence=None
+    )

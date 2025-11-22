@@ -5,6 +5,14 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --neon-glow: rgba(0, 102, 255, 0.18);
+  }
+  
+  .dark {
+    --neon-glow: rgba(0, 255, 143, 0.18);
+  }
+  
   body {
     @apply bg-gray-50 dark:bg-[#050505] text-gray-900 dark:text-white antialiased;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
@@ -23,11 +31,11 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-[rgb(0,255,143)] text-black shadow-neon-soft hover:shadow-neon-soft hover:scale-[1.03] active:scale-95;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-[rgb(0,102,255)] dark:bg-[rgb(0,255,143)] text-white dark:text-black shadow-neon-soft-light dark:shadow-neon-soft hover:shadow-neon-soft-light dark:hover:shadow-neon-soft hover:scale-[1.03] active:scale-95;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-transparent border border-gray-300 dark:border-white/15 text-gray-900 dark:text-white hover:border-gray-400 dark:hover:border-neon-primary/60 hover:scale-[1.03] active:scale-95;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-transparent border border-gray-300 dark:border-white/15 text-gray-900 dark:text-white hover:border-blue-600 dark:hover:border-neon-primary/60 hover:scale-[1.03] active:scale-95;
   }
 
   .input-field {
@@ -35,7 +43,7 @@
   }
 
   .stat-card {
-    @apply glass-card p-6 transition-all duration-200 ease-apple hover:scale-[1.02] hover:border-neon-primary/40;
+    @apply glass-card p-6 transition-all duration-200 ease-apple hover:scale-[1.02] hover:border-blue-600/40 dark:hover:border-neon-primary/40;
   }
 
   .gradient-blob {
@@ -51,7 +59,7 @@
   }
 
   .range-thumb {
-    @apply h-5 w-5 rounded-full bg-neon-primary border-2 border-white dark:border-black shadow-md dark:shadow-neon-soft;
+    @apply h-5 w-5 rounded-full bg-blue-600 dark:bg-neon-primary border-2 border-white dark:border-black shadow-md shadow-neon-soft-light dark:shadow-neon-soft;
   }
 }
 

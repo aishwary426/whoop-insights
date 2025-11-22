@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-neon/50 focus:ring-1 focus:ring-neon/50 transition-all"
+                        className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-blue-500 dark:focus:border-neon/50 focus:ring-1 focus:ring-blue-500 dark:focus:ring-neon/50 transition-all"
                         placeholder="your@email.com"
                         required
                     />
@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
 
             <p className="mt-8 text-center text-sm text-white/60">
                 Remember your password?{' '}
-                <Link href="/login" className="text-neon hover:text-neon/80 font-medium transition-colors">
+                <Link href="/login" className="text-blue-500 dark:text-neon hover:text-blue-600 dark:hover:text-neon/80 font-medium transition-colors">
                     Sign in
                 </Link>
             </p>

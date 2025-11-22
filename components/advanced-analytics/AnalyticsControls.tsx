@@ -34,7 +34,7 @@ export default function AnalyticsControls({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 {/* Date Range Selector */}
                 <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-xs uppercase tracking-widest text-gray-400 dark:text-white/40 mr-2">Range</span>
+                    <span className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40 mr-2">Range</span>
                     <div className="flex bg-gray-100 dark:bg-black/40 rounded-lg p-1 border border-gray-200 dark:border-white/5">
                         {RANGES.map((range) => (
                             <button
@@ -53,7 +53,7 @@ export default function AnalyticsControls({
 
                 {/* Presets */}
                 <div className="flex items-center gap-2">
-                    <span className="text-xs uppercase tracking-widest text-gray-400 dark:text-white/40 mr-2">Presets</span>
+                    <span className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40 mr-2">Presets</span>
                     {PRESETS.map(preset => (
                         <button
                             key={preset.label}
@@ -68,7 +68,7 @@ export default function AnalyticsControls({
 
             {/* Metric Toggles */}
             <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs uppercase tracking-widest text-gray-400 dark:text-white/40 mr-2">Metrics</span>
+                <span className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40 mr-2">Metrics</span>
                 {availableMetrics.map((metric) => {
                     const isSelected = selectedMetrics.includes(metric)
                     const color = getMetricColor(metric)

@@ -10,6 +10,7 @@ module.exports = {
     extend: {
       colors: {
         neon: '#00FF8F',
+        'neon-light': '#0066FF', // Darker neon blue for light mode
         bgDark: '#02030A',
         bgDarker: '#000000',
         'neon-primary': '#00FF8F', // Keep for backward compatibility if needed
@@ -20,6 +21,7 @@ module.exports = {
       },
       boxShadow: {
         'neon-soft': '0 0 20px rgba(0, 255, 143, 0.15)',
+        'neon-soft-light': '0 0 20px rgba(0, 102, 255, 0.25)', // Darker blue shadow for light mode
         'neon-card': '0 0 0 1px rgba(255, 255, 255, 0.05), 0 10px 40px rgba(0, 0, 0, 0.5)',
       },
       transitionTimingFunction: {

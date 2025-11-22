@@ -37,12 +37,16 @@ def _get_strain_threshold_examples(db: Session, user_id: str, threshold: float, 
     Get historical examples showing why the strain threshold is optimal.
     
     Returns examples of:
-    - Days where strain was below threshold and recovery was good
-    - Days where strain exceeded threshold and recovery dropped
+    - Days where strain was below threshold and NEXT DAY's recovery was good
+    - Days where strain exceeded threshold and NEXT DAY's recovery dropped
+    
+    Note: Recovery is measured in the morning and reflects the previous day's strain.
+    So we look at Day N's strain → Day N+1's recovery.
     """
     examples = []
     
-    # Get historical data
+    # Get historical data sorted by date descending to get most recent days first
+    # Then reverse to iterate forward (needing consecutive days for pairing)
     rows = (
         db.query(DailyMetrics)
         .filter(
@@ -51,46 +55,85 @@ def _get_strain_threshold_examples(db: Session, user_id: str, threshold: float, 
             DailyMetrics.recovery_score.isnot(None)
         )
         .order_by(DailyMetrics.date.desc())
-        .limit(60)  # Look at last 60 days
+        .limit(60)  # Get most recent 60 days
         .all()
     )
+    
+    # Reverse to get chronological order (oldest to newest) for proper day pairing
+    rows = list(reversed(rows))
     
     if len(rows) < 5:
         return examples
     
-    # Find examples where strain was below threshold with good recovery
+    # Find examples where strain was below threshold with good NEXT DAY recovery
     good_examples = []
-    for row in rows:
-        if row.strain_score is not None and row.recovery_score is not None:
-            if row.strain_score <= threshold and row.recovery_score >= 67:
+    from datetime import date as date_class
+    today_date = date_class.today()
+    
+    # Collect ALL matching examples (don't break early)
+    for i in range(len(rows) - 1):  # -1 because we need next day's recovery
+        strain_day_row = rows[i]
+        recovery_day_row = rows[i + 1]
+        
+        # Skip if recovery day is today (we don't have tomorrow's recovery yet)
+        # Also skip if strain day is today (strain might be 0 or incomplete)
+        if recovery_day_row.date >= today_date or strain_day_row.date >= today_date:
+            continue
+            
+        if (strain_day_row.strain_score is not None and 
+            recovery_day_row.recovery_score is not None):
+            if strain_day_row.strain_score <= threshold and recovery_day_row.recovery_score >= 67:
                 good_examples.append({
-                    'date': row.date.isoformat() if isinstance(row.date, date) else str(row.date),
-                    'strain': float(row.strain_score),
-                    'recovery': float(row.recovery_score),
+                    'date': recovery_day_row.date.isoformat() if isinstance(recovery_day_row.date, date) else str(recovery_day_row.date),
+                    'strain': float(strain_day_row.strain_score),
+                    'recovery': float(recovery_day_row.recovery_score),
                     'type': 'good',
-                    'message': f"Strain {row.strain_score:.1f} → Recovery {row.recovery_score:.0f}%"
+                    'message': f"Strain {strain_day_row.strain_score:.1f} → Recovery {recovery_day_row.recovery_score:.0f}%"
                 })
-                if len(good_examples) >= max_examples:
-                    break
     
-    # Find examples where strain exceeded threshold with poor recovery
+    # Find examples where strain exceeded threshold with poor NEXT DAY recovery
     bad_examples = []
-    for row in rows:
-        if row.strain_score is not None and row.recovery_score is not None:
-            if row.strain_score > threshold and row.recovery_score < 67:
+    # Collect ALL matching examples (don't break early)
+    for i in range(len(rows) - 1):  # -1 because we need next day's recovery
+        strain_day_row = rows[i]
+        recovery_day_row = rows[i + 1]
+        
+        # Skip if recovery day is today (we don't have tomorrow's recovery yet)
+        # Also skip if strain day is today (strain might be 0 or incomplete)
+        if recovery_day_row.date >= today_date or strain_day_row.date >= today_date:
+            continue
+            
+        if (strain_day_row.strain_score is not None and 
+            recovery_day_row.recovery_score is not None):
+            if strain_day_row.strain_score > threshold and recovery_day_row.recovery_score < 67:
                 bad_examples.append({
-                    'date': row.date.isoformat() if isinstance(row.date, date) else str(row.date),
-                    'strain': float(row.strain_score),
-                    'recovery': float(row.recovery_score),
+                    'date': recovery_day_row.date.isoformat() if isinstance(recovery_day_row.date, date) else str(recovery_day_row.date),
+                    'strain': float(strain_day_row.strain_score),
+                    'recovery': float(recovery_day_row.recovery_score),
                     'type': 'bad',
-                    'message': f"Strain {row.strain_score:.1f} → Recovery {row.recovery_score:.0f}%"
+                    'message': f"Strain {strain_day_row.strain_score:.1f} → Recovery {recovery_day_row.recovery_score:.0f}%"
                 })
-                if len(bad_examples) >= max_examples:
-                    break
     
-    # Combine and sort by date (most recent first)
+    # Sort each list by date (most recent first) before combining
+    def get_date_for_sorting(example):
+        date_str = example['date']
+        if isinstance(date_str, str):
+            try:
+                return date.fromisoformat(date_str)
+            except (ValueError, AttributeError):
+                return date_str
+        elif isinstance(date_str, date):
+            return date_str
+        return date.min
+    
+    good_examples.sort(key=get_date_for_sorting, reverse=True)
+    bad_examples.sort(key=get_date_for_sorting, reverse=True)
+    
+    # Combine and take top examples from each (most recent first)
     all_examples = good_examples[:3] + bad_examples[:3]
-    all_examples.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Final sort to ensure most recent examples are shown first
+    all_examples.sort(key=get_date_for_sorting, reverse=True)
     
     return all_examples[:max_examples]
 
