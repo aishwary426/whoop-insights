@@ -105,7 +105,7 @@ class InsightsFeed(BaseModel):
     insights: List[InsightItem]
 
 
-class TrainingSummary(BaseModel):
+class TrainingSummary(APIBase):
     status: str
     model_version: Optional[str] = None
     run_id: Optional[str] = None
