@@ -26,9 +26,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for ML libraries
+# Install system dependencies (Node.js for Next.js)
 RUN apt-get update && apt-get install -y \
-    libgomp1 \
     curl \
     && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs \
@@ -36,10 +35,6 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python dependencies
 COPY requirements.txt .
-# Uncomment ML libs for full deployment
-RUN sed -i 's/# xgboost/xgboost/g' requirements.txt && \
-    sed -i 's/# scikit-learn/scikit-learn/g' requirements.txt && \
-    sed -i 's/# joblib/joblib/g' requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy Backend Code
