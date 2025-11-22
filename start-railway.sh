@@ -83,7 +83,22 @@ EOF
 } > /app/supervisord.conf
 
 echo "Supervisord config created"
-echo "Starting supervisord..."
+# Internal health check function
+check_health() {
+    echo "Waiting for services to start..." >&2
+    sleep 10
+    echo "Checking internal connectivity on PORT=${PORT}..." >&2
+    if curl -v "http://127.0.0.1:${PORT}" >/dev/null 2>&1; then
+        echo "Internal health check: SUCCESS - App is reachable locally" >&2
+    else
+        echo "Internal health check: FAILED - App is NOT reachable locally" >&2
+        echo "Curl output:" >&2
+        curl -v "http://127.0.0.1:${PORT}" 2>&1 | head -n 20 >&2
+    fi
+}
+
+# Start health check in background
+check_health &
 
 # Start supervisord
 exec supervisord -c /app/supervisord.conf
