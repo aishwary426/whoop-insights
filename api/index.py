@@ -18,31 +18,37 @@ logger.info("=" * 80)
 logger.info("DEBUG: Starting Vercel entrypoint")
 logger.info(f"DEBUG: CWD: {os.getcwd()}")
 logger.info(f"DEBUG: __file__: {__file__}")
-logger.info(f"DEBUG: sys.path: {sys.path}")
+logger.info(f"DEBUG: sys.path: {sys.path[:5]}")  # Limit to first 5 for brevity
+
+# Log what files are actually present
+logger.info(f"DEBUG: Contents of CWD: {os.listdir(os.getcwd())[:20]}")  # First 20 items
+current_file_dir = Path(__file__).resolve().parent
+logger.info(f"DEBUG: Contents of current file dir: {os.listdir(current_file_dir)[:20]}")
 
 def _candidate_backend_paths() -> list[Path]:
     """Return possible backend locations within the bundle."""
     current_file = Path(__file__).resolve()
     api_dir = current_file.parent
-    logger.info(f"DEBUG: API dir: {api_dir}")
-    logger.info(f"DEBUG: __file__ parents: {[str(p) for p in current_file.parents]}")
-    
+    project_root = api_dir.parent
+
     candidates: list[Path] = []
-    
-    # Project root sibling (local dev)
-    candidates.append(api_dir.parent / "backend")
-    
-    # CWD relative
-    candidates.append(Path(os.getcwd()) / "backend")
-    
-    # Common Vercel/Lambda locations
+
+    # Most likely: backend is sibling to api/ in project root
+    candidates.append(project_root / "backend")
+
+    # Vercel might bundle everything in /var/task
     candidates.append(Path("/var/task/backend"))
     candidates.append(Path("/var/task/user/backend"))
-    
-    # Walk up a few levels and look for backend folder
-    for parent in current_file.parents:
+
+    # CWD relative
+    candidates.append(Path(os.getcwd()) / "backend")
+
+    # Walk up a few levels
+    for i, parent in enumerate(current_file.parents):
+        if i > 5:  # Don't walk too far up
+            break
         candidates.append(parent / "backend")
-    
+
     # Deduplicate while preserving order
     seen = set()
     unique_candidates = []
@@ -51,26 +57,42 @@ def _candidate_backend_paths() -> list[Path]:
             continue
         seen.add(path)
         unique_candidates.append(path)
-    
+
     return unique_candidates
 
 
 def _locate_backend_dir() -> Path:
+    """Locate the backend directory within the deployment."""
     for candidate in _candidate_backend_paths():
-        logger.info(f"DEBUG: Checking candidate backend path: {candidate}")
-        if (candidate / "app" / "main.py").exists():
-            logger.info(f"DEBUG: Found backend at {candidate}")
-            return candidate
-    
+        logger.info(f"DEBUG: Checking candidate: {candidate} (exists={candidate.exists()})")
+        if candidate.exists():
+            logger.info(f"DEBUG: Contents of {candidate}: {os.listdir(candidate)[:10]}")
+            if (candidate / "app" / "main.py").exists():
+                logger.info(f"DEBUG: ✓ Found backend at {candidate}")
+                return candidate
+
     # Exhaustive fallback: walk current working directory
-    logger.warning("DEBUG: Candidate search failed, falling back to directory walk")
-    for root, dirs, files in os.walk(os.getcwd()):
-        if "main.py" in files and "app" in dirs:
-            backend_path = Path(root)
-            if (backend_path / "app" / "main.py").exists():
-                logger.info(f"DEBUG: Found backend via walk at {backend_path}")
+    logger.warning("DEBUG: Candidate search failed, walking filesystem...")
+    cwd = Path(os.getcwd())
+    for root, dirs, files in os.walk(cwd):
+        root_path = Path(root)
+        # Don't walk too deep or into large directories
+        if len(root_path.parts) - len(cwd.parts) > 4:
+            continue
+        if any(skip in root for skip in ['node_modules', '.next', 'venv', '__pycache__']):
+            continue
+
+        if "main.py" in files:
+            if (root_path / "main.py").exists() and (root_path.parent.name == "app"):
+                backend_path = root_path.parent.parent
+                logger.info(f"DEBUG: ✓ Found backend via walk at {backend_path}")
                 return backend_path
-    raise FileNotFoundError("Unable to locate backend/app/main.py within deployment bundle")
+
+    raise FileNotFoundError(
+        f"Unable to locate backend/app/main.py. "
+        f"Searched from {os.getcwd()}. "
+        f"Directory contents: {os.listdir(os.getcwd())[:20]}"
+    )
 
 
 try:
