@@ -42,13 +42,23 @@ API_URL=http://localhost:8000  # Backend URL (optional, defaults to this)
 This usually means:
 
 1. **Health check timeout**: Railway couldn't reach your health endpoint within the timeout period
-   - Solution: Check that `/health` or `/healthz` endpoints are working
+   - **Solution**: We've configured `railway.json` with:
+     - `healthcheckPath: "/health"` - Points to our Next.js health route
+     - `healthcheckTimeout: 300` - Gives app 300 seconds to start
+   - Railway's default timeout (~10-30s) was too short for our dual-service app
 
 2. **Wrong PORT binding**: Application not listening on the PORT environment variable
    - Solution: Verify supervisord config uses `PORT` env var for frontend
 
 3. **Services not starting**: Backend or frontend failed to start
    - Solution: Check Railway logs for startup errors
+
+**Key Fix Applied**: The `railway.json` configuration explicitly tells Railway:
+- Which endpoint to check (`/health`)
+- How long to wait (300 seconds)
+- To use our custom startup script
+
+This prevents premature timeout failures during deployment.
 
 ### Common Issues
 
