@@ -48,12 +48,13 @@ COPY --from=frontend-builder /app/frontend/public ./public
 ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV API_URL=http://localhost:8000
+ENV PYTHONPATH=/app/backend
 
 # Install a process manager to run both
 RUN pip install supervisor
 
 # Create supervisor config
-RUN echo "[supervisord]\nnodaemon=true\n\n[program:backend]\ncommand=uvicorn backend.app.main:app --host 0.0.0.0 --port 8000\n\n[program:frontend]\ncommand=node server.js\nenvironment=PORT=3000\n" > supervisord.conf
+RUN echo "[supervisord]\nnodaemon=true\n\n[program:backend]\ncommand=uvicorn app.main:app --host 0.0.0.0 --port 8000\n\n[program:frontend]\ncommand=node server.js\nenvironment=PORT=3000\n" > supervisord.conf
 
 EXPOSE 3000
 
