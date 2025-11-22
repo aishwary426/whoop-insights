@@ -44,6 +44,11 @@ def load_latest_models(user_id: str) -> dict:
     xgb_rec_path = version_dir / "xgb_recovery_model.joblib"
     xgb_burnout_path = version_dir / "xgb_burnout_model.joblib"
     cluster_path = version_dir / "behavior_clusters.pkl"
+    
+    # New personalization models
+    sleep_opt_path = version_dir / "sleep_optimizer.joblib"
+    workout_timing_path = version_dir / "workout_timing_optimizer.joblib"
+    strain_tolerance_path = version_dir / "strain_tolerance_model.joblib"
 
     # Load RandomForest models (baseline)
     if rec_path.exists():
@@ -59,5 +64,13 @@ def load_latest_models(user_id: str) -> dict:
     
     if cluster_path.exists():
         models["cluster"] = joblib.load(cluster_path)
+    
+    # Load personalization models
+    if sleep_opt_path.exists():
+        models["sleep_optimizer"] = joblib.load(sleep_opt_path)
+    if workout_timing_path.exists():
+        models["workout_timing"] = joblib.load(workout_timing_path)
+    if strain_tolerance_path.exists():
+        models["strain_tolerance"] = joblib.load(strain_tolerance_path)
 
     return models

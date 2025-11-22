@@ -126,10 +126,14 @@ export const signIn = async (email: string, password: string) => {
 }
 
 export const signInWithGoogle = async () => {
+  // Use NEXT_PUBLIC_SITE_URL if set (for production), otherwise use current origin
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+  const redirectTo = `${siteUrl}/dashboard`
+  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/dashboard`
+      redirectTo: redirectTo
     }
   })
   return { data, error }

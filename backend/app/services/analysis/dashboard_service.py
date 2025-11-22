@@ -23,6 +23,11 @@ from app.schemas.api import (
     CalorieAnalysis,
     WorkoutEfficiency,
 )
+from app.ml.models.model_loader import load_latest_models
+from app.ml.models.sleep_optimizer import predict_optimal_bedtime
+from app.ml.models.workout_timing_optimizer import predict_optimal_workout_time
+from app.ml.models.strain_tolerance_model import predict_burnout_risk
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +53,86 @@ def _to_today_metrics(dm: DailyMetrics) -> TodayMetrics:
     )
 
 
+def _predict_tomorrow_recovery(db: Session, user_id: str, dm: DailyMetrics) -> TomorrowPrediction:
+    """
+    Predict tomorrow's recovery score using ML model if available, otherwise rule-based.
+    """
+    # Try to load and use ML model
+    models = load_latest_models(user_id)
+    
+    # Prefer XGBoost recovery model, fallback to RandomForest
+    recovery_model = models.get("xgb_recovery") or models.get("recovery")
+    
+    if recovery_model:
+        try:
+            # Use the same features as training: strain_score, sleep_hours, hrv, acute_chronic_ratio, sleep_debt, consistency_score
+            features = np.array([[
+                float(dm.strain_score or 0),
+                float(dm.sleep_hours or 7.5),
+                float(dm.hrv or 50),
+                float(dm.acute_chronic_ratio or 1.0),
+                float(dm.sleep_debt or 0),
+                float(dm.consistency_score or 0),
+            ]])
+            
+            prediction = recovery_model.predict(features)[0]
+            
+            # Clip to valid recovery range [0, 100]
+            prediction = max(0, min(100, float(prediction)))
+            
+            # Higher confidence if using XGBoost
+            confidence = 0.8 if "xgb_recovery" in models else 0.7
+            
+            logger.debug(f"ML recovery prediction for user {user_id}: {prediction:.1f}% (confidence: {confidence})")
+            
+            return TomorrowPrediction(
+                recovery_forecast=prediction,
+                confidence=confidence
+            )
+        except Exception as e:
+            logger.warning(f"Error using ML model for recovery prediction: {e}", exc_info=True)
+    
+    # Rule-based fallback
+    recovery = dm.recovery_score or 50
+    strain = dm.strain_score or 0
+    sleep = dm.sleep_hours or 7.5
+    hrv = dm.hrv or 50
+    
+    # Simple heuristic: recovery improves with rest, degrades with strain
+    # Base prediction on current recovery
+    base_prediction = recovery
+    
+    # Adjust based on strain (higher strain → lower recovery)
+    if strain > 15:
+        base_prediction -= 15
+    elif strain > 10:
+        base_prediction -= 10
+    elif strain > 5:
+        base_prediction -= 5
+    
+    # Adjust based on sleep (more sleep → better recovery)
+    if sleep < 6:
+        base_prediction -= 10
+    elif sleep < 7:
+        base_prediction -= 5
+    elif sleep >= 8:
+        base_prediction += 5
+    
+    # Adjust based on HRV (lower HRV → lower recovery)
+    if hrv and hrv < 40:
+        base_prediction -= 5
+    elif hrv and hrv > 60:
+        base_prediction += 3
+    
+    # Clip to valid range
+    base_prediction = max(0, min(100, base_prediction))
+    
+    return TomorrowPrediction(
+        recovery_forecast=base_prediction,
+        confidence=0.5  # Lower confidence for rule-based
+    )
+
+
 def _derive_risk_flags(dm: DailyMetrics) -> List[str]:
     flags = []
     if (dm.acute_chronic_ratio or 0) > 1.6:
@@ -61,13 +146,16 @@ def _derive_risk_flags(dm: DailyMetrics) -> List[str]:
     return flags
 
 
-def _simple_recommendation(dm: DailyMetrics) -> TodayRecommendation:
-    """Generate simple rule-based recommendations without ML."""
+def _simple_recommendation(db: Session, user_id: str, dm: DailyMetrics) -> TodayRecommendation:
+    """Generate recommendations with ML personalization if available, otherwise rule-based."""
     recovery = dm.recovery_score or 50
     strain = dm.strain_score or 0
     sleep = dm.sleep_hours or 7
 
-    # Simple rules based on recovery score
+    # Try to load ML models
+    models = load_latest_models(user_id)
+    
+    # Start with rule-based recommendation
     if recovery >= 67:
         intensity = IntensityLevel.HIGH
         workout_type = "High-intensity training"
@@ -93,11 +181,38 @@ def _simple_recommendation(dm: DailyMetrics) -> TodayRecommendation:
     if strain > 15:
         notes += " High strain yesterday - consider recovery."
 
+    # Use ML personalization if available
+    optimal_time = "Morning" if recovery > 50 else "Afternoon"
+    
+    # Enhance with workout timing optimizer
+    try:
+        timing_pred = predict_optimal_workout_time(
+            db, user_id, recovery, strain, dm.date.weekday()
+        )
+        if timing_pred:
+            optimal_time = timing_pred.get('optimal_time', optimal_time)
+            if timing_pred.get('improvement_pct', 0) > 5:
+                notes += f" 💡 Personalized: {timing_pred.get('optimal_category', '').title()} workouts result in {timing_pred.get('improvement_pct', 0):+.0f}% better recovery."
+    except Exception as e:
+        logger.debug(f"Could not use workout timing optimizer: {e}")
+    
+    # Enhance with strain tolerance model
+    try:
+        strain_pred = predict_burnout_risk(
+            db, user_id, strain, recovery, sleep, dm.hrv or 50, dm.acute_chronic_ratio or 1.0
+        )
+        if strain_pred and strain_pred.get('burnout_risk', 0) > 50:
+            notes += f" ⚠️ Strain alert: {strain_pred.get('recommendation', '')}"
+            if intensity == IntensityLevel.HIGH:
+                intensity = IntensityLevel.MODERATE
+    except Exception as e:
+        logger.debug(f"Could not use strain tolerance model: {e}")
+
     return TodayRecommendation(
         intensity_level=intensity,
         focus=focus,
         workout_type=workout_type,
-        optimal_time="Morning" if recovery > 50 else "Afternoon",
+        optimal_time=optimal_time,
         notes=notes,
     )
 
@@ -127,8 +242,20 @@ def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
             risk_flags=[],
         )
 
-    # Simple rule-based recommendation
-    recommendation = _simple_recommendation(dm)
+    # Generate recommendation with ML personalization if available
+    recommendation = _simple_recommendation(db, user_id, dm)
+    
+    # Add personalized sleep recommendation to notes if available
+    try:
+        sleep_pred = predict_optimal_bedtime(
+            db, user_id, dm.strain_score or 0, dm.recovery_score or 50, dm.date.weekday()
+        )
+        if sleep_pred and sleep_pred.get('confidence', 0) > 0.5:
+            # Add sleep insight to risk flags as a positive recommendation
+            if not any('bedtime' in flag.lower() for flag in risk_flags):
+                risk_flags.append(f"💤 Optimal bedtime: {sleep_pred.get('optimal_bedtime')} ({sleep_pred.get('reasoning', '')})")
+    except Exception as e:
+        logger.debug(f"Could not generate sleep recommendation: {e}")
 
     # Calculate basic health scores without ML
     sleep_health = float(max(min(100 - (dm.sleep_debt or 0) * 5, 100), 0))
@@ -144,7 +271,8 @@ def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
         injury_risk=injury_risk,
     )
 
-    tomorrow = TomorrowPrediction(recovery_forecast=None, confidence=0.0)
+    # Predict tomorrow's recovery using ML model if available
+    tomorrow = _predict_tomorrow_recovery(db, user_id, dm)
     risk_flags = sorted(set(_derive_risk_flags(dm)))
 
     return DashboardSummary(
@@ -349,6 +477,81 @@ def get_calorie_analysis(db: Session, user_id: str) -> CalorieAnalysis:
         explanation=explanation,
         comparison=efficiencies
     )
+
+
+def get_personalization_insights(db: Session, user_id: str) -> List[InsightItem]:
+    """Get personalized insights from ML models (sleep, workout timing, strain tolerance)."""
+    insights = []
+    dm = _latest_daily_metrics(db, user_id)
+    
+    if not dm:
+        return insights
+    
+    # 1. Sleep optimization insight
+    try:
+        sleep_pred = predict_optimal_bedtime(
+            db, user_id, dm.strain_score or 0, dm.recovery_score or 50, dm.date.weekday()
+        )
+        if sleep_pred and sleep_pred.get('confidence', 0) > 0.5:
+            insights.append(InsightItem(
+                insight_type="sleep_optimization",
+                title="Personalized Sleep Window",
+                description=(
+                    f"Your optimal bedtime is {sleep_pred.get('optimal_bedtime')}. "
+                    f"{sleep_pred.get('reasoning', '')}"
+                ),
+                confidence=sleep_pred.get('confidence', 0.7),
+                data=sleep_pred
+            ))
+    except Exception as e:
+        logger.debug(f"Could not generate sleep insight: {e}")
+    
+    # 2. Workout timing insight
+    try:
+        timing_pred = predict_optimal_workout_time(
+            db, user_id, dm.recovery_score or 50, dm.strain_score or 0, dm.date.weekday()
+        )
+        if timing_pred and timing_pred.get('improvement_pct', 0) > 5:
+            insights.append(InsightItem(
+                insight_type="workout_timing",
+                title="Optimal Workout Timing",
+                description=(
+                    f"You perform best with {timing_pred.get('optimal_category', '')} workouts. "
+                    f"They result in {timing_pred.get('improvement_pct', 0):+.0f}% better next-day recovery "
+                    f"compared to your average."
+                ),
+                confidence=timing_pred.get('confidence', 0.7),
+                data=timing_pred
+            ))
+    except Exception as e:
+        logger.debug(f"Could not generate workout timing insight: {e}")
+    
+    # 3. Strain tolerance insight
+    try:
+        strain_pred = predict_burnout_risk(
+            db, user_id,
+            dm.strain_score or 0,
+            dm.recovery_score or 50,
+            dm.sleep_hours or 7.5,
+            dm.hrv or 50,
+            dm.acute_chronic_ratio or 1.0
+        )
+        if strain_pred and strain_pred.get('safe_threshold'):
+            insights.append(InsightItem(
+                insight_type="strain_tolerance",
+                title="Personalized Strain Threshold",
+                description=strain_pred.get('recommendation', ''),
+                confidence=strain_pred.get('confidence', 0.7),
+                data={
+                    'safe_threshold': strain_pred.get('safe_threshold'),
+                    'burnout_risk': strain_pred.get('burnout_risk', 0),
+                    'recovery_drop_pct': strain_pred.get('recovery_drop_pct', 0)
+                }
+            ))
+    except Exception as e:
+        logger.debug(f"Could not generate strain tolerance insight: {e}")
+    
+    return insights
 
 
 def get_journal_insights(db: Session, user_id: str) -> List[InsightItem]:

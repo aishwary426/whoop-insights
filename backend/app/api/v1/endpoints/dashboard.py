@@ -12,6 +12,7 @@ from app.services.analysis.dashboard_service import (
     get_trends,
     get_calorie_analysis,
     get_journal_insights,
+    get_personalization_insights,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,3 +44,9 @@ def calorie_analysis(user_id: str, db: Session = Depends(get_db)):
 @router.get("/dashboard/journal-insights", response_model=list[InsightItem])
 def journal_insights(user_id: str, db: Session = Depends(get_db)):
     return get_journal_insights(db, user_id)
+
+
+@router.get("/dashboard/personalization-insights", response_model=list[InsightItem])
+def personalization_insights(user_id: str, db: Session = Depends(get_db)):
+    """Get personalized ML insights: optimal sleep windows, workout timing, and strain tolerance."""
+    return get_personalization_insights(db, user_id)

@@ -28,6 +28,11 @@ from app.core_config import get_settings
 from app.models.database import DailyMetrics, Workout
 from sqlalchemy import func
 
+# Import new personalization models
+from app.ml.models.sleep_optimizer import train_sleep_optimizer
+from app.ml.models.workout_timing_optimizer import train_workout_timing_optimizer
+from app.ml.models.strain_tolerance_model import train_strain_tolerance_model
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -145,6 +150,11 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     xgb_rec_path = version_dir / "xgb_recovery_model.joblib"
     xgb_burnout_path = version_dir / "xgb_burnout_model.joblib"
     cluster_path = version_dir / "behavior_clusters.pkl"
+    
+    # New personalization models
+    sleep_opt_path = version_dir / "sleep_optimizer.joblib"
+    workout_timing_path = version_dir / "workout_timing_optimizer.joblib"
+    strain_tolerance_path = version_dir / "strain_tolerance_model.joblib"
 
     # Save RandomForest models
     joblib.dump(rf_reg_model, rec_path)
@@ -187,6 +197,44 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
         except Exception as e:
             logger.warning(f"Failed to train XGBoost models: {e}", exc_info=True)
 
+    # Train new personalization models
+    personalization_models = []
+    
+    # 1. Sleep Optimizer - learns optimal bedtime
+    try:
+        sleep_result = train_sleep_optimizer(db, user_id)
+        if sleep_result and sleep_result.get('model'):
+            joblib.dump(sleep_result['model'], sleep_opt_path)
+            personalization_models.append("sleep_optimizer")
+            logger.info(f"Sleep optimizer trained and saved for user {user_id}")
+    except Exception as e:
+        logger.warning(f"Failed to train sleep optimizer: {e}", exc_info=True)
+    
+    # 2. Workout Timing Optimizer - learns best workout times
+    try:
+        timing_result = train_workout_timing_optimizer(db, user_id, is_mobile)
+        if timing_result and timing_result.get('model'):
+            joblib.dump(timing_result['model'], workout_timing_path)
+            personalization_models.append("workout_timing_optimizer")
+            logger.info(f"Workout timing optimizer trained and saved for user {user_id}")
+    except Exception as e:
+        logger.warning(f"Failed to train workout timing optimizer: {e}", exc_info=True)
+    
+    # 3. Strain Tolerance Model - learns safe strain thresholds
+    try:
+        strain_result = train_strain_tolerance_model(db, user_id)
+        if strain_result and strain_result.get('model'):
+            # Save both model and scaler
+            joblib.dump({
+                'model': strain_result['model'],
+                'scaler': strain_result['scaler'],
+                'safe_threshold': strain_result.get('safe_threshold')
+            }, strain_tolerance_path)
+            personalization_models.append("strain_tolerance")
+            logger.info(f"Strain tolerance model trained and saved for user {user_id}")
+    except Exception as e:
+        logger.warning(f"Failed to train strain tolerance model: {e}", exc_info=True)
+    
     # Lightweight clustering to personalize patterns (per user only)
     cluster_model = None
     if len(df) >= 6:
@@ -196,19 +244,21 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
         cluster_model.fit(cluster_features)
         joblib.dump(cluster_model, cluster_path)
 
+    all_models = trained_models + personalization_models + (["cluster"] if cluster_model else [])
+    
     logger.info(
         "Training completed",
         extra={
             "user_id": user_id,
             "model_version": settings.model_version,
-            "trained_models": trained_models + (["cluster"] if cluster_model else []),
+            "trained_models": all_models,
         },
     )
 
     result = {
         "status": "ok",
         "model_version": settings.model_version,
-        "trained_models": trained_models + (["cluster"] if cluster_model else []),
+        "trained_models": all_models,
         "days_used": len(df),
         "start_date": df["date"].min(),
         "end_date": df["date"].max(),
@@ -216,6 +266,9 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
         "burnout_model_path": str(burnout_path),
         "calorie_model_path": str(cal_path),
         "cluster_model_path": str(cluster_path) if cluster_model else None,
+        "sleep_optimizer_path": str(sleep_opt_path) if "sleep_optimizer" in personalization_models else None,
+        "workout_timing_path": str(workout_timing_path) if "workout_timing_optimizer" in personalization_models else None,
+        "strain_tolerance_path": str(strain_tolerance_path) if "strain_tolerance" in personalization_models else None,
     }
     
     if XGBOOST_AVAILABLE:
