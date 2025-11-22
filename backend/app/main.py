@@ -39,6 +39,22 @@ app = FastAPI(
     debug=settings.debug
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Log critical startup information for debugging."""
+    logger.info("=" * 60)
+    logger.info("WHOOP Insights API Starting Up")
+    logger.info("=" * 60)
+    logger.info(f"Database URL: {settings.database_url[:30]}...")
+    logger.info(f"Upload Directory: {settings.upload_dir}")
+    logger.info(f"Debug Mode: {settings.debug}")
+    logger.info(f"Environment Variables:")
+    logger.info(f"  - VERCEL: {os.getenv('VERCEL')}")
+    logger.info(f"  - RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_ENVIRONMENT')}")
+    logger.info(f"  - RENDER: {os.getenv('RENDER')}")
+    logger.info(f"  - DATABASE_URL: {'Set' if os.getenv('DATABASE_URL') else 'Not Set'}")
+    logger.info("=" * 60)
+
 # Create database tables (with error handling for serverless environments)
 try:
     Base.metadata.create_all(bind=engine)

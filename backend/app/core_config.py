@@ -7,23 +7,35 @@ import os
 
 def _get_default_database_url():
     """Get default database URL, preferring SQLite on serverless platforms."""
+    import logging
+    logger = logging.getLogger(__name__)
+
     # Check if we're on Vercel or similar serverless platform
     is_vercel = os.getenv("VERCEL") or os.getenv("VERCEL_ENV") or "/var/task" in os.getcwd()
-    
+
     if is_vercel:
+        logger.info("Detected Vercel environment, using SQLite in /tmp")
         return "sqlite:////tmp/whoop.db"
-    
-    # Check if DATABASE_URL is set to PostgreSQL but psycopg2 isn't available
+
+    # Check if DATABASE_URL is set
     db_url = os.getenv("DATABASE_URL", "")
-    if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
-        try:
-            import psycopg2  # noqa: F401
-        except ImportError:
-            # PostgreSQL URL set but psycopg2 not installed - use SQLite
-            return "sqlite:///./whoop.db"
-    
+
+    if db_url:
+        logger.info(f"DATABASE_URL is set, using: {db_url[:20]}...")
+        # If PostgreSQL, verify psycopg2 is available
+        if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
+            try:
+                import psycopg2  # noqa: F401
+                logger.info("PostgreSQL driver (psycopg2) is available")
+                return db_url
+            except ImportError:
+                logger.error("PostgreSQL URL set but psycopg2 not installed - falling back to SQLite")
+                return "sqlite:///./whoop.db"
+        return db_url
+
     # Default to SQLite for local development
-    return os.getenv("DATABASE_URL", "sqlite:///./whoop.db")
+    logger.info("No DATABASE_URL set, using local SQLite")
+    return "sqlite:///./whoop.db"
 
 
 class Settings(BaseSettings):
@@ -85,15 +97,22 @@ class Settings(BaseSettings):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"Initializing settings with database: {self.database_url[:30]}...")
+        logger.info(f"Upload directory: {self.upload_dir}")
+        logger.info(f"Environment: VERCEL={os.getenv('VERCEL')}, RAILWAY={os.getenv('RAILWAY_ENVIRONMENT')}, RENDER={os.getenv('RENDER')}")
+
         # Ensure directories exist (with error handling for serverless)
         for dir_path in [self.upload_dir, self.processed_dir, self.model_dir]:
             try:
                 Path(dir_path).mkdir(parents=True, exist_ok=True)
+                logger.info(f"Created directory: {dir_path}")
             except (OSError, PermissionError) as e:
                 # On serverless, directories might be created on-demand
                 # Log warning but don't fail initialization
-                import logging
-                logging.getLogger(__name__).warning(f"Could not create directory {dir_path}: {e}")
+                logger.warning(f"Could not create directory {dir_path}: {e}")
 
 
 @lru_cache

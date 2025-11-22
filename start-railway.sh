@@ -84,6 +84,37 @@ EOF
 } > /app/supervisord.conf
 
 echo "Supervisord config created"
-# Start supervisord - it will run in foreground
-exec supervisord -c /app/supervisord.conf
+
+# Start supervisord in background
+supervisord -c /app/supervisord.conf &
+SUPER_PID=$!
+
+# Wait for services to actually be ready
+echo "Waiting for services to be healthy..."
+sleep 5
+
+# Check if frontend is responding
+MAX_TRIES=30
+for i in $(seq 1 $MAX_TRIES); do
+    if curl -f -s -o /dev/null "http://0.0.0.0:${PORT}/health"; then
+        echo "✓ Frontend health check passed!"
+        break
+    fi
+    echo "Waiting for frontend... ($i/$MAX_TRIES)"
+    sleep 2
+done
+
+# Check if backend is responding
+for i in $(seq 1 $MAX_TRIES); do
+    if curl -f -s -o /dev/null "http://0.0.0.0:8000/healthz"; then
+        echo "✓ Backend health check passed!"
+        break
+    fi
+    echo "Waiting for backend... ($i/$MAX_TRIES)"
+    sleep 2
+done
+
+echo "Services are ready! Handing control to supervisord..."
+# Wait for supervisord
+wait $SUPER_PID
 
