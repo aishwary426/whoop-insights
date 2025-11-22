@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  swcMinify: false,
   experimental: {
     // serverActions is true by default in Next.js 14
   },
