@@ -69,8 +69,7 @@ export default function AdvancedAnalyticsPage() {
                 if (prev.length === 1) return prev
                 return prev.filter(m => m !== metric)
             } else {
-                // Limit to 3 metrics for readability
-                if (prev.length >= 3) return prev
+                // Allow selecting any number of metrics
                 return [...prev, metric]
             }
         })
@@ -162,7 +161,11 @@ export default function AdvancedAnalyticsPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.1 }}
                             >
-                                <CorrelationScatterPlot data={filteredData} metrics={selectedMetrics} />
+                                <CorrelationScatterPlot 
+                                    data={filteredData} 
+                                    metrics={selectedMetrics}
+                                    availableMetrics={AVAILABLE_METRICS}
+                                />
                             </motion.div>
 
                             {/* Distribution */}
@@ -171,7 +174,11 @@ export default function AdvancedAnalyticsPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.2 }}
                             >
-                                <DistributionHistogram data={filteredData} metrics={selectedMetrics} />
+                                <DistributionHistogram 
+                                    data={filteredData} 
+                                    metrics={selectedMetrics}
+                                    availableMetrics={AVAILABLE_METRICS}
+                                />
                             </motion.div>
                         </div>
                     </div>

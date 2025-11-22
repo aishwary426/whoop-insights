@@ -8,7 +8,6 @@ import AppLayout from '../../components/layout/AppLayout'
 import TodayRecommendationCard from '../../components/dashboard/TodayRecommendationCard'
 import StatsRow from '../../components/dashboard/StatsRow'
 import RecoveryBaselinePanel from '../../components/dashboard/RecoveryBaselinePanel'
-import InteractiveChart from '../../components/dashboard/InteractiveChart'
 import ForecastCard from '../../components/dashboard/ForecastCard'
 import NeonButton from '../../components/ui/NeonButton'
 import NeonCard from '../../components/ui/NeonCard'
@@ -277,38 +276,6 @@ export default function DashboardPage() {
     [trends?.series?.sleep]
   )
 
-  const last7SpO2 = useMemo(() =>
-    trends?.series?.spo2?.slice(-7).map(d => ({
-      date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
-      value: d.value || 0
-    })) || [],
-    [trends?.series?.spo2]
-  )
-
-  const last7SkinTemp = useMemo(() =>
-    trends?.series?.skin_temp?.slice(-7).map(d => ({
-      date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
-      value: d.value || 0
-    })) || [],
-    [trends?.series?.skin_temp]
-  )
-
-  const last7RHR = useMemo(() =>
-    trends?.series?.resting_hr?.slice(-7).map(d => ({
-      date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
-      value: d.value || 0
-    })) || [],
-    [trends?.series?.resting_hr]
-  )
-
-  const last7RespRate = useMemo(() =>
-    trends?.series?.respiratory_rate?.slice(-7).map(d => ({
-      date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
-      value: d.value || 0
-    })) || [],
-    [trends?.series?.respiratory_rate]
-  )
-
   // Get yesterday's strain from trends data (second to last item)
   const yesterdayStrain = useMemo(() =>
     trends?.series?.strain && trends.series.strain.length >= 2
@@ -479,11 +446,13 @@ export default function DashboardPage() {
                 </div>
               }
             >
-              <RecoveryBaselinePanel data={recoveryData} />
+              <div data-chart="recovery-baseline">
+                <RecoveryBaselinePanel data={recoveryData} />
+              </div>
             </ParallaxSection>
 
             {/* Section 4: Performance Metrics (Immersive) */}
-            <div className="relative z-20">
+            <div className="relative z-20" data-chart="performance-section">
               <PerformanceSection strainData={last30Strain} sleepData={last30Sleep} />
             </div>
 
@@ -747,52 +716,6 @@ export default function DashboardPage() {
                   </div>
                 </NeonCard>
               )}
-            </ParallaxSection>
-
-            {/* Section 6: Health Monitor */}
-            <ParallaxSection
-              stickyPosition="top"
-              stickyContent={
-                <div className="mb-4 md:mb-6 lg:mb-8">
-                  <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white text-center">Health Monitor</h2>
-                  <p className="text-gray-600 dark:text-white/60 text-center mt-1.5 md:mt-2 text-xs md:text-sm lg:text-base hidden md:block">Key vital signs at a glance.</p>
-                </div>
-              }
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                <InteractiveChart
-                  title="Blood Oxygen"
-                  subtitle="SpO2 %"
-                  data={last7SpO2}
-                  color="#ef4444"
-                  unit="%"
-                  height={300}
-                />
-                <InteractiveChart
-                  title="Skin Temp"
-                  subtitle="Deviation (°C)"
-                  data={last7SkinTemp}
-                  color="#f97316"
-                  unit="°C"
-                  height={300}
-                />
-                <InteractiveChart
-                  title="Resting HR"
-                  subtitle="RHR (bpm)"
-                  data={last7RHR}
-                  color="#ec4899"
-                  unit="bpm"
-                  height={300}
-                />
-                <InteractiveChart
-                  title="Resp. Rate"
-                  subtitle="rpm"
-                  data={last7RespRate}
-                  color="#14b8a6"
-                  unit="rpm"
-                  height={300}
-                />
-              </div>
             </ParallaxSection>
           </>
         )}

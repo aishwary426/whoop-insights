@@ -283,6 +283,7 @@ export function ParallaxBackground({ children }: ParallaxBackgroundProps) {
 }
 
 function NeonStructure({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
+  const { theme } = useTheme()
   const rotateX = useTransform(mouseY, [0, 1], [5, -5])
   const rotateY = useTransform(mouseX, [0, 1], [-5, 5])
 
