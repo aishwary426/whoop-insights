@@ -6,28 +6,9 @@ pydantic-settings==2.1.0
 mangum==0.17.0
 
 sqlalchemy==2.0.23
-# sqlite requires no driver
 alembic==1.13.0
 
-redis==5.0.1
-rq==1.15.1
-
 pandas==2.1.3
-numpy==1.26.2
-
-# ML dependencies (optional - comment out if deployment size is an issue)
-# scikit-learn==1.3.2  # Large package (~50MB), make optional for Vercel
-# joblib==1.3.2  # Usually included with scikit-learn
-# xgboost==2.0.3  # Optional - uncomment if using XGBoost models
-# statsmodels==0.14.1  # Optional
-
-# Note: ML features will be disabled if scikit-learn is not available
-# The app will still work for data ingestion and basic features
 
 python-dotenv==1.0.0
 pytz==2023.3
-# zipfile36==0.1.3
-
-# pytest==7.4.3
-# pytest-asyncio==0.21.1
-# httpx==0.25.2
