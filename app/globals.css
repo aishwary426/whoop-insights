@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 dark:bg-[#050505] text-gray-900 dark:text-white antialiased;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-lg dark:shadow-neon-card;
+  }
+
+  .glass-nav {
+    @apply bg-white/80 dark:bg-black/70 backdrop-blur-md border-b border-gray-200 dark:border-white/5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-[rgb(0,255,143)] text-black shadow-neon-soft hover:shadow-neon-soft hover:scale-[1.03] active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-transparent border border-gray-300 dark:border-white/15 text-gray-900 dark:text-white hover:border-gray-400 dark:hover:border-neon-primary/60 hover:scale-[1.03] active:scale-95;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all;
+  }
+
+  .stat-card {
+    @apply glass-card p-6 transition-all duration-200 ease-apple hover:scale-[1.02] hover:border-neon-primary/40;
+  }
+
+  .gradient-blob {
+    @apply absolute blur-3xl opacity-30 rounded-full;
+  }
+
+  .metric-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+  }
+
+  .range-track {
+    @apply w-full h-2 rounded-full bg-gray-200 dark:bg-white/10;
+  }
+
+  .range-thumb {
+    @apply h-5 w-5 rounded-full bg-neon-primary border-2 border-white dark:border-black shadow-md dark:shadow-neon-soft;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}

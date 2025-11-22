@@ -1,0 +1,81 @@
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("users")
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("uploads")
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("daily_metrics")
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("workouts")
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("prediction_runs")
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("daily_predictions")
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("insights")
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:12:56 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-22 11:12:56 - app.main - INFO - Database tables initialized successfully
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("users")
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("uploads")
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("daily_metrics")
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("workouts")
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("prediction_runs")
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("daily_predictions")
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - PRAGMA main.table_info("insights")
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - [raw sql] ()
+2025-11-22 11:14:09 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-22 11:14:09 - app.main - INFO - Database tables initialized successfully
+2025-11-22 11:14:32 - app.main - INFO - Incoming request: POST /api/v1/whoop/ingest
+2025-11-22 11:14:32 - app.api.v1.endpoints.upload - INFO - DEBUG: Upload endpoint called. Method: POST, URL: http://127.0.0.1:8000/api/v1/whoop/ingest
+2025-11-22 11:14:32 - app.api.v1.endpoints.upload - INFO - DEBUG: Headers: {'host': '127.0.0.1:8000', 'user-agent': 'curl/8.7.1', 'accept': '*/*', 'content-length': '499', 'content-type': 'multipart/form-data; boundary=------------------------4ZlPpKHzeDFUiYzUfUXDGP'}
+2025-11-22 11:14:32 - app.api.v1.endpoints.upload - INFO - [6f91d47b-1b6b-464d-949d-5215dcae9a70] Upload request received - user: test_user
+2025-11-22 11:14:32 - app.utils.zip_utils - INFO - Saving upload 6f91d47b-1b6b-464d-949d-5215dcae9a70 for user test_user to data/raw/test_user/6f91d47b-1b6b-464d-949d-5215dcae9a70.zip
+2025-11-22 11:14:32 - app.utils.zip_utils - INFO - Saved 0.00 MB to data/raw/test_user/6f91d47b-1b6b-464d-949d-5215dcae9a70.zip
+2025-11-22 11:14:32 - app.api.v1.endpoints.upload - INFO - [6f91d47b-1b6b-464d-949d-5215dcae9a70] Starting synchronous ingestion
+2025-11-22 11:14:32 - app.services.ingestion.whoop_ingestion - INFO - Starting ingestion for user test_user
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - SELECT users.id AS users_id, users.email AS users_email, users.name AS users_name, users.goal AS users_goal, users.created_at AS users_created_at 
+FROM users 
+WHERE users.id = ?
+ LIMIT ? OFFSET ?
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - [generated in 0.00023s] ('test_user', 1, 0)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - INSERT INTO users (id, email, name, goal, created_at) VALUES (?, ?, ?, ?, ?)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - [generated in 0.00022s] ('test_user', 'test_user@auto.com', 'User test_user', None, '2025-11-22 05:44:32.309360')
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-22 11:14:32 - app.services.ingestion.whoop_ingestion - INFO - Created new user: test_user
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - INSERT INTO uploads (id, user_id, file_path, status, created_at, completed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - [generated in 0.00014s] ('6f91d47b-1b6b-464d-949d-5215dcae9a70', 'test_user', 'data/raw/test_user/6f91d47b-1b6b-464d-949d-5215dcae9a70.zip', 'PROCESSING', '2025-11-22 05:44:32.312292', None, None)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-22 11:14:32 - app.services.ingestion.whoop_ingestion - INFO - Created upload record: 6f91d47b-1b6b-464d-949d-5215dcae9a70
+2025-11-22 11:14:32 - app.services.ingestion.whoop_ingestion - INFO - Ingestion started
+2025-11-22 11:14:32 - app.utils.zip_utils - INFO - Extracting data/raw/test_user/6f91d47b-1b6b-464d-949d-5215dcae9a70.zip to data/raw/test_user/extracted
+2025-11-22 11:14:32 - app.utils.zip_utils - INFO - Extracted 1 files/directories
+2025-11-22 11:14:32 - app.services.ingestion.whoop_ingestion - INFO - Using legacy separate CSV parsing
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - SELECT daily_metrics.id AS daily_metrics_id, daily_metrics.user_id AS daily_metrics_user_id, daily_metrics.date AS daily_metrics_date, daily_metrics.recovery_score AS daily_metrics_recovery_score, daily_metrics.strain_score AS daily_metrics_strain_score, daily_metrics.sleep_hours AS daily_metrics_sleep_hours, daily_metrics.hrv AS daily_metrics_hrv, daily_metrics.resting_hr AS daily_metrics_resting_hr, daily_metrics.workouts_count AS daily_metrics_workouts_count, daily_metrics.strain_baseline_7d AS daily_metrics_strain_baseline_7d, daily_metrics.strain_baseline_30d AS daily_metrics_strain_baseline_30d, daily_metrics.recovery_baseline_7d AS daily_metrics_recovery_baseline_7d, daily_metrics.recovery_baseline_30d AS daily_metrics_recovery_baseline_30d, daily_metrics.sleep_baseline_7d AS daily_metrics_sleep_baseline_7d, daily_metrics.sleep_baseline_30d AS daily_metrics_sleep_baseline_30d, daily_metrics.hrv_baseline_7d AS daily_metrics_hrv_baseline_7d, daily_metrics.hrv_baseline_30d AS daily_metrics_hrv_baseline_30d, daily_metrics.rhr_baseline_7d AS daily_metrics_rhr_baseline_7d, daily_metrics.rhr_baseline_30d AS daily_metrics_rhr_baseline_30d, daily_metrics.recovery_z_score AS daily_metrics_recovery_z_score, daily_metrics.strain_z_score AS daily_metrics_strain_z_score, daily_metrics.sleep_z_score AS daily_metrics_sleep_z_score, daily_metrics.hrv_z_score AS daily_metrics_hrv_z_score, daily_metrics.rhr_z_score AS daily_metrics_rhr_z_score, daily_metrics.acute_chronic_ratio AS daily_metrics_acute_chronic_ratio, daily_metrics.sleep_debt AS daily_metrics_sleep_debt, daily_metrics.consistency_score AS daily_metrics_consistency_score, daily_metrics.extra AS daily_metrics_extra, daily_metrics.created_at AS daily_metrics_created_at, daily_metrics.updated_at AS daily_metrics_updated_at 
+FROM daily_metrics 
+WHERE daily_metrics.user_id = ? ORDER BY daily_metrics.date ASC
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - [generated in 0.00041s] ('test_user',)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - SELECT daily_metrics.id AS daily_metrics_id, daily_metrics.user_id AS daily_metrics_user_id, daily_metrics.date AS daily_metrics_date, daily_metrics.recovery_score AS daily_metrics_recovery_score, daily_metrics.strain_score AS daily_metrics_strain_score, daily_metrics.sleep_hours AS daily_metrics_sleep_hours, daily_metrics.hrv AS daily_metrics_hrv, daily_metrics.resting_hr AS daily_metrics_resting_hr, daily_metrics.workouts_count AS daily_metrics_workouts_count, daily_metrics.strain_baseline_7d AS daily_metrics_strain_baseline_7d, daily_metrics.strain_baseline_30d AS daily_metrics_strain_baseline_30d, daily_metrics.recovery_baseline_7d AS daily_metrics_recovery_baseline_7d, daily_metrics.recovery_baseline_30d AS daily_metrics_recovery_baseline_30d, daily_metrics.sleep_baseline_7d AS daily_metrics_sleep_baseline_7d, daily_metrics.sleep_baseline_30d AS daily_metrics_sleep_baseline_30d, daily_metrics.hrv_baseline_7d AS daily_metrics_hrv_baseline_7d, daily_metrics.hrv_baseline_30d AS daily_metrics_hrv_baseline_30d, daily_metrics.rhr_baseline_7d AS daily_metrics_rhr_baseline_7d, daily_metrics.rhr_baseline_30d AS daily_metrics_rhr_baseline_30d, daily_metrics.recovery_z_score AS daily_metrics_recovery_z_score, daily_metrics.strain_z_score AS daily_metrics_strain_z_score, daily_metrics.sleep_z_score AS daily_metrics_sleep_z_score, daily_metrics.hrv_z_score AS daily_metrics_hrv_z_score, daily_metrics.rhr_z_score AS daily_metrics_rhr_z_score, daily_metrics.acute_chronic_ratio AS daily_metrics_acute_chronic_ratio, daily_metrics.sleep_debt AS daily_metrics_sleep_debt, daily_metrics.consistency_score AS daily_metrics_consistency_score, daily_metrics.extra AS daily_metrics_extra, daily_metrics.created_at AS daily_metrics_created_at, daily_metrics.updated_at AS daily_metrics_updated_at 
+FROM daily_metrics 
+WHERE daily_metrics.user_id = ? ORDER BY daily_metrics.date ASC
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - [cached since 0.002606s ago] ('test_user',)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - SELECT uploads.id AS uploads_id, uploads.user_id AS uploads_user_id, uploads.file_path AS uploads_file_path, uploads.created_at AS uploads_created_at, uploads.error_message AS uploads_error_message 
+FROM uploads 
+WHERE uploads.id = ?
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - [generated in 0.00015s] ('6f91d47b-1b6b-464d-949d-5215dcae9a70',)
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - UPDATE uploads SET status=?, completed_at=? WHERE uploads.id = ?
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - [generated in 0.00008s] ('COMPLETED', '2025-11-22 05:44:32.338791', '6f91d47b-1b6b-464d-949d-5215dcae9a70')
+2025-11-22 11:14:32 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-11-22 11:14:32 - app.services.ingestion.whoop_ingestion - INFO - Ingestion completed
+2025-11-22 11:14:32 - app.api.v1.endpoints.upload - INFO - [6f91d47b-1b6b-464d-949d-5215dcae9a70] Ingestion completed successfully
+2025-11-22 11:14:32 - app.api.v1.endpoints.upload - INFO - [6f91d47b-1b6b-464d-949d-5215dcae9a70] Cleaned up temporary file: data/raw/test_user/6f91d47b-1b6b-464d-949d-5215dcae9a70.zip
+2025-11-22 11:14:32 - app.main - INFO - Request processed: 200

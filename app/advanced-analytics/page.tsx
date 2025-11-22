@@ -1,0 +1,186 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import AppLayout from '../../components/layout/AppLayout'
+import AnalyticsControls from '../../components/advanced-analytics/AnalyticsControls'
+import AdvancedChart from '../../components/advanced-analytics/AdvancedChart'
+import CorrelationScatterPlot from '../../components/advanced-analytics/CorrelationScatterPlot'
+import DistributionHistogram from '../../components/advanced-analytics/DistributionHistogram'
+import ComparativeStats from '../../components/advanced-analytics/ComparativeStats'
+import { api, type TrendsResponse } from '../../lib/api'
+import { getCurrentUser } from '../../lib/supabase'
+import { filterDataByRange } from '../../lib/analytics-utils'
+import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
+import { motion } from 'framer-motion'
+
+const AVAILABLE_METRICS = [
+    'recovery',
+    'strain',
+    'sleep',
+    'hrv',
+    'resting_hr',
+    'spo2',
+    'respiratory_rate',
+    'skin_temp',
+    'calories'
+]
+
+export default function AdvancedAnalyticsPage() {
+    const router = useRouter()
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
+    const [trends, setTrends] = useState<TrendsResponse | null>(null)
+
+    // Filter State
+    const [dateRange, setDateRange] = useState('1M')
+    const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['recovery', 'strain'])
+    const [comparisonPeriod, setComparisonPeriod] = useState<'week' | 'month' | 'year'>('week')
+
+    useEffect(() => {
+        checkUser()
+    }, [])
+
+    const checkUser = async () => {
+        const currentUser = await getCurrentUser()
+        if (!currentUser) {
+            router.push('/login')
+        } else {
+            setUser(currentUser)
+            loadData()
+        }
+    }
+
+    const loadData = async () => {
+        try {
+            const trendsData = await api.getTrends()
+            setTrends(trendsData)
+        } catch (error) {
+            console.error('Error loading analytics data:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const toggleMetric = (metric: string) => {
+        setSelectedMetrics(prev => {
+            if (prev.includes(metric)) {
+                // Don't allow deselecting the last metric
+                if (prev.length === 1) return prev
+                return prev.filter(m => m !== metric)
+            } else {
+                // Limit to 3 metrics for readability
+                if (prev.length >= 3) return prev
+                return [...prev, metric]
+            }
+        })
+    }
+
+    // Transform and Filter Data
+    const filteredData = useMemo(() => {
+        if (!trends || !trends.series) return []
+
+        // Merge all series into a single array of objects by date
+        // Assuming all series have the same dates for simplicity, or we map by date key
+        const dateMap: Record<string, any> = {}
+
+        // Helper to merge series
+        const mergeSeries = (key: string, data: any[]) => {
+            if (!data) return
+            data.forEach(point => {
+                if (!dateMap[point.date]) {
+                    dateMap[point.date] = { date: point.date }
+                }
+                dateMap[point.date][key] = point.value
+            })
+        }
+
+        AVAILABLE_METRICS.forEach(metric => {
+            // @ts-ignore - dynamic access to series
+            mergeSeries(metric, trends.series[metric])
+        })
+
+        const mergedData = Object.values(dateMap).sort((a, b) =>
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+        )
+        return filterDataByRange(mergedData, dateRange)
+    }, [trends, dateRange])
+
+    if (loading) {
+        return (
+            <AppLayout>
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="w-14 h-14 border-4 border-neon-primary/15 border-t-neon-primary rounded-full animate-spin" />
+                </div>
+            </AppLayout>
+        )
+    }
+
+    return (
+        <AppLayout user={user}>
+            <TranscendentalBackground />
+
+            <div className="relative z-10 container mx-auto px-4 py-8 pt-24 space-y-8">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">Advanced Analytics</h1>
+                        <p className="text-gray-600 dark:text-white/60">Deep dive into your biometric trends and correlations.</p>
+                    </div>
+                </div>
+
+                <AnalyticsControls
+                    dateRange={dateRange}
+                    setDateRange={setDateRange}
+                    selectedMetrics={selectedMetrics}
+                    toggleMetric={toggleMetric}
+                    availableMetrics={AVAILABLE_METRICS}
+                    setMetrics={setSelectedMetrics}
+                />
+
+                {filteredData.length > 0 ? (
+                    <div className="space-y-8">
+                        {/* Comparative Stats */}
+                        <ComparativeStats
+                            data={filteredData}
+                            metrics={selectedMetrics}
+                            period={comparisonPeriod}
+                        />
+
+                        {/* Main Chart */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <AdvancedChart data={filteredData} selectedMetrics={selectedMetrics} />
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Correlation */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.1 }}
+                            >
+                                <CorrelationScatterPlot data={filteredData} metrics={selectedMetrics} />
+                            </motion.div>
+
+                            {/* Distribution */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.2 }}
+                            >
+                                <DistributionHistogram data={filteredData} metrics={selectedMetrics} />
+                            </motion.div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-20">
+                        <p className="text-gray-500 dark:text-white/50">No data available for the selected range.</p>
+                    </div>
+                )}
+            </div>
+        </AppLayout>
+    )
+}

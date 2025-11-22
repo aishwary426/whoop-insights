@@ -1,0 +1,30 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+
+sqlalchemy>=2.0.36
+# sqlite requires no driver
+alembic==1.13.0
+
+redis==5.0.1
+rq==1.15.1
+
+pandas>=2.2.0
+numpy>=1.26.0
+
+scikit-learn>=1.4.0
+xgboost==2.0.3
+statsmodels==0.14.1
+
+python-dotenv==1.0.0
+pytz==2023.3
+zipfile36==0.1.3
+
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Serverless deployment
+mangum==0.17.0

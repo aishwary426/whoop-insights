@@ -1,0 +1,26 @@
+# Python
+venv/
+env/
+*.pyc
+__pycache__/
+*.egg-info/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Next.js
+.next/
+out/
+build/
+
+# Vercel
+.vercel/
+
+# Environment
+.env.local
+.env*.local
+
+# macOS
+.DS_Store
+.vercel
