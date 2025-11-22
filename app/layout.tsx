@@ -5,7 +5,7 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Whoop Insights Pro - AI-Powered Fitness Analysis',
+  title: 'Data insights - AI-Powered Fitness Analysis',
   description: 'Unlock hidden patterns in your Whoop data with personalized AI insights',
 }
 

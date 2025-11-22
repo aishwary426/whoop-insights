@@ -1,6 +1,6 @@
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║      🎯 WHOOP INSIGHTS PRO - QUICK START GUIDE              ║
+║      🎯 DATA INSIGHTS - QUICK START GUIDE              ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 
@@ -70,7 +70,7 @@ app/signup/page.js         ← Signup form
 app/login/page.js          ← Login form
 app/upload/page.js         ← File upload
 
-lib/supabase.js            ← Auth functions
+lib/supabase.ts            ← Auth functions
 
 💻 COMMANDS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

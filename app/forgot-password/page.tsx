@@ -5,7 +5,7 @@ import Link from 'next/link'
 import AuthCard from '../../components/auth/AuthCard'
 import NeonButton from '../../components/ui/NeonButton'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
-import { supabase } from '../../lib/supabase'
+import { resetPassword } from '../../lib/supabase'
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('')
@@ -20,15 +20,11 @@ export default function ForgotPasswordPage() {
         setMessage('')
 
         try {
-            // Use NEXT_PUBLIC_SITE_URL if set (for production), otherwise use current origin
-            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${siteUrl}/reset-password`,
-            })
+            const { error } = await resetPassword(email)
             if (error) throw error
             setMessage('Check your email for the password reset link')
         } catch (error: any) {
-            setError(error.message)
+            setError(error.message || 'Failed to send reset email. Please try again.')
         } finally {
             setLoading(false)
         }

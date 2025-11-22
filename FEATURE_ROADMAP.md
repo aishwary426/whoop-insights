@@ -1,4 +1,4 @@
-# 🚀 Feature Roadmap - Whoop Insights Pro
+# 🚀 Feature Roadmap - Data insights
 
 Comprehensive list of potential features organized by category and priority.
 

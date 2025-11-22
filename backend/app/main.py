@@ -33,7 +33,7 @@ except Exception as e:
     settings = Settings()
 
 app = FastAPI(
-    title="Whoop Insights Pro API",
+    title="Data insights API",
     description="AI-powered fitness analytics for WHOOP athletes",
     version="1.0.0",
     debug=settings.debug
@@ -43,7 +43,7 @@ app = FastAPI(
 async def startup_event():
     """Log critical startup information for debugging."""
     logger.info("=" * 60)
-    logger.info("WHOOP Insights API Starting Up")
+    logger.info("Data insights API Starting Up")
     logger.info("=" * 60)
     logger.info(f"Database URL: {settings.database_url[:30]}...")
     logger.info(f"Upload Directory: {settings.upload_dir}")

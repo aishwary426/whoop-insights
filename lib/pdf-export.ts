@@ -37,7 +37,7 @@ export async function exportChartsToPDF() {
 
     // Add title page
     pdf.setFontSize(20)
-    pdf.text('WHOOP Insights Dashboard Report', pageWidth / 2, currentY, { align: 'center' })
+    pdf.text('Data insights Dashboard Report', pageWidth / 2, currentY, { align: 'center' })
     currentY += 10
     
     pdf.setFontSize(12)

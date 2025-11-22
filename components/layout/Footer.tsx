@@ -19,7 +19,7 @@ export default function Footer() {
                                 <Target className="w-5 h-5 text-blue-600 dark:text-neon-primary" />
                             </div>
                             <span className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-neon-primary transition-colors duration-300">
-                                Whoop Insights Pro
+                                Data insights
                             </span>
                         </div>
                         <p className="text-sm text-gray-500 dark:text-white/40 max-w-xs text-center md:text-left">
@@ -41,7 +41,7 @@ export default function Footer() {
 
                 {/* Bottom Bar */}
                 <div className="mt-12 pt-8 border-t border-gray-200 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600 dark:text-white/20">
-                    <p>© {new Date().getFullYear()} Whoop Insights Pro. Not affiliated with WHOOP Inc.</p>
+                    <p>© {new Date().getFullYear()} Data insights. Not affiliated with WHOOP Inc.</p>
                     <div className="flex gap-6">
                         <Link href="/privacy" className="hover:text-blue-600 dark:hover:text-neon-primary cursor-pointer transition-colors">Privacy Policy</Link>
                         <Link href="/terms" className="hover:text-blue-600 dark:hover:text-neon-primary cursor-pointer transition-colors">Terms of Service</Link>

@@ -26,7 +26,7 @@ export default function PrivacyPage() {
                             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Local-First Intelligence</h2>
                         </div>
                         <p className="text-lg text-gray-800 dark:text-white/80 leading-relaxed">
-                            Whoop Insights Pro is built on a <strong>local-first architecture</strong>. When you upload your WHOOP export, the data is processed, analyzed, and stored entirely within your own local environment (your browser and your local machine running the backend).
+                            Data insights is built on a <strong>local-first architecture</strong>. When you upload your WHOOP export, the data is processed, analyzed, and stored entirely within your own local environment (your browser and your local machine running the backend).
                         </p>
                         <p className="text-lg text-gray-800 dark:text-white/80 leading-relaxed">
                             We do <strong>not</strong> upload your physiological data to any external cloud servers for storage or training. The machine learning models run locally on your hardware.

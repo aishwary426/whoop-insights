@@ -17,6 +17,9 @@ interface AppLayoutProps {
   user?: {
     name?: string
     email?: string
+    user_metadata?: {
+      name?: string
+    }
   }
 }
 
@@ -71,11 +74,11 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
             {/* Left Side: Logo + Navigation */}
             <div className="flex items-center gap-4 md:gap-12">
               {/* Logo */}
-              <Link href="/dashboard" className="flex items-center gap-2 md:gap-3 group" aria-label="Whoop Insights Pro dashboard">
+              <Link href="/dashboard" className="flex items-center gap-2 md:gap-3 group" aria-label="Data insights dashboard">
                 <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-600/10 dark:bg-neon/10 flex items-center justify-center group-hover:bg-blue-600/20 dark:group-hover:bg-neon/20 transition-colors">
                   <Target className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 dark:text-neon-primary" />
                 </div>
-                <span className="text-xs md:text-sm font-medium tracking-wide text-gray-900 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors hidden sm:inline">Whoop Insights Pro</span>
+                <span className="text-xs md:text-sm font-medium tracking-wide text-gray-900 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors hidden sm:inline">Data insights</span>
               </Link>
 
               {/* Desktop Navigation */}
@@ -116,7 +119,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                     className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center font-medium text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors uppercase"
                     aria-label="User menu"
                   >
-                    {user.name?.split(' ')[0]?.charAt(0).toUpperCase() || 'U'}
+                    {(user.user_metadata?.name || user.name)?.split(' ')[0]?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
                   </button>
 
                   {showUserMenu && (
@@ -126,7 +129,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                       className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#111] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden p-1"
                     >
                       <div className="px-3 py-2 border-b border-gray-100 dark:border-white/5 mb-1">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.user_metadata?.name || user.name || 'User'}</p>
                         <p className="text-xs text-gray-600 dark:text-white/40 truncate">{user.email}</p>
                       </div>
                       <button

@@ -17,15 +17,25 @@ function LoginForm() {
     password: '',
   })
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
-  // Check for OAuth callback errors in URL
+  // Check for OAuth callback errors and success messages in URL
   useEffect(() => {
     const errorParam = searchParams.get('error')
+    const messageParam = searchParams.get('message')
+    
     if (errorParam) {
       setError(decodeURIComponent(errorParam))
       // Clean up URL by removing error parameter
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+    
+    if (messageParam) {
+      setMessage(decodeURIComponent(messageParam))
+      // Clean up URL by removing message parameter
       const newUrl = window.location.pathname
       window.history.replaceState({}, '', newUrl)
     }
@@ -116,6 +126,12 @@ function LoginForm() {
                 Forgot password?
               </Link>
             </div>
+
+            {message && (
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 text-sm">
+                {message}
+              </div>
+            )}
 
             {error && (
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm">
