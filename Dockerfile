@@ -45,17 +45,20 @@ COPY --from=frontend-builder /app/frontend/.next/static ./.next/static
 COPY --from=frontend-builder /app/frontend/public ./public
 
 # Environment variables
-ENV PORT=3000
 ENV HOST=0.0.0.0
 ENV API_URL=http://localhost:8000
 ENV PYTHONPATH=/app/backend
+# PORT will be provided by Railway at runtime
 
 # Install a process manager to run both
 RUN pip install supervisor
 
-# Create supervisor config
-RUN echo "[supervisord]\nnodaemon=true\nlogfile=/dev/null\npidfile=/tmp/supervisord.pid\n\n[program:backend]\ncommand=uvicorn app.main:app --host 0.0.0.0 --port 8000\nstdout_logfile=/dev/stdout\nstdout_logfile_maxbytes=0\nstderr_logfile=/dev/stderr\nstderr_logfile_maxbytes=0\n\n[program:frontend]\ncommand=node server.js\nstdout_logfile=/dev/stdout\nstdout_logfile_maxbytes=0\nstderr_logfile=/dev/stderr\nstderr_logfile_maxbytes=0\n" > supervisord.conf
+# Copy startup script
+COPY start-railway.sh /app/start-railway.sh
+RUN chmod +x /app/start-railway.sh
 
+# Expose port (Railway will provide PORT env var, default to 3000)
 EXPOSE 3000
 
-CMD ["supervisord", "-c", "supervisord.conf"]
+# Use startup script that handles PORT at runtime
+CMD ["/app/start-railway.sh"]
