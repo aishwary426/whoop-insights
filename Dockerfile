@@ -8,8 +8,17 @@ RUN npm ci
 
 # Copy source and build
 COPY . .
-# Set env vars for build if needed
-ENV NEXT_PUBLIC_API_URL=/api
+
+# Build arguments for Supabase (passed from Render environment)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_API_URL=/api
+
+# Set as environment variables for the build
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN npm run build
 
 # Stage 2: Build Backend & Final Image
