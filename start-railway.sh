@@ -47,6 +47,7 @@ nodaemon=true
 logfile=/dev/stdout
 logfile_maxbytes=0
 pidfile=/tmp/supervisord.pid
+user=root
 
 [program:backend]
 command=uvicorn app.main:app --host 0.0.0.0 --port 8000
