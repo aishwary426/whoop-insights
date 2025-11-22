@@ -32,6 +32,7 @@ from sqlalchemy import func
 from app.ml.models.sleep_optimizer import train_sleep_optimizer
 from app.ml.models.workout_timing_optimizer import train_workout_timing_optimizer
 from app.ml.models.strain_tolerance_model import train_strain_tolerance_model
+from app.ml.models.recovery_velocity import train_recovery_velocity_model
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,7 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     sleep_opt_path = version_dir / "sleep_optimizer.joblib"
     workout_timing_path = version_dir / "workout_timing_optimizer.joblib"
     strain_tolerance_path = version_dir / "strain_tolerance_model.joblib"
+    recovery_velocity_path = version_dir / "recovery_velocity_model.joblib"
 
     # Save RandomForest models
     joblib.dump(rf_reg_model, rec_path)
@@ -235,6 +237,23 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     except Exception as e:
         logger.warning(f"Failed to train strain tolerance model: {e}", exc_info=True)
     
+    # 4. Recovery Velocity Model - predicts days to recover from low recovery
+    try:
+        velocity_result = train_recovery_velocity_model(db, user_id)
+        if velocity_result and velocity_result.get('model'):
+            # Save both model and scaler with metadata
+            joblib.dump({
+                'model': velocity_result['model'],
+                'scaler': velocity_result['scaler'],
+                'mae': velocity_result.get('mae'),
+                'r2': velocity_result.get('r2'),
+                'sample_size': velocity_result.get('sample_size')
+            }, recovery_velocity_path)
+            personalization_models.append("recovery_velocity")
+            logger.info(f"Recovery velocity model trained and saved for user {user_id}")
+    except Exception as e:
+        logger.warning(f"Failed to train recovery velocity model: {e}", exc_info=True)
+    
     # Lightweight clustering to personalize patterns (per user only)
     cluster_model = None
     if len(df) >= 6:
@@ -269,6 +288,7 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
         "sleep_optimizer_path": str(sleep_opt_path) if "sleep_optimizer" in personalization_models else None,
         "workout_timing_path": str(workout_timing_path) if "workout_timing_optimizer" in personalization_models else None,
         "strain_tolerance_path": str(strain_tolerance_path) if "strain_tolerance" in personalization_models else None,
+        "recovery_velocity_path": str(recovery_velocity_path) if "recovery_velocity" in personalization_models else None,
     }
     
     if XGBOOST_AVAILABLE:

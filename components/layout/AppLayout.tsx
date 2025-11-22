@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
-import { motion, useScroll, useTransform } from 'framer-motion'
-import { Target, LogOut, Settings } from 'lucide-react'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { Target, LogOut, Settings, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { signOut } from '../../lib/supabase'
 import NeonButton from '../ui/NeonButton'
@@ -26,6 +26,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
   const { scrollY } = useScroll()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Optimize scroll animations using transforms instead of state to prevent re-renders
   const navBackgroundOpacity = useTransform(scrollY, [0, 20], [0, 0.8])
@@ -64,16 +65,16 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
         />
 
         {/* Content Layer */}
-        <div className="relative w-full px-6 md:px-8">
+        <div className="relative w-full px-4 md:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             {/* Left Side: Logo + Navigation */}
-            <div className="flex items-center gap-12">
+            <div className="flex items-center gap-4 md:gap-12">
               {/* Logo */}
-              <Link href="/" className="flex items-center gap-3 group" aria-label="Whoop Insights Pro home">
-                <div className="w-8 h-8 rounded-full bg-neon/10 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
-                  <Target className="w-4 h-4 text-neon-primary" />
+              <Link href="/" className="flex items-center gap-2 md:gap-3 group" aria-label="Whoop Insights Pro home">
+                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-neon/10 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
+                  <Target className="w-3.5 h-3.5 md:w-4 md:h-4 text-neon-primary" />
                 </div>
-                <span className="text-sm font-medium tracking-wide text-gray-900 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Whoop Insights Pro</span>
+                <span className="text-xs md:text-sm font-medium tracking-wide text-gray-900 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors hidden sm:inline">Whoop Insights Pro</span>
               </Link>
 
               {/* Desktop Navigation */}
@@ -94,14 +95,24 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
               </div>
             </div>
 
-            {/* Right side: Theme Toggle + User Menu */}
-            <div className="flex items-center gap-4">
+            {/* Right side: Mobile Menu Button + Theme Toggle + User Menu */}
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Mobile Menu Button */}
+              {user && (
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="md:hidden w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                  aria-label="Menu"
+                >
+                  {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              )}
               <ThemeToggle />
               {user ? (
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center font-medium text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                    className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center font-medium text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
                     aria-label="User menu"
                   >
                     {user.name?.charAt(0) || 'U'}
@@ -151,7 +162,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                 </div>
               ) : (
                 <Link href="/signup">
-                  <NeonButton className="text-sm px-5 py-2.5" variant="primary">
+                  <NeonButton className="text-xs md:text-sm px-3 md:px-5 py-2 md:py-2.5" variant="primary">
                     Get Started
                   </NeonButton>
                 </Link>
@@ -159,6 +170,36 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && user && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden overflow-hidden border-t border-gray-200 dark:border-white/10 bg-white dark:bg-bgDark backdrop-blur-xl"
+            >
+              <div className="px-6 py-4 space-y-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                      pathname === item.href
+                        ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10'
+                        : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.nav>
 
       {/* Main Content */}

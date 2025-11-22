@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import AuthCard from '../../components/auth/AuthCard'
 import NeonButton from '../../components/ui/NeonButton'
+import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { supabase } from '../../lib/supabase'
 
 export default function ForgotPasswordPage() {
@@ -34,10 +35,13 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <AuthCard
-            title="Reset Password"
-            subtitle="Enter your email to receive a reset link"
-        >
+        <div className="relative min-h-screen overflow-hidden bg-bgDark">
+            <TranscendentalBackground />
+            <div className="relative z-10">
+                <AuthCard
+                    title="Reset Password"
+                    subtitle="Enter your email to receive a reset link"
+                >
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium mb-2 text-white/80">Email</label>
@@ -80,5 +84,7 @@ export default function ForgotPasswordPage() {
                 </Link>
             </p>
         </AuthCard>
+            </div>
+        </div>
     )
 }

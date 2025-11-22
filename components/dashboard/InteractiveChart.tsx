@@ -1,9 +1,24 @@
 'use client'
 
-import { useState, memo, useMemo } from 'react'
+import { useState, memo, useMemo, useEffect } from 'react'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import NeonCard from '../ui/NeonCard'
 import { useTheme } from 'next-themes'
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+  
+  return isMobile
+}
 
 interface InteractiveChartProps {
   title: string
@@ -26,6 +41,7 @@ function InteractiveChart({
 }: InteractiveChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const { theme } = useTheme()
+  const isMobile = useIsMobile()
 
   const chartData = useMemo(() => 
     data.map((item, idx) => ({
@@ -54,12 +70,12 @@ function InteractiveChart({
   const dotFill = theme === 'dark' ? '#0A0A0A' : '#ffffff'
 
   return (
-    <NeonCard className={`p-6 border-gray-200 dark:border-white/10 flex flex-col ${className || ''}`}>
-      <div className="mb-4 shrink-0">
-        <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-white/50">{title}</p>
-        {subtitle && <p className="text-sm text-gray-600 dark:text-white/60 mt-1">{subtitle}</p>}
+    <NeonCard className={`p-4 md:p-6 border-gray-200 dark:border-white/10 flex flex-col ${className || ''}`}>
+      <div className="mb-3 md:mb-4 shrink-0">
+        <p className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-white/50">{title}</p>
+        {subtitle && <p className="text-xs md:text-sm text-gray-600 dark:text-white/60 mt-1">{subtitle}</p>}
       </div>
-      <div className="relative flex-1 min-h-[160px]" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
+      <div className="relative flex-1 min-h-[140px] md:min-h-[160px]" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
@@ -81,8 +97,11 @@ function InteractiveChart({
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: tickColor, fontSize: 11 }}
-              interval={0}
+              tick={{ fill: tickColor, fontSize: isMobile ? 9 : 11 }}
+              interval={isMobile ? Math.ceil(data.length / 4) : 0}
+              angle={isMobile ? -45 : 0}
+              textAnchor={isMobile ? 'end' : 'middle'}
+              height={isMobile ? 60 : 30}
             />
             <YAxis
               axisLine={false}
@@ -105,7 +124,7 @@ function InteractiveChart({
                     cx={cx}
                     cy={cy}
                     r={isHovered ? 6 : 4}
-                    fill={dotFill}
+                    fill={isMobile ? 'transparent' : dotFill}
                     stroke={color}
                     strokeWidth={isHovered ? 3 : 2}
                     className="transition-all duration-200"
@@ -113,7 +132,7 @@ function InteractiveChart({
                   />
                 )
               }}
-              activeDot={{ r: 6, fill: dotFill, stroke: color, strokeWidth: 3 }}
+              activeDot={{ r: 6, fill: isMobile ? 'transparent' : dotFill, stroke: color, strokeWidth: 3 }}
             />
           </AreaChart>
         </ResponsiveContainer>

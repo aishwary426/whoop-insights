@@ -7,7 +7,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
 import { signUp, signInWithGoogle } from '../../lib/supabase'
 import NeonButton from '../../components/ui/NeonButton'
-import ParticleBackground from '../../components/ui/ParticleBackground'
+import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -71,7 +71,7 @@ export default function SignupPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-bgDark">
-      <ParticleBackground accentColor="#00FF8F" variant="swirl" />
+      <TranscendentalBackground />
       <div className="relative z-10">
         <AuthCard
           title="Create your account"

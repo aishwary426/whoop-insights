@@ -49,6 +49,7 @@ def load_latest_models(user_id: str) -> dict:
     sleep_opt_path = version_dir / "sleep_optimizer.joblib"
     workout_timing_path = version_dir / "workout_timing_optimizer.joblib"
     strain_tolerance_path = version_dir / "strain_tolerance_model.joblib"
+    recovery_velocity_path = version_dir / "recovery_velocity_model.joblib"
 
     # Load RandomForest models (baseline)
     if rec_path.exists():
@@ -72,5 +73,7 @@ def load_latest_models(user_id: str) -> dict:
         models["workout_timing"] = joblib.load(workout_timing_path)
     if strain_tolerance_path.exists():
         models["strain_tolerance"] = joblib.load(strain_tolerance_path)
+    if recovery_velocity_path.exists():
+        models["recovery_velocity"] = joblib.load(recovery_velocity_path)
 
     return models

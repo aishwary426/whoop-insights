@@ -3,14 +3,13 @@
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import NeonButton from '../ui/NeonButton'
-import ParticleBackground from '../ui/ParticleBackground'
+import TranscendentalBackground from '../ui/TranscendentalBackground'
 
 export default function HeroSection() {
     return (
         <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6">
             {/* Background */}
-            <div className="absolute inset-0 bg-white dark:bg-bgDark -z-10" />
-            <ParticleBackground particleCount={1875} accentColor="#00FF8F" />
+            <TranscendentalBackground />
 
             {/* Content */}
             <div className="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center gap-8 md:gap-10">

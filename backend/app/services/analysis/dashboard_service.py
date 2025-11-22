@@ -27,6 +27,7 @@ from app.ml.models.model_loader import load_latest_models
 from app.ml.models.sleep_optimizer import predict_optimal_bedtime
 from app.ml.models.workout_timing_optimizer import predict_optimal_workout_time
 from app.ml.models.strain_tolerance_model import predict_burnout_risk
+from app.ml.models.recovery_velocity import predict_recovery_days
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -551,6 +552,84 @@ def get_personalization_insights(db: Session, user_id: str) -> List[InsightItem]
             ))
     except Exception as e:
         logger.debug(f"Could not generate strain tolerance insight: {e}")
+    
+    # 4. Recovery velocity insight (always show if model is available, with contextual message)
+    try:
+        if dm.recovery_score is not None:
+            current_recovery = dm.recovery_score
+            if current_recovery < 67:
+                # Recovery is low - show prediction
+                velocity_pred = predict_recovery_days(
+                    db, user_id,
+                    current_recovery,
+                    dm.strain_score or 0,
+                    dm.sleep_hours or 7.5,
+                    dm.hrv or 50,
+                    dm.acute_chronic_ratio or 1.0
+                )
+                if velocity_pred and velocity_pred.get('days_to_recover'):
+                    insights.append(InsightItem(
+                        insight_type="recovery_velocity",
+                        title="Recovery Velocity Prediction",
+                        description=velocity_pred.get('message', ''),
+                        confidence=velocity_pred.get('confidence', 0.7),
+                        data={
+                            'days_to_recover': velocity_pred.get('days_to_recover'),
+                            'current_recovery': velocity_pred.get('current_recovery'),
+                            'strain_score': velocity_pred.get('strain_score'),
+                            'examples': velocity_pred.get('examples', []),
+                            'model_metadata': velocity_pred.get('model_metadata', {}),
+                            'show_always': True,
+                        }
+                    ))
+            else:
+                # Recovery is high - still show the card with historical context
+                # Try to get historical examples for context
+                from app.ml.models.recovery_velocity import get_historical_recovery_episodes
+                historical_examples = get_historical_recovery_episodes(
+                    db, user_id, current_recovery, dm.strain_score or 0
+                )
+                
+                # Check if model exists to show metadata
+                from app.ml.models.model_loader import load_latest_models
+                models = load_latest_models(user_id)
+                velocity_model_data = models.get("recovery_velocity")
+                
+                model_metadata = {}
+                if velocity_model_data and isinstance(velocity_model_data, dict):
+                    model_metadata = {
+                        'method': 'ML Model (Linear Regression)',
+                        'features': [
+                            'Current Recovery Score',
+                            'Strain Score',
+                            'Sleep Hours',
+                            'HRV (Heart Rate Variability)',
+                            'Acute/Chronic Load Ratio',
+                            'HRV Trend (3-day change)'
+                        ],
+                        'r2_score': velocity_model_data.get('r2'),
+                        'mae': velocity_model_data.get('mae'),
+                        'sample_size': velocity_model_data.get('sample_size'),
+                    }
+                
+                # Show card with message that recovery is good
+                insights.append(InsightItem(
+                    insight_type="recovery_velocity",
+                    title="Recovery Velocity Prediction",
+                    description=f"You're in good recovery ({current_recovery:.0f}%). This model predicts how fast you recover from low recovery states.",
+                    confidence=1.0,
+                    data={
+                        'days_to_recover': None,
+                        'current_recovery': current_recovery,
+                        'strain_score': dm.strain_score or 0,
+                        'examples': historical_examples[:5],  # Show up to 5 examples
+                        'model_metadata': model_metadata,
+                        'show_always': True,
+                        'recovery_high': True,
+                    }
+                ))
+    except Exception as e:
+        logger.debug(f"Could not generate recovery velocity insight: {e}")
     
     return insights
 

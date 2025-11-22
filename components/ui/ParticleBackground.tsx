@@ -11,6 +11,7 @@ interface ParticleBackgroundProps {
 import { useTheme } from 'next-themes'
 
 export default function ParticleBackground({
+    particleCount = 1200,
     accentColor = '#00FF8F',
     variant = 'magnetic',
 }: ParticleBackgroundProps) {
@@ -31,7 +32,7 @@ export default function ParticleBackground({
         let animationFrameId: number
 
         // Configuration
-        const PARTICLE_COUNT = 1200
+        const PARTICLE_COUNT = particleCount
         const FOCAL_LENGTH = 800
         const DEPTH = 2000
         const BASE_SIZE = 1.5
@@ -200,8 +201,9 @@ export default function ParticleBackground({
         }
 
         // Smooth damping for mouse and scroll
+        // Start with rotation already active for immediate movement
         let currentRotX = 0
-        let currentRotY = 0
+        let currentRotY = Math.PI * 0.1 // Start with initial rotation for immediate movement
         let currentScroll = 0
 
         const animate = () => {
@@ -209,12 +211,14 @@ export default function ParticleBackground({
             ctx.clearRect(0, 0, width, height)
 
             // Smooth Interpolation
-            // Mouse -> Rotation
-            const targetRotY = (mouseRef.current.targetX / width - 0.5) * 0.2
+            // Mouse -> Rotation (additive on top of continuous rotation)
+            const mouseRotY = (mouseRef.current.targetX / width - 0.5) * 0.2
             const targetRotX = (mouseRef.current.targetY / height - 0.5) * 0.2
 
             currentRotX += (targetRotX - currentRotX) * 0.05
-            currentRotY += (targetRotY - currentRotY) * 0.05
+            // Add mouse interaction to base rotation, allowing smooth interpolation
+            const baseRotY = Math.PI * 0.1 // Base rotation offset
+            currentRotY += (baseRotY + mouseRotY - currentRotY) * 0.05
 
             // Scroll -> Z movement
             currentScroll += (scrollRef.current.targetY - currentScroll) * 0.05
@@ -232,8 +236,8 @@ export default function ParticleBackground({
             const scrollHueShift = (currentScroll * 0.1) % 360
             const baseHue = 160 + scrollHueShift
 
-            // Auto-rotation (idle)
-            const time = Date.now() * 0.0001
+            // Auto-rotation (idle) - enhanced speed for visible rotation from start
+            const time = Date.now() * 0.00015 // Slightly faster rotation
             const autoRotY = currentRotY + time
 
             // Pre-calc auto rotation if needed, but here we mix mouse and auto
@@ -241,7 +245,7 @@ export default function ParticleBackground({
             const finalCosY = Math.cos(autoRotY)
             const finalSinY = Math.sin(autoRotY)
 
-            const isLightMode = theme === 'light'
+            const isLightMode = theme === 'light' || theme === undefined
 
             particles.forEach(p => {
                 // Pass pre-calculated values
@@ -304,12 +308,12 @@ export default function ParticleBackground({
             window.removeEventListener('scroll', handleScroll)
             cancelAnimationFrame(animationFrameId)
         }
-    }, [accentColor, theme])
+    }, [particleCount, accentColor, variant, theme])
 
     return (
         <canvas
             ref={canvasRef}
-            className="fixed inset-0 z-0 pointer-events-none"
+            className="absolute inset-0 w-full h-full pointer-events-none"
         />
     )
 }

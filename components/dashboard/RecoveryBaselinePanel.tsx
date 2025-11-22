@@ -80,22 +80,22 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
   }, [processedData])
 
   return (
-    <NeonCard className="relative overflow-hidden p-6 md:p-8 border-gray-200 dark:border-white/5 bg-gradient-to-br from-white via-gray-50 to-white dark:from-[#050505]/95 dark:via-[#0b0b0b]/90 dark:to-[#050505]/95 h-full flex flex-col">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between mb-8">
+    <NeonCard className="relative overflow-hidden p-4 md:p-6 lg:p-8 border-gray-200 dark:border-white/5 bg-gradient-to-br from-white via-gray-50 to-white dark:from-[#050505]/95 dark:via-[#0b0b0b]/90 dark:to-[#050505]/95 h-full flex flex-col">
+      <div className="flex flex-col gap-4 md:gap-5 lg:flex-row lg:items-center lg:justify-between mb-6 md:mb-8">
         <div className="space-y-2 max-w-xl">
-          <p className="text-[11px] uppercase tracking-[0.45em] text-gray-400 dark:text-white/35">Recovery vs baseline</p>
+          <p className="text-[10px] md:text-[11px] uppercase tracking-[0.45em] text-gray-400 dark:text-white/35">Recovery vs baseline</p>
           <div className="flex items-center gap-2">
-            <h3 className="text-3xl font-semibold text-gray-900 dark:text-white">Adaptive baseline</h3>
-            <Sparkles className="w-4 h-4 text-neon-primary" />
+            <h3 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white">Adaptive baseline</h3>
+            <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4 text-neon-primary" />
           </div>
-          <p className="text-sm text-gray-600 dark:text-white/60">We pin the last seven days in place so you can compare at a glance—no moving targets.</p>
+          <p className="text-xs md:text-sm text-gray-600 dark:text-white/60">We pin the last seven days in place so you can compare at a glance—no moving targets.</p>
         </div>
-        <div className="text-right">
-          <div className="flex items-center justify-end gap-2 mb-1">
+        <div className="text-left md:text-right">
+          <div className="flex items-center gap-2 mb-1 md:justify-end">
             <Clock className="w-3 h-3 text-gray-400 dark:text-white/40" />
-            <p className="text-[11px] uppercase tracking-[0.45em] text-gray-400 dark:text-white/35">Timeline</p>
+            <p className="text-[10px] md:text-[11px] uppercase tracking-[0.45em] text-gray-400 dark:text-white/35">Timeline</p>
           </div>
-          <div className="flex items-center justify-end gap-4">
+          <div className="flex items-center gap-3 md:gap-4 md:justify-end">
             <input
               type="range"
               min="0"
@@ -103,25 +103,25 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
               step="1"
               value={WINDOW_OPTIONS.indexOf(timeWindow)}
               onChange={(e) => setTimeWindow(WINDOW_OPTIONS[parseInt(e.target.value)])}
-              className="w-24 h-1 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer relative z-20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neon-primary [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,255,143,0.5)]"
+              className="flex-1 md:w-24 h-1 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer relative z-20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 md:[&::-webkit-slider-thumb]:w-4 md:[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-neon-primary [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,255,143,0.5)]"
             />
-            <p className="text-4xl font-semibold text-neon-primary w-[3ch] text-center">{windowSize}d</p>
+            <p className="text-3xl md:text-4xl font-semibold text-neon-primary w-[3ch] text-center">{windowSize}d</p>
           </div>
-          <p className="text-xs text-gray-600 dark:text-white/60 mt-1">Updated automatically when new recovery data arrives.</p>
+          <p className="text-[10px] md:text-xs text-gray-600 dark:text-white/60 mt-1">Updated automatically when new recovery data arrives.</p>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] items-stretch flex-1">
-        <div className="relative rounded-[36px] border border-gray-200 dark:border-white/10 bg-gray-100/70 dark:bg-[rgba(5,5,5,0.7)] p-6 pt-8 md:p-8 md:pt-10 backdrop-blur-xl overflow-hidden flex flex-col">
+      <div className="grid gap-4 md:gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] items-stretch flex-1">
+        <div className="relative rounded-[24px] md:rounded-[36px] border border-gray-200 dark:border-white/10 bg-gray-100/70 dark:bg-[rgba(5,5,5,0.7)] p-4 pt-6 md:p-6 md:pt-8 lg:p-8 lg:pt-10 backdrop-blur-xl overflow-hidden flex flex-col">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-24 right-0 h-60 w-60 bg-neon-primary/5 blur-[120px]" />
             <div className="absolute bottom-0 left-4 h-48 w-48 bg-rose-400/5 blur-[120px]" />
           </div>
-          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.35em] relative z-10">
+          <div className="flex items-center justify-between text-[10px] md:text-[11px] uppercase tracking-[0.35em] relative z-10">
             <span className="text-gray-500 dark:text-white/45">Baseline {baseline}%</span>
-            <span className="text-neon-primary/80">{baselineWindowSize}-day window</span>
+            <span className="text-neon-primary/80 text-[9px] md:text-[11px]">{baselineWindowSize}-day window</span>
           </div>
-          <div className="relative mt-8 h-[200px] w-full flex-1 min-h-[200px]">
+          <div className="relative mt-4 md:mt-8 h-[180px] md:h-[200px] w-full flex-1 min-h-[180px] md:min-h-[200px]">
             {/* Baseline Line - z-30 to sit on top of bars */}
             <div className="absolute inset-x-0 z-30 pointer-events-none" style={{ bottom: `${baseline}%` }}>
               <div className="h-px w-full border-t border-dashed border-gray-400 dark:border-white/50 relative">
@@ -168,7 +168,7 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
                             filter: isHovered ? 'brightness(1.2)' : 'brightness(1)',
                           }}
                         />
-                        <span className={`text-[10px] tracking-widest ${isHovered ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/40'} -rotate-45 origin-top-left translate-y-6 whitespace-nowrap`}>
+                        <span className={`text-[8px] md:text-[10px] tracking-widest ${isHovered ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/40'} -rotate-45 origin-top-left translate-y-4 md:translate-y-6 whitespace-nowrap hidden sm:block`}>
                           {point.date}
                         </span>
                         <AnimatePresence>
@@ -205,34 +205,34 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 h-full">
-          <div className="rounded-[32px] border border-gray-200 dark:border-white/10 bg-gray-100/70 dark:bg-[rgba(5,5,5,0.7)] p-6 backdrop-blur-xl flex-1 flex flex-col justify-center">
-            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.35em] text-gray-400 dark:text-white/40">
+        <div className="flex flex-col gap-3 md:gap-4 h-full">
+          <div className="rounded-[24px] md:rounded-[32px] border border-gray-200 dark:border-white/10 bg-gray-100/70 dark:bg-[rgba(5,5,5,0.7)] p-4 md:p-6 backdrop-blur-xl flex-1 flex flex-col justify-center">
+            <div className="flex items-center justify-between text-[10px] md:text-[11px] uppercase tracking-[0.35em] text-gray-400 dark:text-white/40">
               <span>Current baseline</span>
-              <span>{baselineWindowSize}-day avg</span>
+              <span className="text-[9px] md:text-[11px]">{baselineWindowSize}-day avg</span>
             </div>
-            <div className="flex items-end justify-between mt-6">
-              <p className="text-5xl font-semibold tracking-tight text-gray-900 dark:text-white">{baseline}%</p>
+            <div className="flex items-end justify-between mt-4 md:mt-6">
+              <p className="text-4xl md:text-5xl font-semibold tracking-tight text-gray-900 dark:text-white">{baseline}%</p>
               <div className="text-right">
-                <p className="text-[11px] uppercase tracking-[0.35em] text-gray-400 dark:text-white/40">Variability</p>
-                <p className="text-lg font-medium text-gray-900 dark:text-white">{variability}% span</p>
+                <p className="text-[10px] md:text-[11px] uppercase tracking-[0.35em] text-gray-400 dark:text-white/40">Variability</p>
+                <p className="text-base md:text-lg font-medium text-gray-900 dark:text-white">{variability}% span</p>
               </div>
             </div>
-            <p className="mt-4 text-sm text-gray-500 dark:text-white/55">
+            <p className="mt-3 md:mt-4 text-xs md:text-sm text-gray-500 dark:text-white/55">
               A fixed seven-day view smooths noise but still reacts when your recovery trend shifts.
             </p>
           </div>
 
           {latest && (
-            <div className="relative overflow-hidden rounded-[32px] border border-gray-200 dark:border-white/10 bg-gray-100/80 dark:bg-[rgba(5,5,5,0.8)] p-6 backdrop-blur-xl flex-1 flex flex-col justify-center">
+            <div className="relative overflow-hidden rounded-[24px] md:rounded-[32px] border border-gray-200 dark:border-white/10 bg-gray-100/80 dark:bg-[rgba(5,5,5,0.8)] p-4 md:p-6 backdrop-blur-xl flex-1 flex flex-col justify-center">
               <div className="absolute inset-0 bg-gradient-to-br from-neon-primary/20 via-transparent to-transparent opacity-70" />
-              <div className="relative flex items-center justify-between gap-6">
+              <div className="relative flex items-center justify-between gap-4 md:gap-6">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.35em] text-gray-400 dark:text-white/40">Latest day</p>
-                  <p className={`text-4xl font-semibold mt-4 ${latest.aboveBaseline ? 'text-neon-primary' : 'text-rose-400'}`}>
+                  <p className="text-[10px] md:text-[11px] uppercase tracking-[0.35em] text-gray-400 dark:text-white/40">Latest day</p>
+                  <p className={`text-3xl md:text-4xl font-semibold mt-3 md:mt-4 ${latest.aboveBaseline ? 'text-neon-primary' : 'text-rose-400'}`}>
                     {latest.recovery}%
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-white/55 mt-2">Snaps to the same baseline logic.</p>
+                  <p className="text-[10px] md:text-xs text-gray-500 dark:text-white/55 mt-2">Snaps to the same baseline logic.</p>
                 </div>
                 <div className="flex flex-col items-end text-sm font-medium whitespace-nowrap">
                   {latest.aboveBaseline ? (

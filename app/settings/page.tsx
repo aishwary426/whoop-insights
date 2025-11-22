@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Settings, Bell, ShieldCheck } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import { getCurrentUser } from '../../lib/supabase'
-import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
+import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import NeonCard from '../../components/ui/NeonCard'
 
 export default function SettingsPage() {
@@ -26,7 +26,7 @@ export default function SettingsPage() {
 
   return (
     <AppLayout user={user}>
-      <ParallaxBackground />
+      <TranscendentalBackground />
       <div className="relative z-10 max-w-4xl mx-auto px-4 md:px-8 py-12 text-white">
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 mb-3">

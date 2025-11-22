@@ -7,7 +7,7 @@ import { Upload, X, FileText, ShieldCheck } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
-import { ParallaxBackground } from '../../components/ui/ParallaxBlob'
+import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { getCurrentUser } from '../../lib/supabase'
 import { api } from '../../lib/api'
 
@@ -132,7 +132,7 @@ export default function UploadPage() {
 
   return (
     <AppLayout user={user}>
-      <ParallaxBackground />
+      <TranscendentalBackground />
       <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-16 text-gray-900 dark:text-white">
         <div className="relative text-center space-y-3 mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon-primary/30 bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">

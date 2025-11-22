@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
 import { signIn, signInWithGoogle } from '../../lib/supabase'
 import NeonButton from '../../components/ui/NeonButton'
-import ParticleBackground from '../../components/ui/ParticleBackground'
+import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -67,7 +67,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-bgDark">
-      <ParticleBackground accentColor="#00FF8F" variant="swirl" />
+      <TranscendentalBackground />
       <div className="relative z-10">
         <AuthCard
           title="Welcome back"
@@ -166,5 +166,18 @@ export default function LoginPage() {
         </AuthCard>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="relative min-h-screen overflow-hidden bg-bgDark flex items-center justify-center">
+        <TranscendentalBackground />
+        <div className="relative z-10 text-white">Loading...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
