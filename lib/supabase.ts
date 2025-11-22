@@ -126,17 +126,66 @@ export const signIn = async (email: string, password: string) => {
 }
 
 export const signInWithGoogle = async () => {
-  // Use NEXT_PUBLIC_SITE_URL if set (for production), otherwise use current origin
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')
-  const redirectTo = `${siteUrl}/dashboard`
-  
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: redirectTo
+  try {
+    // Check if Supabase client is properly configured
+    if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
+      return {
+        data: null,
+        error: {
+          message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.',
+          name: 'ConfigurationError'
+        }
+      }
     }
-  })
-  return { data, error }
+
+    // Determine the redirect URL
+    // Priority: 1) NEXT_PUBLIC_SITE_URL (production), 2) Current window origin (development/production)
+    let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    
+    // If not set, use current origin (handles both client and server side)
+    if (!siteUrl && typeof window !== 'undefined') {
+      siteUrl = window.location.origin
+    }
+    
+    // Fallback for server-side rendering
+    if (!siteUrl) {
+      siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL 
+        ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+        : 'http://localhost:3000'
+    }
+    
+    // Ensure we have a valid URL
+    if (!siteUrl || siteUrl === 'undefined') {
+      siteUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    }
+    
+    // Construct the callback URL that Supabase will redirect to after OAuth
+    const redirectTo = `${siteUrl}/auth/callback`
+    
+    console.log('Google OAuth redirect URL:', redirectTo)
+    
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      }
+    })
+    
+    return { data, error }
+  } catch (err: any) {
+    console.error('Google OAuth error:', err)
+    return {
+      data: null,
+      error: {
+        message: err.message || 'Failed to initiate Google sign-in. Please try again.',
+        name: err.name || 'OAuthError'
+      }
+    }
+  }
 }
 
 export const signOut = async () => {

@@ -5,7 +5,7 @@ Learns individual strain thresholds (when strain becomes harmful) for each user.
 from __future__ import annotations
 
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 import pandas as pd
 import numpy as np
 from sqlalchemy.orm import Session
@@ -25,9 +25,74 @@ except ImportError:
 
 from app.models.database import DailyMetrics
 from app.core_config import get_settings
+from app.ml.models.model_loader import load_latest_models
+from datetime import date, timedelta
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+def _get_strain_threshold_examples(db: Session, user_id: str, threshold: float, max_examples: int = 5) -> List[Dict]:
+    """
+    Get historical examples showing why the strain threshold is optimal.
+    
+    Returns examples of:
+    - Days where strain was below threshold and recovery was good
+    - Days where strain exceeded threshold and recovery dropped
+    """
+    examples = []
+    
+    # Get historical data
+    rows = (
+        db.query(DailyMetrics)
+        .filter(
+            DailyMetrics.user_id == user_id,
+            DailyMetrics.strain_score.isnot(None),
+            DailyMetrics.recovery_score.isnot(None)
+        )
+        .order_by(DailyMetrics.date.desc())
+        .limit(60)  # Look at last 60 days
+        .all()
+    )
+    
+    if len(rows) < 5:
+        return examples
+    
+    # Find examples where strain was below threshold with good recovery
+    good_examples = []
+    for row in rows:
+        if row.strain_score is not None and row.recovery_score is not None:
+            if row.strain_score <= threshold and row.recovery_score >= 67:
+                good_examples.append({
+                    'date': row.date.isoformat() if isinstance(row.date, date) else str(row.date),
+                    'strain': float(row.strain_score),
+                    'recovery': float(row.recovery_score),
+                    'type': 'good',
+                    'message': f"Strain {row.strain_score:.1f} → Recovery {row.recovery_score:.0f}%"
+                })
+                if len(good_examples) >= max_examples:
+                    break
+    
+    # Find examples where strain exceeded threshold with poor recovery
+    bad_examples = []
+    for row in rows:
+        if row.strain_score is not None and row.recovery_score is not None:
+            if row.strain_score > threshold and row.recovery_score < 67:
+                bad_examples.append({
+                    'date': row.date.isoformat() if isinstance(row.date, date) else str(row.date),
+                    'strain': float(row.strain_score),
+                    'recovery': float(row.recovery_score),
+                    'type': 'bad',
+                    'message': f"Strain {row.strain_score:.1f} → Recovery {row.recovery_score:.0f}%"
+                })
+                if len(bad_examples) >= max_examples:
+                    break
+    
+    # Combine and sort by date (most recent first)
+    all_examples = good_examples[:3] + bad_examples[:3]
+    all_examples.sort(key=lambda x: x['date'], reverse=True)
+    
+    return all_examples[:max_examples]
 
 
 def train_strain_tolerance_model(db: Session, user_id: str) -> Optional[Dict]:
@@ -180,7 +245,7 @@ def predict_burnout_risk(
     acute_chronic_ratio: float
 ) -> Optional[Dict]:
     """
-    Predict burnout risk for a given strain level.
+    Predict burnout risk for a given strain level using trained model if available.
     
     Args:
         db: Database session
@@ -192,8 +257,107 @@ def predict_burnout_risk(
         acute_chronic_ratio: Acute/chronic load ratio
     
     Returns:
-        Dictionary with burnout risk prediction, or None if model not available
+        Dictionary with burnout risk prediction, safe threshold, and recommendation.
+        Format: "Your safe strain threshold is 14.5 - exceeding this increases burnout risk by 60%"
     """
+    # Try to load trained model first
+    if JOBLIB_AVAILABLE:
+        models = load_latest_models(user_id)
+        strain_model_data = models.get("strain_tolerance")
+        
+        if strain_model_data and isinstance(strain_model_data, dict):
+            try:
+                model = strain_model_data.get('model')
+                scaler = strain_model_data.get('scaler')
+                saved_threshold = strain_model_data.get('safe_threshold')
+                
+                if model and scaler:
+                    # Use trained model to predict burnout risk
+                    features = np.array([[
+                        float(strain_score),
+                        float(current_recovery),
+                        float(sleep_hours),
+                        float(hrv),
+                        float(acute_chronic_ratio),
+                    ]])
+                    
+                    # Scale features
+                    features_scaled = scaler.transform(features)
+                    
+                    # Predict burnout risk probability
+                    burnout_prob = model.predict_proba(features_scaled)[0, 1]
+                    burnout_risk = float(burnout_prob * 100)  # Convert to percentage
+                    
+                    # Calculate risk curve by testing different strain levels
+                    # This is needed to find threshold and calculate risk increase
+                    median_recovery = current_recovery
+                    test_strains = np.arange(0, 21, 0.5)
+                    test_features = []
+                    
+                    for test_strain in test_strains:
+                        test_features.append([
+                            float(test_strain),
+                            float(median_recovery),
+                            float(sleep_hours),
+                            float(hrv),
+                            float(acute_chronic_ratio),
+                        ])
+                    
+                    test_scaled = scaler.transform(test_features)
+                    test_probas = model.predict_proba(test_scaled)[:, 1]
+                    
+                    # Use saved threshold or calculate from model
+                    safe_threshold = saved_threshold
+                    if safe_threshold is None:
+                        # Find threshold where risk exceeds 30%
+                        for idx, test_strain in enumerate(test_strains):
+                            if test_probas[idx] > 0.3:
+                                safe_threshold = float(test_strain)
+                                break
+                        
+                        if safe_threshold is None:
+                            safe_threshold = 14.0
+                    
+                    # Calculate risk increase percentage
+                    # Risk at threshold vs risk 2 points below threshold
+                    threshold_idx = int(safe_threshold * 2)
+                    risk_at_threshold = float(test_probas[threshold_idx]) if threshold_idx < len(test_probas) else 0.3
+                    
+                    below_threshold_strain = max(0, safe_threshold - 2)
+                    below_idx = int(below_threshold_strain * 2)
+                    risk_below = float(test_probas[below_idx]) if below_idx < len(test_probas) else 0.1
+                    
+                    risk_increase_pct = ((risk_at_threshold - risk_below) / risk_below * 100) if risk_below > 0 else 50
+                    
+                    # Get historical examples to show why this threshold is optimal
+                    examples = _get_strain_threshold_examples(db, user_id, safe_threshold)
+                    
+                    # Format recommendation message
+                    recommendation = (
+                        f"Your safe strain threshold is {safe_threshold:.1f} - "
+                        f"exceeding this increases burnout risk by {abs(risk_increase_pct):.0f}%"
+                    )
+                    
+                    logger.debug(
+                        f"Strain tolerance prediction for user {user_id}: "
+                        f"threshold={safe_threshold:.1f}, risk={burnout_risk:.1f}%, "
+                        f"increase={risk_increase_pct:.0f}%"
+                    )
+                    
+                    return {
+                        'burnout_risk': burnout_risk,
+                        'safe_threshold': float(safe_threshold),
+                        'risk_at_threshold': float(risk_at_threshold * 100),
+                        'risk_increase_pct': float(risk_increase_pct),
+                        'confidence': 0.85,  # High confidence for ML model
+                        'recommendation': recommendation,
+                        'predicted_recovery': None,  # Not directly predicted by this model
+                        'examples': examples,  # Historical examples
+                    }
+            except Exception as e:
+                logger.warning(f"Error using trained strain tolerance model: {e}", exc_info=True)
+                # Fall through to rule-based fallback
+    
     # Rule-based fallback
     rows = (
         db.query(DailyMetrics)
@@ -241,15 +405,22 @@ def predict_burnout_risk(
     
     risk_increase = ((avg_recovery_low_strain - avg_recovery_high_strain) / avg_recovery_low_strain * 100) if avg_recovery_low_strain > 0 else 0
     
+    # Get historical examples
+    examples = _get_strain_threshold_examples(db, user_id, safe_threshold)
+    
+    # Format recommendation message to match requirement
+    recommendation = (
+        f"Your safe strain threshold is {safe_threshold:.1f} - "
+        f"exceeding this increases burnout risk by {abs(risk_increase):.0f}%"
+    )
+    
     return {
         'burnout_risk': burnout_risk,
         'safe_threshold': safe_threshold,
         'predicted_recovery': avg_recovery_high_strain,
         'recovery_drop_pct': risk_increase,
-        'confidence': min(0.8, len(rows) / 30.0),
-        'recommendation': (
-            f"Safe strain threshold is {safe_threshold:.1f}. "
-            f"Exceeding this increases burnout risk by {abs(risk_increase):.0f}%."
-        ) if strain_score > safe_threshold else f"Strain level {strain_score:.1f} is within safe range."
+        'confidence': min(0.7, len(rows) / 30.0),  # Lower confidence for rule-based
+        'recommendation': recommendation,
+        'examples': examples,  # Historical examples
     }
 

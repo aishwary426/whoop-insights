@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [trends, setTrends] = useState<TrendsResponse | null>(null)
+  const [personalizationInsights, setPersonalizationInsights] = useState<any[]>([])
   const { scrollY } = useScroll()
   const scrollOpacity = useTransform(scrollY, [0, 100], [1, 0])
 
@@ -43,13 +44,15 @@ export default function DashboardPage() {
 
   const loadDashboardData = async (userId: string) => {
     try {
-      const [summaryData, trendsData] = await Promise.all([
+      const [summaryData, trendsData, personalizationData] = await Promise.all([
         api.getDashboardSummary(),
-        api.getTrends()
+        api.getTrends(),
+        api.getPersonalizationInsights().catch(() => []) // Gracefully handle if not available
       ])
-      console.log('Dashboard Data Loaded:', { summaryData, trendsData })
+      console.log('Dashboard Data Loaded:', { summaryData, trendsData, personalizationData })
       setSummary(summaryData)
       setTrends(trendsData)
+      setPersonalizationInsights(personalizationData || [])
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     } finally {
@@ -325,7 +328,121 @@ export default function DashboardPage() {
               <PerformanceSection strainData={last30Strain} sleepData={last30Sleep} />
             </div>
 
-            {/* Section 5: Health Monitor */}
+            {/* Section 5: Personalization Insights */}
+            {personalizationInsights.length > 0 && (
+              <ParallaxSection
+                stickyPosition="left"
+                stickyContent={
+                  <div className="space-y-4">
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">AI Personalization</h2>
+                    <p className="text-lg text-gray-600 dark:text-white/60 leading-relaxed">
+                      Machine learning insights tailored to your unique physiology. These recommendations improve as you add more data.
+                    </p>
+                  </div>
+                }
+              >
+                <div className="grid gap-6">
+                  {personalizationInsights.map((insight, idx) => (
+                    <NeonCard
+                      key={idx}
+                      className="p-6 border-gray-200 dark:border-white/10 bg-white/80 dark:bg-[#0A0A0A]"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90 mb-2">
+                            {insight.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-white/60 leading-relaxed">
+                            {insight.description}
+                          </p>
+                        </div>
+                        {insight.confidence && (
+                          <span className="text-xs font-bold px-2 py-1 rounded uppercase tracking-wider bg-blue-500/20 text-blue-400">
+                            {Math.round(insight.confidence * 100)}% confidence
+                          </span>
+                        )}
+                      </div>
+                      {insight.data?.safe_threshold && (
+                        <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
+                          <div className="text-xs uppercase tracking-wider text-amber-400 mb-1">Safe Strain Threshold</div>
+                          <div className="text-2xl font-bold text-amber-300">{insight.data.safe_threshold.toFixed(1)}</div>
+                          {insight.data.risk_increase_pct && (
+                            <div className="text-xs text-amber-400/80 mt-1">
+                              Risk increases by {Math.abs(insight.data.risk_increase_pct).toFixed(0)}% when exceeded
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Historical Examples */}
+                      {insight.data?.examples && insight.data.examples.length > 0 && (
+                        <div className="mt-6">
+                          <div className="text-sm font-semibold text-gray-700 dark:text-white/90 mb-3">
+                            Why {insight.data.safe_threshold.toFixed(1)}? Evidence from your data:
+                          </div>
+                          <div className="space-y-3">
+                            {insight.data.examples.map((example: any, exIdx: number) => {
+                              const isGood = example.type === 'good'
+                              const dateObj = new Date(example.date)
+                              const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                year: dateObj.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                              })
+                              
+                              return (
+                                <div
+                                  key={exIdx}
+                                  className={`p-3 rounded-lg border ${
+                                    isGood
+                                      ? 'bg-green-500/10 border-green-500/20'
+                                      : 'bg-red-500/10 border-red-500/20'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-2 h-2 rounded-full ${
+                                        isGood ? 'bg-green-400' : 'bg-red-400'
+                                      }`} />
+                                      <div>
+                                        <div className="text-xs text-gray-500 dark:text-white/50">
+                                          {formattedDate}
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-700 dark:text-white/80 mt-0.5">
+                                          {example.message}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className={`text-xs font-bold px-2 py-1 rounded ${
+                                      isGood
+                                        ? 'bg-green-500/20 text-green-400'
+                                        : 'bg-red-500/20 text-red-400'
+                                    }`}>
+                                      {isGood ? '✓ Good' : '⚠ Risk'}
+                                    </div>
+                                  </div>
+                                  {isGood ? (
+                                    <div className="text-xs text-green-400/80 mt-2 ml-5">
+                                      Staying below threshold maintained strong recovery
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-red-400/80 mt-2 ml-5">
+                                      Exceeding threshold led to recovery drop
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </NeonCard>
+                  ))}
+                </div>
+              </ParallaxSection>
+            )}
+
+            {/* Section 6: Health Monitor */}
             <ParallaxSection
               stickyPosition="top"
               stickyContent={

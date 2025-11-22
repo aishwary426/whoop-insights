@@ -545,7 +545,8 @@ def get_personalization_insights(db: Session, user_id: str) -> List[InsightItem]
                 data={
                     'safe_threshold': strain_pred.get('safe_threshold'),
                     'burnout_risk': strain_pred.get('burnout_risk', 0),
-                    'recovery_drop_pct': strain_pred.get('recovery_drop_pct', 0)
+                    'recovery_drop_pct': strain_pred.get('recovery_drop_pct', 0),
+                    'examples': strain_pred.get('examples', [])  # Historical examples
                 }
             ))
     except Exception as e:

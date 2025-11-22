@@ -158,6 +158,7 @@ export const api = {
 
     getCalorieAnalysis: () => fetchWithAuth('/dashboard/calorie-analysis'),
     getJournalInsights: () => fetchWithAuth('/dashboard/journal-insights'),
+    getPersonalizationInsights: () => fetchWithAuth('/dashboard/personalization-insights'),
 
     uploadWhoopData: async (file: File): Promise<UploadResponse> => {
         const user = await getCurrentUser()
