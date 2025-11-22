@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowLeft, Brain, TrendingUp, Activity, Zap, Calendar, Target, MessageSquare, Layers, LayoutDashboard } from 'lucide-react'
+import { ArrowLeft, Brain, TrendingUp, Activity, Zap, Target, MessageSquare, Layers, LayoutDashboard } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import ParticleBackground from '../../components/ui/ParticleBackground'
 import NeonCard from '../../components/ui/NeonCard'
@@ -94,7 +94,7 @@ export default function WhyPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
                         >
-                            <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8">
+                            <Link href="/" className="inline-flex items-center gap-2 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors mb-8">
                                 <ArrowLeft className="w-4 h-4" />
                                 Back to Home
                             </Link>
@@ -104,17 +104,17 @@ export default function WhyPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.1 }}
-                            className="text-4xl md:text-6xl font-bold leading-tight"
+                            className="text-4xl md:text-6xl font-bold leading-tight text-gray-900 dark:text-white"
                         >
                             Why Whoop-Insights Exists <br />
-                            <span className="text-white/40 text-2xl md:text-4xl block mt-2">(When WHOOP Already Does)</span>
+                            <span className="text-gray-400 dark:text-white/40 text-2xl md:text-4xl block mt-2">(When WHOOP Already Does)</span>
                         </motion.h1>
 
                         <motion.p
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
-                            className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed"
+                            className="text-xl text-gray-700 dark:text-white/80 max-w-3xl mx-auto leading-relaxed"
                         >
                             WHOOP is great at tracking. <br />
                             <span className="text-neon-primary font-medium">Whoop-Insights is built for people who actually want to change.</span>
@@ -124,9 +124,9 @@ export default function WhyPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.3 }}
-                            className="text-white/60 max-w-2xl mx-auto"
+                            className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto"
                         >
-                            We don’t replace the WHOOP app — we sit on top of it and turn raw numbers into clear decisions, daily.
+                            We don't replace the WHOOP app — we sit on top of it and turn raw numbers into clear decisions, daily.
                         </motion.p>
                     </div>
 
@@ -139,14 +139,14 @@ export default function WhyPage() {
                     >
                         {points.map((point, index) => (
                             <motion.div key={index} variants={itemVariants} className="h-full">
-                                <NeonCard className="h-full p-8 border-white/10 bg-[#0A0A0A]/80 hover:bg-[#0A0A0A] transition-colors group">
-                                    <div className={`w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-6 ${point.color} group-hover:scale-110 transition-transform duration-300`}>
+                                <NeonCard className="h-full p-8 border-gray-200 dark:border-white/10 bg-white dark:bg-[#0A0A0A]/80 dark:hover:bg-[#0A0A0A] transition-colors group">
+                                    <div className={`w-12 h-12 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-6 ${point.color} group-hover:scale-110 transition-transform duration-300`}>
                                         <point.icon className="w-6 h-6" />
                                     </div>
-                                    <h3 className="text-xl font-semibold mb-4 text-white/90 group-hover:text-white transition-colors">
+                                    <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white/90 group-hover:text-gray-950 dark:group-hover:text-white transition-colors">
                                         {point.title}
                                     </h3>
-                                    <p className="text-white/60 leading-relaxed text-sm">
+                                    <p className="text-gray-600 dark:text-white/60 leading-relaxed text-sm">
                                         {point.description}
                                     </p>
                                 </NeonCard>
@@ -162,7 +162,7 @@ export default function WhyPage() {
                         transition={{ duration: 0.8 }}
                         className="mt-24 text-center space-y-8"
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold">Ready to upgrade your insights?</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Ready to upgrade your insights?</h2>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link href="/signup">
                                 <NeonButton variant="primary" className="px-8 py-4 text-lg">

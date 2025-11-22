@@ -52,12 +52,14 @@ user=root
 [program:backend]
 command=uvicorn app.main:app --host 0.0.0.0 --port 8000
 directory=/app/backend
+environment=PYTHONPATH="/app/backend"
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stdout
 stderr_logfile_maxbytes=0
 autorestart=true
-startretries=3
+startretries=5
+priority=100
 
 EOF
 

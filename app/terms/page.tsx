@@ -13,31 +13,31 @@ export default function TermsPage() {
 
                     {/* Header */}
                     <div className="text-center space-y-4">
-                        <h1 className="text-4xl md:text-6xl font-bold text-white">Terms & Conditions</h1>
-                        <p className="text-xl text-white/60">Please read these terms carefully before using Whoop Insights Pro.</p>
+                        <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white">Terms & Conditions</h1>
+                        <p className="text-xl text-gray-600 dark:text-white/60">Please read these terms carefully before using Whoop Insights Pro.</p>
                     </div>
 
                     {/* Content Container */}
                     <div className="space-y-8">
 
                         {/* Section 1: Acceptance */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
+                        <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-8">
                             <div className="flex items-center gap-3 mb-4">
                                 <CheckCircle className="w-6 h-6 text-neon-primary" />
-                                <h2 className="text-2xl font-bold text-white">1. Acceptance of Terms</h2>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">1. Acceptance of Terms</h2>
                             </div>
-                            <p className="text-white/70 leading-relaxed">
+                            <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                                 By accessing and using Whoop Insights Pro, you accept and agree to be bound by the terms and provision of this agreement. In addition, when using this service, you shall be subject to any posted guidelines or rules applicable to such services.
                             </p>
                         </div>
 
                         {/* Section 2: Disclaimer */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
+                        <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-8">
                             <div className="flex items-center gap-3 mb-4">
                                 <AlertTriangle className="w-6 h-6 text-amber-500" />
-                                <h2 className="text-2xl font-bold text-white">2. Disclaimer</h2>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">2. Disclaimer</h2>
                             </div>
-                            <div className="space-y-4 text-white/70 leading-relaxed">
+                            <div className="space-y-4 text-gray-700 dark:text-white/70 leading-relaxed">
                                 <p>
                                     <strong>Not Affiliated with WHOOP:</strong> Whoop Insights Pro is an independent project developed by Aishwary and is not affiliated, associated, authorized, endorsed by, or in any way officially connected with WHOOP Inc., or any of its subsidiaries or its affiliates.
                                 </p>
@@ -48,20 +48,20 @@ export default function TermsPage() {
                         </div>
 
                         {/* Section 3: Usage */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
+                        <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-8">
                             <div className="flex items-center gap-3 mb-4">
                                 <FileText className="w-6 h-6 text-blue-400" />
-                                <h2 className="text-2xl font-bold text-white">3. Use of Service</h2>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">3. Use of Service</h2>
                             </div>
-                            <p className="text-white/70 leading-relaxed">
+                            <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                                 You agree to use this application only for lawful purposes. You are responsible for ensuring that your use of the software complies with all applicable laws and regulations. As this is a local-first application, you are responsible for the security and privacy of the data stored on your own device.
                             </p>
                         </div>
 
                         {/* Section 4: Warranties */}
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-8">
-                            <h2 className="text-2xl font-bold text-white mb-4">4. No Warranties</h2>
-                            <p className="text-white/70 leading-relaxed">
+                        <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-8">
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">4. No Warranties</h2>
+                            <p className="text-gray-700 dark:text-white/70 leading-relaxed">
                                 This website is provided "as is" without any representations or warranties, express or implied. Whoop Insights Pro makes no representations or warranties in relation to this website or the information and materials provided on this website.
                             </p>
                         </div>
@@ -69,8 +69,8 @@ export default function TermsPage() {
                     </div>
 
                     {/* Footer Note */}
-                    <div className="text-center pt-12 border-t border-white/10">
-                        <p className="text-white/40 text-sm">
+                    <div className="text-center pt-12 border-t border-gray-200 dark:border-white/10">
+                        <p className="text-gray-400 dark:text-white/40 text-sm">
                             Last Updated: November 2025
                         </p>
                     </div>

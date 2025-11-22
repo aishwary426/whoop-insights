@@ -50,7 +50,7 @@ COPY --from=frontend-builder /app/frontend/public ./public
 
 # Environment variables
 ENV HOST=0.0.0.0
-ENV API_URL=http://localhost:8000
+ENV API_URL=http://127.0.0.1:8000
 ENV PYTHONPATH=/app/backend
 # PORT will be provided by Railway at runtime
 
