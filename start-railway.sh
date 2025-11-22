@@ -62,6 +62,8 @@ EOF
 
     # Only add frontend program if server.js exists
     if [ -f "$SERVER_PATH" ]; then
+        echo "Configuring frontend service..."
+        echo "Node version: $(node -v)"
         cat << EOF
 [program:frontend]
 command=node server.js
@@ -69,7 +71,7 @@ directory=${SERVER_DIR}
 environment=PORT="${PORT}"
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
+stderr_logfile=/dev/stdout
 stderr_logfile_maxbytes=0
 autorestart=true
 startretries=3
