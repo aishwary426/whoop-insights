@@ -1,4 +1,6 @@
-def is_mobile_user_agent(user_agent: str | None) -> bool:
+from typing import Optional
+
+def is_mobile_user_agent(user_agent: Optional[str]) -> bool:
     """
     Heuristic detection of mobile clients based on User-Agent string.
     """

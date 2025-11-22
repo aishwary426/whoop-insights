@@ -23,8 +23,10 @@ def summary(user_id: str, db: Session = Depends(get_db)):
     return get_dashboard_summary(db, user_id)
 
 
+from typing import Optional
+
 @router.get("/dashboard/trends", response_model=TrendsResponse)
-def trends(user_id: str, start_date: date | None = None, end_date: date | None = None, db: Session = Depends(get_db)):
+def trends(user_id: str, start_date: Optional[date] = None, end_date: Optional[date] = None, db: Session = Depends(get_db)):
     return get_trends(db, user_id, start_date, end_date)
 
 

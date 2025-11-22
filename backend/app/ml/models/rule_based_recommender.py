@@ -4,7 +4,9 @@ import numpy as np
 from app.models.database import DailyMetrics, IntensityLevel
 
 
-def recommend(dm: DailyMetrics, models: dict | None = None) -> dict:
+from typing import Optional, Dict
+
+def recommend(dm: DailyMetrics, models: Optional[Dict] = None) -> dict:
     """Simple guard-rail rules to return an actionable plan."""
     strain = float(dm.strain_score or 0)
     recovery = float(dm.recovery_score or 50)

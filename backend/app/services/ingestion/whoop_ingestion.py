@@ -34,7 +34,7 @@ def _get_ml_trainer():
 logger = logging.getLogger(__name__)
 
 
-def ensure_user(db: Session, user_id: str, email: str | None = None, name: str | None = None) -> User:
+def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Optional[str] = None) -> User:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         user = User(
