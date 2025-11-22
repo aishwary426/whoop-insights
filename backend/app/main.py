@@ -61,6 +61,8 @@ app.add_middleware(
 async def log_requests(request: Request, call_next):
     """Log all incoming requests for debugging."""
     logger.info(f"Incoming request: {request.method} {request.url.path}")
+    logger.info(f"Request URL: {request.url}")
+    logger.info(f"Request headers: {dict(request.headers)}")
     response = await call_next(request)
     logger.info(f"Request processed: {response.status_code}")
     return response

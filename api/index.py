@@ -94,7 +94,7 @@ try:
     
     # Create handler
     # Vercel's rewrite sends full path (/api/v1/...) to this function
-    # FastAPI handles routing from there
+    # FastAPI app is mounted at both /api/v1 and / so it will handle the routing
     handler = Mangum(app, lifespan="off", api_gateway_base_path=None)
     logger.info("DEBUG: Mangum handler initialized successfully")
     logger.info("=" * 80)
