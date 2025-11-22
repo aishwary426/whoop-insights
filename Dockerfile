@@ -54,7 +54,7 @@ ENV PYTHONPATH=/app/backend
 RUN pip install supervisor
 
 # Create supervisor config
-RUN echo "[supervisord]\nnodaemon=true\n\n[program:backend]\ncommand=uvicorn app.main:app --host 0.0.0.0 --port 8000\n\n[program:frontend]\ncommand=node server.js\nenvironment=PORT=3000\n" > supervisord.conf
+RUN echo "[supervisord]\nnodaemon=true\nlogfile=/dev/null\npidfile=/tmp/supervisord.pid\n\n[program:backend]\ncommand=uvicorn app.main:app --host 0.0.0.0 --port 8000\nstdout_logfile=/dev/stdout\nstdout_logfile_maxbytes=0\nstderr_logfile=/dev/stderr\nstderr_logfile_maxbytes=0\n\n[program:frontend]\ncommand=node server.js\nenvironment=PORT=3000\nstdout_logfile=/dev/stdout\nstdout_logfile_maxbytes=0\nstderr_logfile=/dev/stderr\nstderr_logfile_maxbytes=0\n" > supervisord.conf
 
 EXPOSE 3000
 
