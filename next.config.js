@@ -5,7 +5,7 @@ const nextConfig = {
     // serverActions is true by default in Next.js 14
   },
   images: {
-    domains: ['your-supabase-project.supabase.co'],
+    domains: ['ioqajwrnwxhczanpkrdp.supabase.co'],
   },
   async rewrites() {
     const apiUrl = process.env.API_URL || 'http://127.0.0.1:8000';
