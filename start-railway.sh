@@ -62,8 +62,8 @@ EOF
 
     # Only add frontend program if server.js exists
     if [ -f "$SERVER_PATH" ]; then
-        echo "Configuring frontend service..."
-        echo "Node version: $(node -v)"
+        echo "Configuring frontend service..." >&2
+        echo "Node version: $(node -v)" >&2
         cat << EOF
 [program:frontend]
 command=node server.js
