@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def save_upload_file(user_id: str, upload_id: str, file_obj, max_size: int | None = None) -> str:
+def save_upload_file(user_id: str, upload_id: str, file_obj, max_size: Optional[int] = None) -> str:
     """
     Save uploaded ZIP file to disk.
     
