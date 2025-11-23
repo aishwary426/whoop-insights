@@ -298,3 +298,4 @@ def predict_optimal_workout_time(
                      f"({improvement_pct:+.0f}% vs your overall average)"
     }
 
+

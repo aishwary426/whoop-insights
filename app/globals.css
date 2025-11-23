@@ -98,3 +98,17 @@
     background: rgba(255, 255, 255, 0.2);
   }
 }
+
+/* Landing page - transparent background for particle effect */
+.landing-page-wrapper .min-h-screen.bg-white,
+.landing-page-wrapper .min-h-screen.dark\:bg-bgDark {
+  background: transparent !important;
+}
+
+.landing-page-wrapper main {
+  background: transparent !important;
+}
+
+.landing-page-wrapper section {
+  background: transparent !important;
+}

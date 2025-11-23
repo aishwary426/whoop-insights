@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
-import { signUp, signInWithGoogle } from '../../lib/supabase'
+import { signUp, signInWithGoogle } from '../../lib/auth'
 import NeonButton from '../../components/ui/NeonButton'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [formData, setFormData] = useState({
@@ -184,5 +184,18 @@ export default function SignupPage() {
         </AuthCard>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark flex items-center justify-center">
+        <TranscendentalBackground />
+        <div className="relative z-10 text-gray-900 dark:text-white">Loading...</div>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   )
 }

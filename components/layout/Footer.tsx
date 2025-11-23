@@ -10,42 +10,102 @@ export default function Footer() {
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-600/50 dark:via-neon-primary/50 to-transparent" />
 
             <div className="container mx-auto px-6 py-12">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-
-                    {/* Left Side: Branding */}
-                    <div className="flex flex-col items-center md:items-start gap-2">
-                        <div className="flex items-center gap-3 group">
-                            <div className="w-10 h-10 rounded-full bg-blue-600/10 dark:bg-neon-primary/10 flex items-center justify-center border border-blue-600/20 dark:border-neon-primary/20 group-hover:bg-blue-600/20 dark:group-hover:bg-neon-primary/20 transition-all duration-300 shadow-[0_0_15px_rgba(0,102,255,0.2)] dark:shadow-[0_0_15px_rgba(0,255,143,0.2)]">
-                                <Target className="w-5 h-5 text-blue-600 dark:text-neon-primary" />
-                            </div>
-                            <span className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-neon-primary transition-colors duration-300">
-                                Data insights
-                            </span>
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-white/40 max-w-xs text-center md:text-left">
-                            Unlock hidden patterns in your physiological data with advanced AI analytics.
-                        </p>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+                    {/* Column 1: Product */}
+                    <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Product</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li>
+                                <Link href="/features" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Features
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/how-it-works" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    How It Works
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/pricing" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Pricing
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/faq" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    FAQ
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/roadmap" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Roadmap
+                                </Link>
+                            </li>
+                        </ul>
                     </div>
 
-                    {/* Right Side: Credits */}
-                    <div className="flex flex-col items-center md:items-end gap-1">
-                        <p className="text-lg text-gray-800 dark:text-white/80 font-light">
-                            Designed by <span className="font-bold text-blue-600 dark:text-neon-primary drop-shadow-[0_0_8px_rgba(0,102,255,0.5)] dark:drop-shadow-[0_0_8px_rgba(0,255,143,0.5)]">Aishwary</span>
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-white/40 uppercase tracking-widest">
-                            For Whoop Athletes
-                        </p>
+                    {/* Column 2: Company */}
+                    <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Company</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li>
+                                <Link href="/about" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    About
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/blog" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Blog
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/contact" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Contact
+                                </Link>
+                            </li>
+                        </ul>
                     </div>
 
+                    {/* Column 3: Legal */}
+                    <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Legal</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li>
+                                <Link href="/privacy" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Privacy Policy
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/terms" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Terms of Service
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/security" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Data Security
+                                </Link>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {/* Column 4: Connect */}
+                    <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Connect</h3>
+                        <ul className="space-y-2 text-sm">
+                            <li>
+                                <a href="mailto:connenct.data.insights@gmail.com" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Email: connenct.data.insights@gmail.com
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
 
                 {/* Bottom Bar */}
-                <div className="mt-12 pt-8 border-t border-gray-200 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600 dark:text-white/20">
-                    <p>© {new Date().getFullYear()} Data insights. Not affiliated with WHOOP Inc.</p>
-                    <div className="flex gap-6">
-                        <Link href="/privacy" className="hover:text-blue-600 dark:hover:text-neon-primary cursor-pointer transition-colors">Privacy Policy</Link>
-                        <Link href="/terms" className="hover:text-blue-600 dark:hover:text-neon-primary cursor-pointer transition-colors">Terms of Service</Link>
-                    </div>
+                <div className="pt-8 border-t border-gray-200 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600 dark:text-white/20">
+                    <p>© {new Date().getFullYear()} Whoop Insights. Not affiliated with WHOOP Inc.</p>
+                    <p className="text-center md:text-right max-w-2xl">
+                        Disclaimer: This product uses data exported from WHOOP. WHOOP is a registered trademark of WHOOP Inc. We are an independent analytics platform and are not endorsed by or affiliated with WHOOP Inc.
+                    </p>
                 </div>
             </div>
         </footer>

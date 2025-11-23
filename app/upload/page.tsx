@@ -8,7 +8,7 @@ import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
-import { getCurrentUser } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 import { api } from '../../lib/api'
 
 export default function UploadPage() {

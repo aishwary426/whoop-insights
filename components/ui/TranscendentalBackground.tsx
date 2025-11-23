@@ -50,7 +50,7 @@ export default function TranscendentalBackground() {
     const y3 = useTransform(smoothScroll, [0, 1], [0, 50], { clamp: true })
 
     return (
-        <div className="fixed inset-0 z-0 overflow-hidden bg-gray-50 dark:bg-[#050505]">
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" style={{ backgroundColor: 'transparent' }}>
             {/* Layer 1: Particle Network (Middle) */}
             <motion.div
                 style={{ y: y2, opacity: particleOpacity }}

@@ -84,8 +84,24 @@ class Settings(BaseSettings):
     enable_forecasting: bool = True
     min_days_for_training: int = 14  # Minimum days needed to train models
     
+    # Admin config
+    admin_emails: list = ["ctaishwary@gmail.com"]  # List of admin email addresses
+    
+    # Image upload config
+    images_dir: str = "/tmp/data/images" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/images"
+    
     # Logging
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    
+    # Email configuration
+    smtp_host: str = os.getenv("SMTP_HOST", "")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user: str = os.getenv("SMTP_USER", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    smtp_from_email: str = os.getenv("SMTP_FROM_EMAIL", "noreply@whoop-insights.com")
+    smtp_from_name: str = os.getenv("SMTP_FROM_NAME", "Whoop Insights")
+    frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    enable_email_notifications: bool = os.getenv("ENABLE_EMAIL_NOTIFICATIONS", "True").lower() == "true"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -105,7 +121,7 @@ class Settings(BaseSettings):
         logger.info(f"Environment: VERCEL={os.getenv('VERCEL')}, RAILWAY={os.getenv('RAILWAY_ENVIRONMENT')}, RENDER={os.getenv('RENDER')}")
 
         # Ensure directories exist (with error handling for serverless)
-        for dir_path in [self.upload_dir, self.processed_dir, self.model_dir]:
+        for dir_path in [self.upload_dir, self.processed_dir, self.model_dir, self.images_dir]:
             try:
                 Path(dir_path).mkdir(parents=True, exist_ok=True)
                 logger.info(f"Created directory: {dir_path}")

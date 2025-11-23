@@ -175,3 +175,37 @@ class Insight(Base):
         Index('idx_insight_user_type', 'user_id', 'insight_type'),
         Index('idx_insight_created', 'created_at'),
     )
+
+class BlogPost(Base):
+    __tablename__ = "blog_posts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    reading_time = Column(String)  # e.g., "5 min"
+    preview = Column(Text, nullable=False)
+    content = Column(Text)  # Full blog post content (optional for now)
+    image_url = Column(String)  # URL or path to blog post image
+    slug = Column(String, unique=True, nullable=False)  # URL-friendly identifier
+    published = Column(Integer, default=1)  # 1 = published, 0 = draft
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        Index('idx_blog_published', 'published'),
+        Index('idx_blog_created', 'created_at'),
+    )
+
+class NewsletterSubscriber(Base):
+    __tablename__ = "newsletter_subscribers"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, unique=True, nullable=False)
+    subscribed = Column(Integer, default=1)  # 1 = subscribed, 0 = unsubscribed
+    subscribed_at = Column(DateTime, default=datetime.utcnow)
+    unsubscribed_at = Column(DateTime)
+    
+    __table_args__ = (
+        Index('idx_subscriber_email', 'email'),
+        Index('idx_subscriber_status', 'subscribed'),
+    )

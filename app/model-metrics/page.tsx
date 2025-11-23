@@ -7,7 +7,7 @@ import { Brain, TrendingUp, BarChart3, Users, Zap, Activity, Clock, Heart, Flame
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
-import { getCurrentUser } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 import { api } from '../../lib/api'
 
 interface ModelMetrics {
@@ -118,7 +118,7 @@ export default function ModelMetricsPage() {
 
   const getModelUsage = (modelName: string): string => {
     const usage: { [key: string]: string } = {
-      calorie_gps: 'Used in Calorie GPS page to recommend optimal workouts for burning target calories efficiently.',
+      calorie_gps: 'Used in Calorie Burn Analytics page to recommend optimal workouts for burning target calories efficiently.',
       recovery_velocity: 'Shown in Personalization Insights to predict recovery timelines from low recovery states.',
       strain_tolerance: 'Displayed in Personalization Insights to show your safe strain threshold and prevent burnout.',
       workout_timing: 'Used in daily recommendations to suggest optimal workout times based on your patterns.',
@@ -162,11 +162,11 @@ export default function ModelMetricsPage() {
   }
 
   const getQualityColor = (r2?: number) => {
-    if (r2 === undefined || r2 === null) return 'text-slate-600 dark:text-slate-400'
-    if (r2 >= 0.8) return 'text-green-400'
-    if (r2 >= 0.6) return 'text-cyan-400'
-    if (r2 >= 0.4) return 'text-amber-400'
-    return 'text-red-400'
+    if (r2 === undefined || r2 === null) return 'text-slate-800 dark:text-slate-400'
+    if (r2 >= 0.8) return 'text-green-600 dark:text-green-400'
+    if (r2 >= 0.6) return 'text-cyan-600 dark:text-cyan-400'
+    if (r2 >= 0.4) return 'text-amber-600 dark:text-amber-400'
+    return 'text-red-600 dark:text-red-400'
   }
 
   if (loading) {
@@ -176,7 +176,7 @@ export default function ModelMetricsPage() {
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="w-14 h-14 border-4 border-blue-600/15 dark:border-neon-primary/15 border-t-blue-600 dark:border-t-neon-primary rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-white/60 text-sm">Loading model metrics...</p>
+            <p className="text-gray-800 dark:text-white/60 text-sm">Loading model metrics...</p>
           </div>
         </div>
       </AppLayout>
@@ -188,20 +188,20 @@ export default function ModelMetricsPage() {
   return (
     <AppLayout user={user}>
       <TranscendentalBackground />
-      <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-16 text-gray-900 dark:text-white">
+      <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-16 text-gray-950 dark:text-white">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-3 mb-10"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-600/30 dark:border-neon-primary/30 bg-blue-600/10 dark:bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-600/30 dark:border-neon-primary/30 bg-blue-600/10 dark:bg-neon-primary/10 text-xs font-semibold text-gray-900 dark:text-white/80">
             <Brain className="w-4 h-4 text-blue-600 dark:text-neon-primary" />
             ML Model Performance
           </div>
-          <h1 className="text-[clamp(2.2rem,5vw,3.2rem)] font-semibold leading-tight text-gray-900 dark:text-white">
+          <h1 className="text-[clamp(2.2rem,5vw,3.2rem)] font-semibold leading-tight text-gray-950 dark:text-white">
             Trained Model Parameters
           </h1>
-          <p className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto text-[15px]">
+          <p className="text-gray-800 dark:text-white/60 max-w-2xl mx-auto text-[15px]">
             View performance metrics and parameters for all your personalized ML models
           </p>
         </motion.div>
@@ -215,15 +215,15 @@ export default function ModelMetricsPage() {
         {!hasModels && !loading && (
           <NeonCard className="p-12 text-center border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0A0A0A]">
             <div className="text-6xl mb-6">🤖</div>
-            <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">No Models Trained Yet</h3>
-            <p className="text-gray-600 dark:text-white/60 mb-8 max-w-md mx-auto">
+            <h3 className="text-2xl font-bold mb-4 text-gray-950 dark:text-white">No Models Trained Yet</h3>
+            <p className="text-gray-800 dark:text-white/60 mb-8 max-w-md mx-auto">
               Upload your WHOOP data to train personalized ML models. Model metrics will appear here once training is complete.
             </p>
           </NeonCard>
         )}
 
         {hasModels && (
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 gap-y-4 mb-8">
             {Object.entries(metrics).map(([modelName, modelData], idx) => {
               const Icon = getModelIcon(modelName)
               const colorClass = getModelColor(modelName)
@@ -241,10 +241,10 @@ export default function ModelMetricsPage() {
                         <Icon className="w-6 h-6 text-blue-600 dark:text-neon-primary" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                        <h3 className="text-xl font-bold text-gray-950 dark:text-white">
                           {formatModelName(modelName)}
                         </h3>
-                        <p className="text-sm text-gray-600 dark:text-white/60">
+                        <p className="text-sm text-gray-800 dark:text-white/60">
                           {modelData.model_type || 'ML Model'}
                         </p>
                       </div>
@@ -256,12 +256,12 @@ export default function ModelMetricsPage() {
                         <div className="glass-card p-4 bg-white/5">
                           <div className="flex items-center gap-2 mb-2">
                             <TrendingUp className="w-4 h-4 text-cyan-400" />
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">R² Score</span>
+                            <span className="text-xs font-medium text-slate-800 dark:text-slate-400 uppercase tracking-wider">R² Score</span>
                           </div>
                           <div className={`text-3xl font-bold mb-1 ${getQualityColor(modelData.r2)}`}>
                             {(modelData.r2 * 100).toFixed(1)}%
                           </div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-700 dark:text-slate-500">
                             {getQualityLabel(modelData.r2)} fit
                           </div>
                         </div>
@@ -269,12 +269,12 @@ export default function ModelMetricsPage() {
                         <div className="glass-card p-4 bg-white/5">
                           <div className="flex items-center gap-2 mb-2">
                             <BarChart3 className="w-4 h-4 text-purple-400" />
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Accuracy</span>
+                            <span className="text-xs font-medium text-slate-800 dark:text-slate-400 uppercase tracking-wider">Accuracy</span>
                           </div>
                           <div className="text-3xl font-bold text-purple-400 mb-1">
                             {(modelData.accuracy * 100).toFixed(1)}%
                           </div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-700 dark:text-slate-500">
                             Classification accuracy
                           </div>
                         </div>
@@ -282,12 +282,12 @@ export default function ModelMetricsPage() {
                         <div className="glass-card p-4 bg-white/5">
                           <div className="flex items-center gap-2 mb-2">
                             <Zap className="w-4 h-4 text-green-400" />
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Status</span>
+                            <span className="text-xs font-medium text-slate-800 dark:text-slate-400 uppercase tracking-wider">Status</span>
                           </div>
                           <div className="text-2xl font-bold text-green-400 mb-1">
                             Active
                           </div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-700 dark:text-slate-500">
                             Model available
                           </div>
                         </div>
@@ -298,12 +298,12 @@ export default function ModelMetricsPage() {
                         <div className="glass-card p-4 bg-white/5">
                           <div className="flex items-center gap-2 mb-2">
                             <BarChart3 className="w-4 h-4 text-purple-400" />
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">MAE</span>
+                            <span className="text-xs font-medium text-slate-800 dark:text-slate-400 uppercase tracking-wider">MAE</span>
                           </div>
                           <div className="text-3xl font-bold text-purple-400 mb-1">
                             {modelData.mae.toFixed(2)}
                           </div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-700 dark:text-slate-500">
                             Mean absolute error
                           </div>
                         </div>
@@ -314,12 +314,12 @@ export default function ModelMetricsPage() {
                         <div className="glass-card p-4 bg-white/5">
                           <div className="flex items-center gap-2 mb-2">
                             <Users className="w-4 h-4 text-green-400" />
-                            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Samples</span>
+                            <span className="text-xs font-medium text-slate-800 dark:text-slate-400 uppercase tracking-wider">Samples</span>
                           </div>
                           <div className="text-3xl font-bold text-green-400 mb-1">
                             {modelData.sample_size}
                           </div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-700 dark:text-slate-500">
                             Training data points
                           </div>
                         </div>
@@ -333,18 +333,18 @@ export default function ModelMetricsPage() {
                         const hasMAE = modelData.mae !== undefined && modelData.mae !== null
                         const hasSampleSize = modelData.sample_size !== undefined && modelData.sample_size !== null
                         const hasStatus = modelData.available && !hasR2 && !hasAccuracy && !hasMAE && !hasSampleSize
-                        
+
                         const metricCount = [hasR2, hasAccuracy, hasMAE, hasSampleSize, hasStatus].filter(Boolean).length
-                        
+
                         // If we have an odd number of metrics (1 or 3), fill the empty slot
                         if (metricCount % 2 === 1) {
                           return (
                             <div className="glass-card p-4 bg-white/5">
                               <div className="flex items-center gap-2 mb-2">
                                 <Target className="w-4 h-4 text-amber-400" />
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Usage</span>
+                                <span className="text-xs font-medium text-slate-800 dark:text-slate-400 uppercase tracking-wider">Usage</span>
                               </div>
-                              <div className="text-xs text-slate-300 leading-relaxed">
+                              <div className="text-xs text-slate-800 dark:text-slate-300 leading-relaxed">
                                 {getModelUsage(modelName)}
                               </div>
                             </div>
@@ -358,18 +358,18 @@ export default function ModelMetricsPage() {
                     <div className="mt-6 pt-6 border-t border-white/10">
                       <div className="space-y-4">
                         <div>
-                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-950 dark:text-white mb-2 flex items-center gap-2">
                             <Activity className="w-4 h-4 text-blue-600 dark:text-neon-primary" />
                             Model Purpose
                           </h4>
-                          <p className="text-xs text-gray-600 dark:text-white/60 leading-relaxed">
+                          <p className="text-xs text-gray-800 dark:text-white/60 leading-relaxed">
                             {getModelDescription(modelName)}
                           </p>
                         </div>
-                        
+
                         {getModelFeatures(modelName).length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-gray-950 dark:text-white mb-2 flex items-center gap-2">
                               <Zap className="w-4 h-4 text-amber-400" />
                               Features Used
                             </h4>
@@ -377,7 +377,7 @@ export default function ModelMetricsPage() {
                               {getModelFeatures(modelName).map((feature, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-xs px-2 py-1 rounded-md bg-white/5 text-slate-300 border border-white/10"
+                                  className="text-xs px-2 py-1 rounded-md bg-white/5 text-slate-800 dark:text-slate-300 border border-white/10"
                                 >
                                   {feature}
                                 </span>
@@ -388,11 +388,11 @@ export default function ModelMetricsPage() {
 
                         {/* Usage Information */}
                         <div>
-                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-gray-950 dark:text-white mb-2 flex items-center gap-2">
                             <Target className="w-4 h-4 text-cyan-400" />
                             Where It's Used
                           </h4>
-                          <p className="text-xs text-gray-600 dark:text-white/60 leading-relaxed">
+                          <p className="text-xs text-gray-800 dark:text-white/60 leading-relaxed">
                             {getModelUsage(modelName)}
                           </p>
                         </div>
@@ -411,7 +411,7 @@ export default function ModelMetricsPage() {
                     {/* Feature Importance */}
                     {modelData.feature_importance && Object.keys(modelData.feature_importance).length > 0 && (
                       <div className="mt-6 pt-6 border-t border-white/10">
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-gray-950 dark:text-white mb-4 flex items-center gap-2">
                           <BarChart3 className="w-4 h-4 text-cyan-400" />
                           Top Feature Importance
                         </h4>
@@ -423,10 +423,10 @@ export default function ModelMetricsPage() {
                               <div key={feature} className="flex items-center gap-3">
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-medium text-slate-300 capitalize">
+                                    <span className="text-xs font-medium text-slate-800 dark:text-slate-300 capitalize">
                                       {feature.replace(/_/g, ' ').replace(/is /g, '')}
                                     </span>
-                                    <span className="text-xs text-slate-500">
+                                    <span className="text-xs text-slate-700 dark:text-slate-500">
                                       {((importance as number) * 100).toFixed(1)}%
                                     </span>
                                   </div>

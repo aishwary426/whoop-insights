@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings, Bell, ShieldCheck } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
-import { getCurrentUser } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import NeonCard from '../../components/ui/NeonCard'
 

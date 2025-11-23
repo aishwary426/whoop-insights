@@ -8,18 +8,20 @@ interface ParallaxSectionProps {
     className?: string
     stickyContent?: React.ReactNode
     stickyPosition?: 'left' | 'right' | 'top'
+    id?: string
 }
 
 export default function ParallaxSection({
     children,
     className = "",
     stickyContent,
-    stickyPosition = 'top'
+    stickyPosition = 'top',
+    id
 }: ParallaxSectionProps) {
     const ref = useRef<HTMLDivElement>(null)
 
     return (
-        <section ref={ref} className={`relative min-h-[60vh] md:min-h-[80vh] flex flex-col justify-center py-8 md:py-16 lg:py-24 ${className}`}>
+        <section id={id} ref={ref} className={`relative min-h-[60vh] md:min-h-[80vh] flex flex-col justify-center py-8 md:py-16 lg:py-24 ${className}`}>
             <div className="container mx-auto px-4 md:px-6 lg:px-8">
                 {stickyContent ? (
                     <div className={`flex flex-col ${stickyPosition === 'left' || stickyPosition === 'right' ? 'lg:flex-row' : ''} gap-4 md:gap-8 lg:gap-12 items-start`}>

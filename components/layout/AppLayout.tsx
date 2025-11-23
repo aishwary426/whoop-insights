@@ -4,9 +4,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { Target, LogOut, Settings, Menu, X } from 'lucide-react'
+import { Target, LogOut, Settings, Menu, X, PenTool } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { signOut } from '../../lib/supabase'
+import { signOut } from '../../lib/auth'
 import NeonButton from '../ui/NeonButton'
 import ThemeToggle from '../ui/ThemeToggle'
 import Footer from './Footer'
@@ -41,7 +41,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/advanced-analytics', label: 'Advanced Analytics' },
     { href: '/upload', label: 'Upload' },
-    { href: '/calorie-gps', label: 'Calorie GPS' },
+    { href: '/gps-burn-analytics', label: 'Calorie Burn Analytics' },
     { href: '/model-metrics', label: 'Model Metrics' },
   ]
 
@@ -132,6 +132,19 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{user.user_metadata?.name || user.name || 'User'}</p>
                         <p className="text-xs text-gray-600 dark:text-white/40 truncate">{user.email}</p>
                       </div>
+                      {/* Write Blog - Admin Only */}
+                      {user.email?.toLowerCase() === 'ctaishwary@gmail.com' && (
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false)
+                            router.push('/admin/blog')
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-blue-600 dark:text-neon-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center gap-2 transition-colors"
+                        >
+                          <PenTool className="w-4 h-4" />
+                          Write blog
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setShowUserMenu(false)
@@ -165,9 +178,9 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                   )}
                 </div>
               ) : (
-                <Link href="/signup">
+                <Link href="/login">
                   <NeonButton className="text-xs md:text-sm px-3 md:px-5 py-2 md:py-2.5" variant="primary">
-                    Get Started
+                    Login
                   </NeonButton>
                 </Link>
               )}
@@ -191,11 +204,10 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                      pathname === item.href
+                    className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${pathname === item.href
                         ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10'
                         : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </Link>

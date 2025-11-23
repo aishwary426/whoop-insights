@@ -28,7 +28,7 @@ function NeonCard({ children, className, bordered = true }: NeonCardProps) {
   return (
     <motion.div
       className={clsx(
-        'relative overflow-hidden rounded-2xl bg-white/80 dark:bg-[#0A0A0A]/60 backdrop-blur-xl text-gray-800 dark:text-white/85',
+        'relative overflow-hidden rounded-2xl bg-white/40 dark:bg-[#0A0A0A]/30 backdrop-blur-xl text-gray-800 dark:text-white/85',
         bordered ? 'border border-gray-200 dark:border-white/10' : '',
         'shadow-lg dark:shadow-neon-card transition-colors duration-200 ease-apple',
         className

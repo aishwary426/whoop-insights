@@ -14,8 +14,9 @@ import NeonCard from '../../components/ui/NeonCard'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import ParallaxSection from '../../components/ui/ParallaxSection'
 import PerformanceSection from '../../components/dashboard/PerformanceSection'
+import DashboardSkeleton, { PersonalizationInsightsSkeleton } from '../../components/dashboard/DashboardSkeleton'
 import { api, type DashboardSummary, type TrendsResponse } from '../../lib/api'
-import { getCurrentUser } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 
 // Typewriter Animation Component
 function TypewriterText({ words }: { words: string[] }) {
@@ -26,7 +27,7 @@ function TypewriterText({ words }: { words: string[] }) {
   useEffect(() => {
     const currentWord = words[currentWordIndex]
     const typingSpeed = isDeleting ? 50 : 100
-    
+
     const timer = setTimeout(() => {
       if (!isDeleting) {
         // Typing forward
@@ -68,7 +69,7 @@ function TypewriterText({ words }: { words: string[] }) {
 // Hook to detect mobile
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
-  
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
@@ -77,7 +78,7 @@ function useIsMobile() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
-  
+
   return isMobile
 }
 
@@ -88,6 +89,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [trends, setTrends] = useState<TrendsResponse | null>(null)
   const [personalizationInsights, setPersonalizationInsights] = useState<any[]>([])
+  const [loadingPersonalization, setLoadingPersonalization] = useState(true)
   const { scrollY } = useScroll()
   const scrollOpacity = useTransform(scrollY, [0, 100], [1, 0])
   const isMobile = useIsMobile()
@@ -99,12 +101,12 @@ export default function DashboardPage() {
   // Safety timeout - if loading takes more than 30 seconds, stop loading
   useEffect(() => {
     if (!loading) return
-    
+
     const timeoutId = setTimeout(() => {
       console.warn('Dashboard loading timeout after 30 seconds - stopping load')
       setLoading(false)
     }, 30000) // 30 second timeout
-    
+
     return () => clearTimeout(timeoutId)
   }, [loading])
 
@@ -122,66 +124,70 @@ export default function DashboardPage() {
     try {
       console.log(`Loading dashboard data (attempt ${retryCount + 1})...`)
       const startTime = Date.now()
-      
-      const [summaryData, trendsData, personalizationData] = await Promise.all([
+
+      // Load critical data first (summary and trends) - these are fast
+      const [summaryData, trendsData] = await Promise.all([
         api.getDashboardSummary(),
-        api.getTrends(),
-        api.getPersonalizationInsights().catch((err) => {
-          console.warn('Personalization insights not available:', err)
-          return []
-        })
+        api.getTrends()
       ])
-      
-      const loadTime = Date.now() - startTime
-      console.log(`Dashboard Data Loaded in ${loadTime}ms:`, { 
+
+      const criticalLoadTime = Date.now() - startTime
+      console.log(`Critical Dashboard Data Loaded in ${criticalLoadTime}ms:`, {
         summary: summaryData ? '✓' : '✗',
         trends: trendsData ? '✓' : '✗',
-        trendsRecoveryLength: trendsData?.series?.recovery?.length || 0,
-        personalizationCount: personalizationData?.length || 0
+        trendsRecoveryLength: trendsData?.series?.recovery?.length || 0
       })
-      
-      // Check for recovery velocity insight
-      const recoveryVelocityInsight = personalizationData?.find((insight: any) => insight.insight_type === 'recovery_velocity')
-      if (recoveryVelocityInsight) {
-        console.log('Recovery Velocity Insight Found:', recoveryVelocityInsight)
-      }
-      
+
       // Check if we have data
       const hasRecoveryData = trendsData?.series?.recovery && trendsData.series.recovery.length > 0
       const justUploaded = typeof window !== 'undefined' && window.location.search.includes('uploaded=')
-      
-      // Always set the data, even if empty - we'll show "No Data" UI
+
+      // Set critical data immediately so dashboard can render
       setSummary(summaryData)
       setTrends(trendsData)
-      setPersonalizationInsights(personalizationData || [])
-      
+
+      // Stop loading state early so user sees content faster
+      // Personalization insights will load in background
+      setLoading(false)
+
+      // Load personalization insights in the background (these are slow due to ML models)
+      // Don't block the UI for these
+      setLoadingPersonalization(true)
+      api.getPersonalizationInsights()
+        .then((personalizationData) => {
+          console.log('Personalization insights loaded:', personalizationData?.length || 0)
+          const recoveryVelocityInsight = personalizationData?.find((insight: any) => insight.insight_type === 'recovery_velocity')
+          if (recoveryVelocityInsight) {
+            console.log('Recovery Velocity Insight Found:', recoveryVelocityInsight)
+          }
+          setPersonalizationInsights(personalizationData || [])
+          setLoadingPersonalization(false)
+        })
+        .catch((err) => {
+          console.warn('Personalization insights not available:', err)
+          setPersonalizationInsights([])
+          setLoadingPersonalization(false)
+        })
+
       // If we just uploaded and data is still empty, retry with increasing delays
       // Increase retry count to 5 and use longer delays to account for database commit propagation
       if (!hasRecoveryData && justUploaded && retryCount < 5) {
         const retryDelay = (retryCount + 1) * 3000 // 3s, 6s, 9s, 12s, 15s
-        console.log(`No data found after upload (attempt ${retryCount + 1}/5), retrying in ${retryDelay/1000} seconds...`)
+        console.log(`No data found after upload (attempt ${retryCount + 1}/5), retrying in ${retryDelay / 1000} seconds...`)
         setTimeout(() => {
           loadDashboardData(userId, retryCount + 1)
         }, retryDelay)
         // Keep loading state during retry
+        setLoading(true)
         return
       }
-      
-      // Stop loading after all retries are done or if we have data
-      setLoading(false)
-      
+
       if (!hasRecoveryData && justUploaded) {
         console.warn('Data still not available after retries. Backend processing may still be in progress.')
         console.log('Summary data:', summaryData)
         console.log('Trends data:', trendsData)
-        // Don't show "No Data" message immediately after upload - keep loading a bit longer
-        // The user just uploaded, so data should be coming
-        if (retryCount < 5) {
-          // This shouldn't happen since we already retried, but just in case
-          return
-        }
       }
-      
+
     } catch (error: any) {
       console.error('Error loading dashboard data:', error)
       console.error('Error details:', {
@@ -189,23 +195,23 @@ export default function DashboardPage() {
         name: error?.name,
         status: error?.status
       })
-      
+
       // Always stop loading on error after max retries
       const justUploaded = typeof window !== 'undefined' && window.location.search.includes('uploaded=')
       if (retryCount < 5 && justUploaded) {
         const retryDelay = (retryCount + 1) * 3000 // 3s, 6s, 9s, 12s, 15s
-        console.log(`Error loading data (attempt ${retryCount + 1}/5), retrying in ${retryDelay/1000} seconds...`)
+        console.log(`Error loading data (attempt ${retryCount + 1}/5), retrying in ${retryDelay / 1000} seconds...`)
         setTimeout(() => {
           loadDashboardData(userId, retryCount + 1)
         }, retryDelay)
         // Keep loading state during retry
         return
       }
-      
+
       // Stop loading and set empty state so UI shows "No Data" message
       setLoading(false)
       console.error('Failed to load dashboard data after retries. Showing "No Data" UI.')
-      
+
       // Ensure we have null state so the "No Data" UI can show
       if (!summary) setSummary(null)
       if (!trends) setTrends(null)
@@ -218,7 +224,7 @@ export default function DashboardPage() {
   }, [summary, trends])
 
   // Memoize all data transformations to prevent recalculation on every render
-  const recoveryData = useMemo(() => 
+  const recoveryData = useMemo(() =>
     trends?.series?.recovery?.slice(-30).map((item: any) => ({
       date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }),
       recovery: item.value
@@ -317,13 +323,9 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <AppLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="w-14 h-14 border-4 border-blue-600/15 dark:border-neon-primary/15 border-t-blue-600 dark:border-t-neon-primary rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-white/60 text-sm">Loading your insights...</p>
-          </div>
-        </div>
+      <AppLayout user={user}>
+        <TranscendentalBackground />
+        <DashboardSkeleton />
       </AppLayout>
     )
   }
@@ -356,12 +358,12 @@ export default function DashboardPage() {
                   WELCOME BACK,
                 </div>
                 <div className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-gray-900 dark:text-white leading-none min-h-[1.2em]">
-                  <TypewriterText 
+                  <TypewriterText
                     words={[
                       (user?.user_metadata?.name?.split(' ')[0] || 'ATHLETE').toUpperCase(),
                       'SUPERHUMAN',
                       'UNSTOPPABLE'
-                    ]} 
+                    ]}
                   />
                 </div>
               </div>
@@ -468,7 +470,9 @@ export default function DashboardPage() {
                 </div>
               }
             >
-              {personalizationInsights.length > 0 ? (
+              {loadingPersonalization ? (
+                <PersonalizationInsightsSkeleton />
+              ) : personalizationInsights.length > 0 ? (
                 <div className="grid gap-6">
                   {personalizationInsights.map((insight, idx) => (
                     <NeonCard
@@ -501,7 +505,7 @@ export default function DashboardPage() {
                           )}
                         </div>
                       )}
-                      
+
                       {/* Historical Examples */}
                       {insight.data?.examples && insight.data.examples.length > 0 && (
                         <div className="mt-6">
@@ -512,26 +516,24 @@ export default function DashboardPage() {
                             {insight.data.examples.map((example: any, exIdx: number) => {
                               const isGood = example.type === 'good'
                               const dateObj = new Date(example.date)
-                              const formattedDate = dateObj.toLocaleDateString('en-US', { 
-                                month: 'short', 
+                              const formattedDate = dateObj.toLocaleDateString('en-US', {
+                                month: 'short',
                                 day: 'numeric',
                                 year: dateObj.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
                               })
-                              
+
                               return (
                                 <div
                                   key={exIdx}
-                                  className={`p-3 rounded-lg border ${
-                                    isGood
+                                  className={`p-3 rounded-lg border ${isGood
                                       ? 'bg-blue-600/10 dark:bg-green-500/10 border-blue-600/20 dark:border-green-500/20'
                                       : 'bg-red-500/10 border-red-500/20'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                      <div className={`w-2 h-2 rounded-full ${
-                                        isGood ? 'bg-blue-600 dark:bg-green-400' : 'bg-red-400'
-                                      }`} />
+                                      <div className={`w-2 h-2 rounded-full ${isGood ? 'bg-blue-600 dark:bg-green-400' : 'bg-red-400'
+                                        }`} />
                                       <div>
                                         <div className="text-xs text-gray-500 dark:text-white/50">
                                           {formattedDate}
@@ -541,11 +543,10 @@ export default function DashboardPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    <div className={`text-xs font-bold px-2 py-1 rounded ${
-                                      isGood
+                                    <div className={`text-xs font-bold px-2 py-1 rounded ${isGood
                                         ? 'bg-blue-600/20 dark:bg-green-500/20 text-blue-600 dark:text-green-400'
                                         : 'bg-red-500/20 text-red-400'
-                                    }`}>
+                                      }`}>
                                       {isGood ? '✓ Good' : '⚠ Risk'}
                                     </div>
                                   </div>
@@ -564,7 +565,7 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Recovery Velocity Display */}
                       {insight.insight_type === 'recovery_velocity' && (
                         <>
@@ -652,12 +653,12 @@ export default function DashboardPage() {
                               <div className="space-y-3">
                                 {insight.data.examples.map((example: any, exIdx: number) => {
                                   const dateObj = new Date(example.date)
-                                  const formattedDate = dateObj.toLocaleDateString('en-US', { 
-                                    month: 'short', 
+                                  const formattedDate = dateObj.toLocaleDateString('en-US', {
+                                    month: 'short',
                                     day: 'numeric',
                                     year: dateObj.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
                                   })
-                                  
+
                                   return (
                                     <div
                                       key={exIdx}

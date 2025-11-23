@@ -160,10 +160,10 @@ export default function WhyPage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.8 }}
-                        className="mt-24 text-center space-y-8"
+                        className="mt-24 pt-16 pb-20 text-center space-y-6"
                     >
                         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">Ready to upgrade your insights?</h2>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
                             <Link href="/signup">
                                 <NeonButton variant="primary" className="px-8 py-4 text-lg">
                                     Start Your Journey

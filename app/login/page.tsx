@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
-import { signIn, signInWithGoogle } from '../../lib/supabase'
+import { signIn, signInWithGoogle } from '../../lib/auth'
 import NeonButton from '../../components/ui/NeonButton'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 
@@ -25,14 +25,14 @@ function LoginForm() {
   useEffect(() => {
     const errorParam = searchParams.get('error')
     const messageParam = searchParams.get('message')
-    
+
     if (errorParam) {
       setError(decodeURIComponent(errorParam))
       // Clean up URL by removing error parameter
       const newUrl = window.location.pathname
       window.history.replaceState({}, '', newUrl)
     }
-    
+
     if (messageParam) {
       setMessage(decodeURIComponent(messageParam))
       // Clean up URL by removing message parameter
@@ -48,7 +48,7 @@ function LoginForm() {
 
     try {
       const { error, data } = await signIn(formData.email, formData.password)
-      
+
       if (error) {
         throw error
       }

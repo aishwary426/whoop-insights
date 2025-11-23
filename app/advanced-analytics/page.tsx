@@ -9,7 +9,7 @@ import CorrelationScatterPlot from '../../components/advanced-analytics/Correlat
 import DistributionHistogram from '../../components/advanced-analytics/DistributionHistogram'
 import ComparativeStats from '../../components/advanced-analytics/ComparativeStats'
 import { api, type TrendsResponse } from '../../lib/api'
-import { getCurrentUser } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 import { filterDataByRange } from '../../lib/analytics-utils'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { motion } from 'framer-motion'
@@ -161,8 +161,8 @@ export default function AdvancedAnalyticsPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.1 }}
                             >
-                                <CorrelationScatterPlot 
-                                    data={filteredData} 
+                                <CorrelationScatterPlot
+                                    data={filteredData}
                                     metrics={selectedMetrics}
                                     availableMetrics={AVAILABLE_METRICS}
                                 />
@@ -174,8 +174,8 @@ export default function AdvancedAnalyticsPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.2 }}
                             >
-                                <DistributionHistogram 
-                                    data={filteredData} 
+                                <DistributionHistogram
+                                    data={filteredData}
                                     metrics={selectedMetrics}
                                     availableMetrics={AVAILABLE_METRICS}
                                 />

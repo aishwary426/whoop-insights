@@ -7,7 +7,8 @@ import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
 import NeonButton from '../../components/ui/NeonButton'
 import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
-import { supabase, updatePassword } from '../../lib/supabase'
+import { supabase } from '../../lib/supabase-client'
+import { updatePassword } from '../../lib/auth'
 
 export default function ResetPasswordPage() {
     const router = useRouter()
@@ -28,23 +29,23 @@ export default function ResetPasswordPage() {
                 // Supabase automatically handles recovery tokens from URL hash fragments
                 // When a user clicks the reset link, Supabase parses the hash and creates a session
                 // We need to wait a bit for Supabase to process the hash, then check for session
-                
+
                 // First, check if there's a recovery token in the URL hash
                 if (typeof window !== 'undefined') {
                     const hashParams = new URLSearchParams(window.location.hash.substring(1))
                     const type = hashParams.get('type')
                     const accessToken = hashParams.get('access_token')
-                    
+
                     // If we have recovery tokens in the hash, Supabase will process them
                     if (type === 'recovery' && accessToken) {
                         // Wait a moment for Supabase to process the hash
                         await new Promise(resolve => setTimeout(resolve, 500))
                     }
                 }
-                
+
                 // Check if we have a valid session (Supabase creates one from the recovery token)
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-                
+
                 if (session) {
                     setIsValidToken(true)
                 } else if (typeof window !== 'undefined') {
@@ -52,7 +53,7 @@ export default function ResetPasswordPage() {
                     const hashParams = new URLSearchParams(window.location.hash.substring(1))
                     const type = hashParams.get('type')
                     const accessToken = hashParams.get('access_token')
-                    
+
                     if (type === 'recovery' && accessToken) {
                         // Token is in URL but session not created yet - might need to wait
                         setIsValidToken(true)
@@ -103,7 +104,7 @@ export default function ResetPasswordPage() {
 
             // Success!
             setSuccess(true)
-            
+
             // Redirect to login after a short delay
             setTimeout(() => {
                 router.push('/login?message=Password reset successful. Please sign in with your new password.')

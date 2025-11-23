@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 from typing import List, Optional
 
@@ -151,4 +151,67 @@ class CalorieGPSResponse(BaseModel):
     is_personalized: bool
     model_confidence: Optional[float] = None
     model_metrics: Optional[CalorieGPSModelMetrics] = None  # Model performance metrics
+
+
+# Blog and Newsletter schemas
+class BlogPostBase(BaseModel):
+    title: str
+    category: str
+    reading_time: Optional[str] = None
+    preview: str
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    slug: str
+    published: int = 1
+
+
+class BlogPostCreate(BlogPostBase):
+    pass
+
+
+class BlogPostUpdate(BaseModel):
+    title: Optional[str] = None
+    category: Optional[str] = None
+    reading_time: Optional[str] = None
+    preview: Optional[str] = None
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    slug: Optional[str] = None
+    published: Optional[int] = None
+
+
+class BlogPost(BlogPostBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BlogPostList(BaseModel):
+    posts: List[BlogPost]
+
+
+class NewsletterSubscribe(BaseModel):
+    email: str = Field(..., description="Email address to subscribe to newsletter")
+
+
+class NewsletterResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class SubscriberInfo(BaseModel):
+    id: int
+    email: str
+    subscribed: int
+    subscribed_at: Optional[datetime] = None
+    unsubscribed_at: Optional[datetime] = None
+
+
+class SubscriberList(BaseModel):
+    total: int
+    active_count: int
+    inactive_count: int
+    subscribers: List[SubscriberInfo]
 

@@ -1,4 +1,4 @@
-import { getCurrentUser } from './supabase'
+import { getCurrentUser } from './auth'
 
 const resolveApiBaseUrl = () => {
     // If API URL is explicitly set, use it
@@ -176,6 +176,35 @@ export const api = {
     getJournalInsights: () => fetchWithAuth('/dashboard/journal-insights'),
     getPersonalizationInsights: () => fetchWithAuth('/dashboard/personalization-insights'),
     
+    getCalorieBurnAnalyticsRecommendations: async (
+        recoveryScore: number,
+        targetCalories: number,
+        strainScore?: number,
+        sleepHours?: number,
+        hrv?: number,
+        restingHr?: number,
+        acuteChronicRatio?: number,
+        sleepDebt?: number,
+        consistencyScore?: number
+    ) => {
+        const params: Record<string, any> = {
+            recovery_score: recoveryScore,
+            target_calories: targetCalories,
+        }
+        
+        if (strainScore !== undefined) params.strain_score = strainScore
+        if (sleepHours !== undefined) params.sleep_hours = sleepHours
+        if (hrv !== undefined) params.hrv = hrv
+        if (restingHr !== undefined) params.resting_hr = restingHr
+        if (acuteChronicRatio !== undefined) params.acute_chronic_ratio = acuteChronicRatio
+        if (sleepDebt !== undefined) params.sleep_debt = sleepDebt
+        if (consistencyScore !== undefined) params.consistency_score = consistencyScore
+        
+        // Use the same backend endpoint (we'll update backend to support both)
+        return fetchWithAuth('/calorie-gps/recommendations', params)
+    },
+    
+    // Legacy function name for backward compatibility
     getCalorieGPSRecommendations: async (
         recoveryScore: number,
         targetCalories: number,
@@ -187,6 +216,7 @@ export const api = {
         sleepDebt?: number,
         consistencyScore?: number
     ) => {
+        // Use the same implementation
         const params: Record<string, any> = {
             recovery_score: recoveryScore,
             target_calories: targetCalories,
@@ -326,6 +356,188 @@ export const api = {
             }
 
             throw new Error(errorText)
+        }
+
+        return response.json()
+    },
+
+    // Blog API
+    getBlogPosts: async (publishedOnly: boolean = true) => {
+        const url = new URL(`${API_BASE_URL}/blog`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        url.searchParams.append('published_only', String(publishedOnly))
+        
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch blog posts: ${response.statusText}`)
+        }
+        
+        return response.json()
+    },
+
+    getBlogPost: async (postId: number) => {
+        const url = new URL(`${API_BASE_URL}/blog/${postId}`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch blog post: ${response.statusText}`)
+        }
+        
+        return response.json()
+    },
+
+    // Newsletter API (no auth required)
+    subscribeNewsletter: async (email: string) => {
+        const url = new URL(`${API_BASE_URL}/newsletter/subscribe`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+        })
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to subscribe: ${response.statusText}`)
+        }
+        
+        return response.json()
+    },
+
+    // Admin Blog API (requires admin authentication)
+    async fetchWithAdminAuth(endpoint: string, options: RequestInit = {}) {
+        const user = await getCurrentUser()
+        if (!user || !user.email) {
+            throw new Error('User not authenticated or email not available')
+        }
+
+        const url = new URL(`${API_BASE_URL}${endpoint}`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer email:${user.email}`,
+            ...(options.headers || {}),
+        }
+
+        const response = await fetch(url.toString(), {
+            ...options,
+            headers,
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Request failed: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+
+    createBlogPost: async (post: any) => {
+        const user = await getCurrentUser()
+        if (!user || !user.email) {
+            throw new Error('User not authenticated')
+        }
+
+        const url = new URL(`${API_BASE_URL}/blog`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer email:${user.email}`,
+            },
+            body: JSON.stringify(post),
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to create blog post: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+
+    updateBlogPost: async (postId: number, post: any) => {
+        const user = await getCurrentUser()
+        if (!user || !user.email) {
+            throw new Error('User not authenticated')
+        }
+
+        const url = new URL(`${API_BASE_URL}/blog/${postId}`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer email:${user.email}`,
+            },
+            body: JSON.stringify(post),
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to update blog post: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+
+    deleteBlogPost: async (postId: number) => {
+        const user = await getCurrentUser()
+        if (!user || !user.email) {
+            throw new Error('User not authenticated')
+        }
+
+        const url = new URL(`${API_BASE_URL}/blog/${postId}`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer email:${user.email}`,
+            },
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to delete blog post: ${response.statusText}`)
+        }
+
+        return true
+    },
+
+    uploadBlogImage: async (file: File) => {
+        const user = await getCurrentUser()
+        if (!user || !user.email) {
+            throw new Error('User not authenticated')
+        }
+
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const url = new URL(`${API_BASE_URL}/images/upload`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer email:${user.email}`,
+            },
+            body: formData,
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to upload image: ${response.statusText}`)
         }
 
         return response.json()

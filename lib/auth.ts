@@ -1,0 +1,352 @@
+import { supabase } from './supabase-client'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
+
+// Auth helpers
+export const signUp = async (email: string, password: string, name: string) => {
+    try {
+        // Check if Supabase client is properly configured
+        if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
+            return {
+                data: null,
+                error: {
+                    message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.',
+                    name: 'ConfigurationError'
+                }
+            }
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name: name,
+                },
+            },
+        })
+
+        // Enhance error messages for network issues
+        if (error) {
+            const errorMessage = error.message || ''
+            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+                return {
+                    data: null,
+                    error: {
+                        message: 'Failed to connect to Supabase. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active, 3) Your internet connection is working.',
+                        name: 'NetworkError'
+                    }
+                }
+            }
+        }
+
+        return { data, error }
+    } catch (err: any) {
+        // Catch any unexpected errors (like fetch failures)
+        const errorMessage = err.message || err.toString() || 'Unknown error'
+        if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed')) {
+            return {
+                data: null,
+                error: {
+                    message: 'Failed to connect to Supabase. Please verify your Supabase configuration in .env.local and ensure your Supabase project is running.',
+                    name: 'NetworkError'
+                }
+            }
+        }
+        return {
+            data: null,
+            error: {
+                message: err.message || 'An unexpected error occurred during signup.',
+                name: err.name || 'UnknownError'
+            }
+        }
+    }
+}
+
+export const signIn = async (email: string, password: string) => {
+    try {
+        // Check if Supabase client is properly configured
+        if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
+            return {
+                data: null,
+                error: {
+                    message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.',
+                    name: 'ConfigurationError'
+                }
+            }
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        })
+
+        // Enhance error messages for network issues
+        if (error) {
+            const errorMessage = error.message || ''
+            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+                return {
+                    data: null,
+                    error: {
+                        message: 'Failed to connect to Supabase. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active, 3) Your internet connection is working.',
+                        name: 'NetworkError'
+                    }
+                }
+            }
+        }
+
+        return { data, error }
+    } catch (err: any) {
+        // Catch any unexpected errors (like fetch failures)
+        const errorMessage = err.message || err.toString() || 'Unknown error'
+        if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed')) {
+            return {
+                data: null,
+                error: {
+                    message: 'Failed to connect to Supabase. Please verify your Supabase configuration in .env.local and ensure your Supabase project is running.',
+                    name: 'NetworkError'
+                }
+            }
+        }
+        return {
+            data: null,
+            error: {
+                message: err.message || 'An unexpected error occurred during login.',
+                name: err.name || 'UnknownError'
+            }
+        }
+    }
+}
+
+export const signInWithGoogle = async () => {
+    try {
+        // Check if Supabase client is properly configured
+        if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
+            return {
+                data: null,
+                error: {
+                    message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.',
+                    name: 'ConfigurationError'
+                }
+            }
+        }
+
+        // Determine the redirect URL
+        // Priority: 1) NEXT_PUBLIC_SITE_URL (production), 2) Current window origin (development/production)
+        let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+
+        // If not set, use current origin (handles both client and server side)
+        if (!siteUrl && typeof window !== 'undefined') {
+            siteUrl = window.location.origin
+        }
+
+        // Fallback for server-side rendering
+        if (!siteUrl) {
+            siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL
+                ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+                : 'http://localhost:3000'
+        }
+
+        // Ensure we have a valid URL
+        if (!siteUrl || siteUrl === 'undefined') {
+            siteUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+        }
+
+        // Remove trailing slash if present
+        siteUrl = siteUrl.replace(/\/$/, '')
+
+        // Construct the callback URL that Supabase will redirect to after OAuth
+        // IMPORTANT: This URL must be added to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs
+        const redirectTo = `${siteUrl}/auth/callback`
+
+        console.log('=== Google OAuth Configuration ===')
+        console.log('Site URL:', siteUrl)
+        console.log('Redirect URL:', redirectTo)
+        console.log('Environment:', process.env.NODE_ENV)
+        console.log('================================')
+        console.log('⚠️  IMPORTANT: Make sure this redirect URL is added to Supabase:')
+        console.log(`   ${redirectTo}`)
+        console.log('   Go to: Supabase Dashboard → Authentication → URL Configuration → Redirect URLs')
+        console.log('================================')
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectTo,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+                // Use PKCE flow for better security
+                skipBrowserRedirect: false,
+            }
+        })
+
+        // If there's an error, return it
+        if (error) {
+            console.error('OAuth initiation error:', error)
+            console.error('Error details:', {
+                message: error.message,
+                status: error.status,
+                name: error.name
+            })
+            return { data: null, error }
+        }
+
+        // Log success
+        if (data?.url) {
+            console.log('OAuth URL generated successfully')
+            console.log('User will be redirected to Google for authentication')
+        }
+
+        // If we get a URL, the redirect should happen automatically
+        // But if data.url exists, we might need to handle it manually in some cases
+        return { data, error }
+    } catch (err: any) {
+        console.error('Google OAuth error:', err)
+        console.error('Error stack:', err.stack)
+        return {
+            data: null,
+            error: {
+                message: err.message || 'Failed to initiate Google sign-in. Please try again.',
+                name: err.name || 'OAuthError'
+            }
+        }
+    }
+}
+
+export const signOut = async () => {
+    const { error } = await supabase.auth.signOut()
+    return { error }
+}
+
+export const getCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user
+}
+
+export const getCurrentUserEmail = async () => {
+    const user = await getCurrentUser()
+    return user?.email || null
+}
+
+export const getSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session
+}
+
+export const resetPassword = async (email: string) => {
+    try {
+        // Check if Supabase client is properly configured
+        if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
+            return {
+                data: null,
+                error: {
+                    message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.',
+                    name: 'ConfigurationError'
+                }
+            }
+        }
+
+        // Determine the redirect URL
+        let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+
+        if (!siteUrl && typeof window !== 'undefined') {
+            siteUrl = window.location.origin
+        }
+
+        if (!siteUrl) {
+            siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL
+                ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+                : 'http://localhost:3000'
+        }
+
+        if (!siteUrl || siteUrl === 'undefined') {
+            siteUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+        }
+
+        const redirectTo = `${siteUrl}/reset-password`
+
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: redirectTo,
+        })
+
+        // Enhance error messages for network issues
+        if (error) {
+            const errorMessage = error.message || ''
+            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+                return {
+                    data: null,
+                    error: {
+                        message: 'Failed to connect to Supabase. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active, 3) Your internet connection is working.',
+                        name: 'NetworkError'
+                    }
+                }
+            }
+        }
+
+        return { data, error }
+    } catch (err: any) {
+        const errorMessage = err.message || err.toString() || 'Unknown error'
+        if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed')) {
+            return {
+                data: null,
+                error: {
+                    message: 'Failed to connect to Supabase. Please verify your Supabase configuration in .env.local and ensure your Supabase project is running.',
+                    name: 'NetworkError'
+                }
+            }
+        }
+        return {
+            data: null,
+            error: {
+                message: err.message || 'An unexpected error occurred while sending password reset email.',
+                name: err.name || 'UnknownError'
+            }
+        }
+    }
+}
+
+export const updatePassword = async (newPassword: string) => {
+    try {
+        // Check if Supabase client is properly configured
+        if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
+            return {
+                data: null,
+                error: {
+                    message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.',
+                    name: 'ConfigurationError'
+                }
+            }
+        }
+
+        const { data, error } = await supabase.auth.updateUser({
+            password: newPassword
+        })
+
+        // Enhance error messages
+        if (error) {
+            const errorMessage = error.message || ''
+            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+                return {
+                    data: null,
+                    error: {
+                        message: 'Failed to connect to Supabase. Please check your connection and try again.',
+                        name: 'NetworkError'
+                    }
+                }
+            }
+        }
+
+        return { data, error }
+    } catch (err: any) {
+        return {
+            data: null,
+            error: {
+                message: err.message || 'An unexpected error occurred while updating password.',
+                name: err.name || 'UnknownError'
+            }
+        }
+    }
+}

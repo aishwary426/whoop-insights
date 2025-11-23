@@ -8,6 +8,18 @@ const nextConfig = {
   images: {
     domains: ['ioqajwrnwxhczanpkrdp.supabase.co'],
   },
+  webpack: (config, { isServer }) => {
+    // Ensure Supabase modules are properly resolved
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
+    return config
+  },
   async rewrites() {
     // Use 127.0.0.1 instead of localhost to avoid IPv6 (::1) resolution issues
     // This works for both Railway and Render where backend runs on same container
