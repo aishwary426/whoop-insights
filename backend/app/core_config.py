@@ -97,6 +97,9 @@ class Settings(BaseSettings):
     enable_forecasting: bool = True
     min_days_for_training: int = 14  # Minimum days needed to train models
     
+    # Upload config
+    keep_uploaded_files: bool = os.getenv("KEEP_UPLOADED_FILES", "True").lower() == "true"  # Keep uploaded ZIP files after processing
+    
     # Admin config
     admin_emails: list = ["ctaishwary@gmail.com"]  # List of admin email addresses
     

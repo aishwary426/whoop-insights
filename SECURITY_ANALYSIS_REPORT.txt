@@ -356,7 +356,7 @@ Security Score: D (42/100)
 
     Exposed Credentials:
     SMTP_PASSWORD=vnmxiyrawqsdtcyp
-SMTP_USER=connenct.data.insights@gmail.com
+SMTP_USER=contact@data-insights.cloud
 SECRET_KEY=dev-secret-key
 
     Impact:

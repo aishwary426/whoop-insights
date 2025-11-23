@@ -90,6 +90,7 @@ export default function DashboardPage() {
   const [trends, setTrends] = useState<TrendsResponse | null>(null)
   const [personalizationInsights, setPersonalizationInsights] = useState<any[]>([])
   const [loadingPersonalization, setLoadingPersonalization] = useState(true)
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null)
   const { scrollY } = useScroll()
   const scrollOpacity = useTransform(scrollY, [0, 100], [1, 0])
   const isMobile = useIsMobile()
@@ -97,6 +98,15 @@ export default function DashboardPage() {
   useEffect(() => {
     checkUser()
   }, [])
+
+  // Get view_user_id from URL params for admin viewing
+  const getViewUserId = () => {
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    const viewUserId = params.get('view_user_id')
+    const isAdminView = params.get('admin_view') === 'true'
+    return isAdminView && viewUserId ? viewUserId : null
+  }
 
   // Safety timeout - if loading takes more than 30 seconds, stop loading
   useEffect(() => {
@@ -114,8 +124,23 @@ export default function DashboardPage() {
     const currentUser = await getCurrentUser()
     if (!currentUser) {
       router.push('/login')
+      return
+    }
+
+    // Check if admin is viewing another user's data
+    const viewUserId = getViewUserId()
+    if (viewUserId) {
+      // Verify admin access
+      if (currentUser.email?.toLowerCase() !== 'ctaishwary@gmail.com') {
+        router.push('/')
+        return
+      }
+      setUser(currentUser)
+      setViewingUserId(viewUserId)
+      loadDashboardData(viewUserId)
     } else {
       setUser(currentUser)
+      setViewingUserId(null)
       loadDashboardData(currentUser.id)
     }
   }
@@ -125,10 +150,14 @@ export default function DashboardPage() {
       console.log(`Loading dashboard data (attempt ${retryCount + 1})...`)
       const startTime = Date.now()
 
+      // Check if we're viewing another user's data (admin view)
+      const viewUserId = getViewUserId()
+      const targetUserId = viewUserId || userId
+
       // Load critical data first (summary and trends) - these are fast
       const [summaryData, trendsData] = await Promise.all([
-        api.getDashboardSummary(),
-        api.getTrends()
+        api.getDashboardSummary(targetUserId !== userId ? targetUserId : undefined),
+        api.getTrends(undefined, undefined, targetUserId !== userId ? targetUserId : undefined)
       ])
 
       const criticalLoadTime = Date.now() - startTime
@@ -153,7 +182,7 @@ export default function DashboardPage() {
       // Load personalization insights in the background (these are slow due to ML models)
       // Don't block the UI for these
       setLoadingPersonalization(true)
-      api.getPersonalizationInsights()
+      api.getPersonalizationInsights(targetUserId !== userId ? targetUserId : undefined)
         .then((personalizationData) => {
           console.log('Personalization insights loaded:', personalizationData?.length || 0)
           const recoveryVelocityInsight = personalizationData?.find((insight: any) => insight.insight_type === 'recovery_velocity')
@@ -371,6 +400,26 @@ export default function DashboardPage() {
           }
         >
           <div className="space-y-4 md:space-y-6">
+            {/* Admin View Banner */}
+            {viewingUserId && (
+              <NeonCard className="p-4 border-blue-500/30 bg-blue-500/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">👁️</span>
+                    <div>
+                      <p className="font-semibold text-blue-600 dark:text-neon-primary">Admin View Mode</p>
+                      <p className="text-sm text-gray-600 dark:text-white/60">Viewing data for user: {viewingUserId}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push('/admin/users')}
+                    className="px-4 py-2 text-sm bg-blue-600 dark:bg-neon-primary text-black dark:text-black rounded-lg hover:bg-blue-700 dark:hover:bg-neon-primary/90 transition-colors"
+                  >
+                    Back to Users
+                  </button>
+                </div>
+              </NeonCard>
+            )}
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold leading-tight text-gray-900 dark:text-white">
               Today's Overview
             </h1>

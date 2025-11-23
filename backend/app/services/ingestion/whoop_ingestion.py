@@ -35,17 +35,30 @@ def _get_ml_trainer():
 logger = logging.getLogger(__name__)
 
 
-def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Optional[str] = None) -> User:
+def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Optional[str] = None, age: Optional[int] = None, nationality: Optional[str] = None) -> User:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         user = User(
             id=user_id,
             email=email or f"{user_id}@auto.com",
             name=name or f"User {user_id}",
+            age=age,
+            nationality=nationality,
         )
         db.add(user)
         db.commit()
         logger.info(f"Created new user: {user_id}")
+    else:
+        # Update user fields if provided and not already set
+        if name and not user.name:
+            user.name = name
+        if age and not user.age:
+            user.age = age
+        if nationality and not user.nationality:
+            user.nationality = nationality
+        if email and not user.email:
+            user.email = email
+        db.commit()
     return user
 
 

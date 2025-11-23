@@ -28,6 +28,8 @@ class User(Base):
     id = Column(String, primary_key=True)
     email = Column(String, unique=True)
     name = Column(String)
+    age = Column(Integer, nullable=True)
+    nationality = Column(String, nullable=True)
     goal = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 

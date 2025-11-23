@@ -74,14 +74,14 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md border border-gray-200 dark:border-white/10 p-4 rounded-xl shadow-2xl">
-                    <p className="text-gray-600 dark:text-white/60 text-xs mb-2 font-inter">{label}</p>
+                    <p className="text-gray-600 dark:text-white/60 text-xs mb-2">{label}</p>
                     {payload.map((entry: any, index: number) => (
                         <div key={index} className="flex items-center gap-2 mb-1">
                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />
-                            <span className="text-gray-900 dark:text-white font-bold text-lg font-inter">
+                            <span className="text-gray-900 dark:text-white font-bold text-lg">
                                 {typeof entry.value === 'number' ? entry.value.toFixed(1) : entry.value}
                             </span>
-                            <span className="text-gray-600 dark:text-white/40 text-xs uppercase font-inter">{entry.name}</span>
+                            <span className="text-gray-600 dark:text-white/40 text-xs uppercase">{entry.name}</span>
                         </div>
                     ))}
                 </div>
@@ -121,7 +121,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                         initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
                         whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                         transition={{ duration: 0.6, ease: "easeOut" }}
-                        className="text-3xl md:text-4xl lg:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-600 to-gray-500 dark:from-white dark:via-blue-100 dark:to-white/50 font-inter"
+                        className="text-3xl md:text-4xl lg:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-600 to-gray-500 dark:from-white dark:via-blue-100 dark:to-white/50"
                     >
                         Performance
                     </motion.h2>
@@ -129,7 +129,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1, duration: 0.6 }}
-                        className="text-base md:text-xl text-blue-600/60 dark:text-blue-200/60 max-w-2xl mx-auto font-light tracking-wide font-inter px-4"
+                        className="text-base md:text-xl text-blue-600/60 dark:text-blue-200/60 max-w-2xl mx-auto font-light tracking-wide px-4"
                     >
                         Balancing <span className="text-cyan-600 dark:text-cyan-400 font-medium">Strain</span> and <span className="text-purple-600 dark:text-purple-400 font-medium">Sleep</span> is key to long-term progress.
                     </motion.p>
@@ -143,7 +143,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                             <button
                                 key={v}
                                 onClick={() => setView(v as any)}
-                                className={`flex-1 md:flex-none px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 font-inter ${view === v
+                                className={`flex-1 md:flex-none px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ${view === v
                                     ? 'bg-white text-black shadow-lg scale-105'
                                     : 'text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5'
                                     }`}
@@ -157,7 +157,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                     <div className="flex items-center gap-2 md:gap-4 bg-gray-100 dark:bg-white/5 backdrop-blur-md rounded-full px-4 md:px-6 py-2 md:py-3 border border-gray-200 dark:border-white/10 w-full md:w-auto">
                         <div className="flex items-center gap-1.5 md:gap-2">
                             <Clock className="w-3.5 md:w-4 h-3.5 md:h-4 text-gray-600 dark:text-white/40" />
-                            <span className="text-[10px] md:text-xs uppercase tracking-wider text-gray-600 dark:text-white/40 font-inter">Timeline</span>
+                            <span className="text-[10px] md:text-xs uppercase tracking-wider text-gray-600 dark:text-white/40">Timeline</span>
                         </div>
                         <input
                             type="range"
@@ -168,7 +168,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                             onChange={(e) => setTimeWindow(WINDOW_OPTIONS[parseInt(e.target.value)])}
                             className="flex-1 md:w-32 h-1 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer relative z-20 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 md:[&::-webkit-slider-thumb]:w-4 md:[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 dark:[&::-webkit-slider-thumb]:bg-neon-primary [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,102,255,0.5)] dark:[&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(0,255,143,0.5)]"
                         />
-                        <span className="text-base md:text-lg font-semibold text-blue-600 dark:text-neon-primary w-[3ch] text-center font-inter">{timeWindow}d</span>
+                        <span className="text-base md:text-lg font-semibold text-blue-600 dark:text-neon-primary w-[3ch] text-center">{timeWindow}d</span>
                     </div>
                 </div>
 
@@ -181,25 +181,25 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                         <div className="absolute inset-0 p-4 md:p-6 lg:p-10 flex flex-col">
                             <div className="flex flex-col md:flex-row justify-between items-start mb-4 md:mb-6 gap-2">
                                 <div>
-                                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1 font-inter">
+                                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-1">
                                         {view === 'strain' && 'Strain Load'}
                                         {view === 'sleep' && 'Sleep Performance'}
                                         {view === 'compare' && 'Strain vs Sleep'}
                                     </h3>
-                                    <p className="text-gray-600 dark:text-white/40 text-xs md:text-sm uppercase tracking-wider font-inter">Last {timeWindow} Days</p>
+                                    <p className="text-gray-600 dark:text-white/40 text-xs md:text-sm uppercase tracking-wider">Last {timeWindow} Days</p>
                                 </div>
                                 {/* Legend */}
                                 <div className="flex gap-4">
                                     {(view === 'strain' || view === 'compare') && (
                                         <div className="flex items-center gap-2">
                                             <div className="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
-                                            <span className="text-xs text-gray-600 dark:text-white/60 font-inter">Strain</span>
+                                            <span className="text-xs text-gray-600 dark:text-white/60">Strain</span>
                                         </div>
                                     )}
                                     {(view === 'sleep' || view === 'compare') && (
                                         <div className="flex items-center gap-2">
                                             <div className="w-3 h-3 rounded-full bg-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
-                                            <span className="text-xs text-gray-600 dark:text-white/60 font-inter">Sleep</span>
+                                            <span className="text-xs text-gray-600 dark:text-white/60">Sleep</span>
                                         </div>
                                     )}
                                 </div>
@@ -239,7 +239,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                                 dataKey="date"
                                                 axisLine={false}
                                                 tickLine={false}
-                                                tick={isMobile ? false : { fill: tickColor, fontSize: 10, fontFamily: 'Inter, sans-serif' }}
+                                                tick={isMobile ? false : { fill: tickColor, fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
                                                 dy={0}
                                                 interval={isMobile ? 'preserveStartEnd' : (timeWindow > 14 ? 2 : 0)}
                                                 height={isMobile ? 10 : 35}
@@ -252,7 +252,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                             <YAxis
                                                 axisLine={false}
                                                 tickLine={false}
-                                                tick={{ fill: tickColor, fontSize: isMobile ? 10 : 12, fontFamily: 'Inter, sans-serif' }}
+                                                tick={{ fill: tickColor, fontSize: isMobile ? 10 : 12, fontFamily: 'Montserrat, sans-serif' }}
                                                 domain={yAxisDomain}
                                                 width={isMobile ? 35 : 45}
                                                 tickFormatter={(value) => {

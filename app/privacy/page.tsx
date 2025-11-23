@@ -91,7 +91,7 @@ const sections = [
             'Portability: Request your data in a portable format.',
             'Opt-Out: Opt out of marketing communications.'
         ],
-        note: 'To exercise these rights, contact us at connenct.data.insights@gmail.com.',
+        note: 'To exercise these rights, contact us at contact@data-insights.cloud.',
         color: 'text-cyan-400'
     },
     {
@@ -253,10 +253,10 @@ export default function PrivacyPage() {
                                 For privacy-related questions, contact us at:
                             </p>
                             <a
-                                href="mailto:connenct.data.insights@gmail.com"
+                                href="mailto:contact@data-insights.cloud"
                                 className="text-blue-600 dark:text-neon-primary hover:underline font-medium"
                             >
-                                connenct.data.insights@gmail.com
+                                contact@data-insights.cloud
                             </a>
                         </NeonCard>
                     </motion.div>

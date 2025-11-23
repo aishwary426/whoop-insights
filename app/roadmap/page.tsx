@@ -144,7 +144,7 @@ export default function RoadmapPage() {
                             Have a feature request?
                         </h2>
                         <p className="text-lg text-gray-600 dark:text-white/60 max-w-2xl mx-auto leading-relaxed">
-                            We build what users need. Email your ideas to connenct.data.insights@gmail.com or vote on existing requests in our community.
+                            We build what users need. Email your ideas to contact@data-insights.cloud or vote on existing requests in our community.
                         </p>
                         <div className="pt-2">
                             <Link href="/contact">

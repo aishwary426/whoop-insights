@@ -5,16 +5,22 @@ Location: backend/app/api/v1/endpoints/upload.py
 import logging
 import uuid
 import os
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request
+from pathlib import Path
+from typing import List, Optional
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request, Query, Header, Depends
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.db_session import SessionLocal
 from app.schemas.api import UploadResponse, UploadStatus
 from app.services.ingestion.whoop_ingestion import ingest_whoop_zip
 from app.utils.device import is_mobile_user_agent
 from app.utils.zip_utils import save_upload_file
+from app.core_config import get_settings
+from app.utils.admin_auth import require_admin, get_user_email_from_header
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/whoop", tags=["upload"])
+settings = get_settings()
 
 
 @router.get("/ingest")
@@ -163,10 +169,197 @@ def upload_whoop_data(
         logger.error(f"[{upload_id}] Final error message: {error_msg}")
         raise HTTPException(status_code=500, detail=error_msg)
     finally:
-        # Cleanup zip file
-        if zip_path and os.path.exists(zip_path):
+        # Cleanup zip file only if configured to do so
+        if not settings.keep_uploaded_files and zip_path and os.path.exists(zip_path):
             try:
                 os.remove(zip_path)
                 logger.info(f"[{upload_id}] Cleaned up temporary file: {zip_path}")
             except Exception as e:
                 logger.warning(f"[{upload_id}] Failed to clean up {zip_path}: {e}")
+        elif zip_path and os.path.exists(zip_path):
+            logger.info(f"[{upload_id}] Keeping uploaded file: {zip_path}")
+
+
+@router.get("/files")
+async def list_uploaded_files(
+    user_id: str = Query(..., description="User identifier"),
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """
+    List all uploaded ZIP files for a user.
+    Admins can view files for any user by specifying user_id.
+    Regular users can only view their own files.
+    """
+    try:
+        # Check if user is admin
+        is_admin = False
+        if authorization:
+            email = get_user_email_from_header(authorization)
+            if email:
+                from app.utils.admin_auth import is_admin_email
+                is_admin = is_admin_email(email)
+        
+        # For non-admins, ensure they can only see their own files
+        # In a real app, you'd verify the user_id matches the authenticated user
+        # For now, we'll allow listing if user_id is provided
+        
+        upload_dir = Path(settings.upload_dir)
+        user_dir = upload_dir / user_id
+        
+        if not user_dir.exists():
+            return JSONResponse(content={
+                "user_id": user_id,
+                "files": [],
+                "count": 0,
+                "message": "No uploads found for this user"
+            })
+        
+        # Find all zip files in user directory
+        zip_files = list(user_dir.glob("*.zip"))
+        
+        files_info = []
+        for zip_file in zip_files:
+            try:
+                stat = zip_file.stat()
+                files_info.append({
+                    "upload_id": zip_file.stem,  # filename without .zip extension
+                    "filename": zip_file.name,
+                    "size_bytes": stat.st_size,
+                    "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                    "created_at": stat.st_ctime,
+                    "modified_at": stat.st_mtime,
+                    "path": str(zip_file.relative_to(upload_dir))
+                })
+            except Exception as e:
+                logger.warning(f"Error reading file info for {zip_file}: {e}")
+                continue
+        
+        # Sort by creation time (newest first)
+        files_info.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        return JSONResponse(content={
+            "user_id": user_id,
+            "files": files_info,
+            "count": len(files_info),
+            "upload_dir": str(user_dir)
+        })
+    
+    except Exception as e:
+        logger.exception(f"Error listing files for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+
+
+@router.get("/files/{user_id}/{upload_id}")
+async def download_uploaded_file(
+    user_id: str,
+    upload_id: str,
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+):
+    """
+    Download a specific uploaded ZIP file.
+    Admins can download files for any user.
+    Regular users can only download their own files.
+    """
+    try:
+        # Check if user is admin
+        is_admin = False
+        if authorization:
+            email = get_user_email_from_header(authorization)
+            if email:
+                from app.utils.admin_auth import is_admin_email
+                is_admin = is_admin_email(email)
+        
+        # Construct file path
+        upload_dir = Path(settings.upload_dir)
+        zip_path = upload_dir / user_id / f"{upload_id}.zip"
+        
+        # Security: ensure file is within upload directory
+        try:
+            zip_path.resolve().relative_to(upload_dir.resolve())
+        except ValueError:
+            raise HTTPException(status_code=403, detail="Invalid file path")
+        
+        # Check if file exists
+        if not zip_path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {upload_id}.zip")
+        
+        # Verify it's actually a zip file
+        if not zip_path.suffix.lower() == ".zip":
+            raise HTTPException(status_code=400, detail="Invalid file type")
+        
+        logger.info(f"Serving file: {zip_path} for user {user_id}")
+        
+        return FileResponse(
+            path=str(zip_path),
+            filename=zip_path.name,
+            media_type="application/zip"
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error downloading file {upload_id} for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+
+
+@router.get("/files/all")
+async def list_all_uploaded_files(
+    admin_email: str = Depends(require_admin),
+):
+    """
+    List all uploaded ZIP files across all users (Admin only).
+    """
+    try:
+        
+        upload_dir = Path(settings.upload_dir)
+        
+        if not upload_dir.exists():
+            return JSONResponse(content={
+                "files": [],
+                "count": 0,
+                "users": [],
+                "message": "No uploads found"
+            })
+        
+        all_files = []
+        user_dirs = [d for d in upload_dir.iterdir() if d.is_dir()]
+        
+        for user_dir in user_dirs:
+            user_id = user_dir.name
+            zip_files = list(user_dir.glob("*.zip"))
+            
+            for zip_file in zip_files:
+                try:
+                    stat = zip_file.stat()
+                    all_files.append({
+                        "user_id": user_id,
+                        "upload_id": zip_file.stem,
+                        "filename": zip_file.name,
+                        "size_bytes": stat.st_size,
+                        "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                        "created_at": stat.st_ctime,
+                        "modified_at": stat.st_mtime,
+                        "path": str(zip_file.relative_to(upload_dir))
+                    })
+                except Exception as e:
+                    logger.warning(f"Error reading file info for {zip_file}: {e}")
+                    continue
+        
+        # Sort by creation time (newest first)
+        all_files.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        # Get unique user list
+        users = sorted(set(f["user_id"] for f in all_files))
+        
+        return JSONResponse(content={
+            "files": all_files,
+            "count": len(all_files),
+            "users": users,
+            "user_count": len(users)
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error listing all files: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")

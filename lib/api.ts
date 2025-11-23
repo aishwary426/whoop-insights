@@ -112,14 +112,15 @@ export interface TrendsResponse {
     series: TrendsSeries
 }
 
-async function fetchWithAuth(endpoint: string, params: Record<string, any> = {}, timeoutMs = 30000) {
+async function fetchWithAuth(endpoint: string, params: Record<string, any> = {}, timeoutMs = 30000, overrideUserId?: string) {
     const user = await getCurrentUser()
     if (!user) {
         throw new Error('User not authenticated')
     }
 
     const url = new URL(`${API_BASE_URL}${endpoint}`, typeof window !== 'undefined' ? window.location.origin : undefined)
-    url.searchParams.append('user_id', user.id)
+    // Use overrideUserId if provided (for admin viewing), otherwise use current user's ID
+    url.searchParams.append('user_id', overrideUserId || user.id)
 
     Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -157,15 +158,15 @@ async function fetchWithAuth(endpoint: string, params: Record<string, any> = {},
 }
 
 export const api = {
-    getDashboardSummary: async (): Promise<DashboardSummary> => {
-        return fetchWithAuth('/dashboard/summary')
+    getDashboardSummary: async (overrideUserId?: string): Promise<DashboardSummary> => {
+        return fetchWithAuth('/dashboard/summary', {}, 30000, overrideUserId)
     },
 
-    getTrends: async (startDate?: string, endDate?: string): Promise<TrendsResponse> => {
+    getTrends: async (startDate?: string, endDate?: string, overrideUserId?: string): Promise<TrendsResponse> => {
         return fetchWithAuth('/dashboard/trends', {
             start_date: startDate,
             end_date: endDate,
-        })
+        }, 30000, overrideUserId)
     },
 
     getInsights: async (regenerate = false) => {
@@ -174,7 +175,7 @@ export const api = {
 
     getCalorieAnalysis: () => fetchWithAuth('/dashboard/calorie-analysis'),
     getJournalInsights: () => fetchWithAuth('/dashboard/journal-insights'),
-    getPersonalizationInsights: () => fetchWithAuth('/dashboard/personalization-insights'),
+    getPersonalizationInsights: (overrideUserId?: string) => fetchWithAuth('/dashboard/personalization-insights', {}, 30000, overrideUserId),
     
     getCalorieBurnAnalyticsRecommendations: async (
         recoveryScore: number,
@@ -538,6 +539,54 @@ export const api = {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ detail: response.statusText }))
             throw new Error(errorData.detail || `Failed to upload image: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+
+    // Admin API
+    getAllUsers: async () => {
+        const user = await getCurrentUser()
+        if (!user || !user.email) {
+            throw new Error('User not authenticated')
+        }
+
+        const url = new URL(`${API_BASE_URL}/admin/users`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer email:${user.email}`,
+            },
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to get users: ${response.statusText}`)
+        }
+
+        return response.json()
+    },
+
+    deleteUser: async (userId: string) => {
+        const user = await getCurrentUser()
+        if (!user || !user.email) {
+            throw new Error('User not authenticated')
+        }
+
+        const url = new URL(`${API_BASE_URL}/admin/users/${userId}`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        
+        const response = await fetch(url.toString(), {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer email:${user.email}`,
+            },
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to delete user: ${response.statusText}`)
         }
 
         return response.json()

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { LogOut, Settings, Menu, X, PenTool } from 'lucide-react'
+import { LogOut, Settings, Menu, X, PenTool, User as UserIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { signOut } from '../../lib/auth'
 import NeonButton from '../ui/NeonButton'
@@ -126,18 +126,30 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                         <p className="text-sm font-medium text-gray-900 dark:text-white">{user.user_metadata?.name || user.name || 'User'}</p>
                         <p className="text-xs text-gray-600 dark:text-white/40 truncate">{user.email}</p>
                       </div>
-                      {/* Write Blog - Admin Only */}
+                      {/* Admin Menu - Admin Only */}
                       {user.email?.toLowerCase() === 'ctaishwary@gmail.com' && (
-                        <button
-                          onClick={() => {
-                            setShowUserMenu(false)
-                            router.push('/admin/blog')
-                          }}
-                          className="w-full px-3 py-2 text-left text-sm text-blue-600 dark:text-neon-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center gap-2 transition-colors"
-                        >
-                          <PenTool className="w-4 h-4" />
-                          Write blog
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false)
+                              router.push('/admin/blog')
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-blue-600 dark:text-neon-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center gap-2 transition-colors"
+                          >
+                            <PenTool className="w-4 h-4" />
+                            Write blog
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false)
+                              router.push('/admin/users')
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-blue-600 dark:text-neon-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center gap-2 transition-colors"
+                          >
+                            <UserIcon className="w-4 h-4" />
+                            View Users
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => {

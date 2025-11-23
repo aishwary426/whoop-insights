@@ -92,8 +92,8 @@ export default function Footer() {
                         <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Connect</h3>
                         <ul className="space-y-2 text-sm">
                             <li>
-                                <a href="mailto:connenct.data.insights@gmail.com" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
-                                    Email: connenct.data.insights@gmail.com
+                                <a href="mailto:contact@data-insights.cloud" className="text-gray-600 dark:text-white/60 hover:text-blue-600 dark:hover:text-neon-primary transition-colors">
+                                    Email: contact@data-insights.cloud
                                 </a>
                             </li>
                         </ul>

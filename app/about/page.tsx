@@ -165,20 +165,20 @@ export default function AboutPage() {
                         <div className="space-y-2 text-gray-700 dark:text-white/70">
                             <p>
                                 <strong>General inquiries:</strong>{' '}
-                                <a href="mailto:connenct.data.insights@gmail.com" className="text-blue-600 dark:text-neon-primary hover:underline">
-                                    connenct.data.insights@gmail.com
+                                <a href="mailto:contact@data-insights.cloud" className="text-blue-600 dark:text-neon-primary hover:underline">
+                                    contact@data-insights.cloud
                                 </a>
                             </p>
                             <p>
                                 <strong>Support:</strong>{' '}
-                                <a href="mailto:connenct.data.insights@gmail.com" className="text-blue-600 dark:text-neon-primary hover:underline">
-                                    connenct.data.insights@gmail.com
+                                <a href="mailto:contact@data-insights.cloud" className="text-blue-600 dark:text-neon-primary hover:underline">
+                                    contact@data-insights.cloud
                                 </a>
                             </p>
                             <p>
                                 <strong>Press:</strong>{' '}
-                                <a href="mailto:connenct.data.insights@gmail.com" className="text-blue-600 dark:text-neon-primary hover:underline">
-                                    connenct.data.insights@gmail.com
+                                <a href="mailto:contact@data-insights.cloud" className="text-blue-600 dark:text-neon-primary hover:underline">
+                                    contact@data-insights.cloud
                                 </a>
                             </p>
                         </div>

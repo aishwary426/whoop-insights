@@ -88,7 +88,7 @@ const faqs = [
     },
     {
         q: 'Do you offer student or military discounts?',
-        a: 'Yes. Email connenct.data.insights@gmail.com with verification and we\'ll apply a 30% discount to your account.'
+        a: 'Yes. Email contact@data-insights.cloud with verification and we\'ll apply a 30% discount to your account.'
     }
 ]
 

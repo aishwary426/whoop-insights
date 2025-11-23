@@ -84,3 +84,4 @@ After clicking the confirmation link in your email, you should be redirected to 
   3. Ensure the `/auth/callback` route is accessible
 
 
+

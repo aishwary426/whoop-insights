@@ -102,11 +102,11 @@ const faqSections = [
             },
             {
                 q: 'What\'s your refund policy?',
-                a: '30-day money-back guarantee. If you\'re not satisfied, email connenct.data.insights@gmail.com within 30 days of payment and we\'ll refund 100% — no questions asked.'
+                a: '30-day money-back guarantee. If you\'re not satisfied, email contact@data-insights.cloud within 30 days of payment and we\'ll refund 100% — no questions asked.'
             },
             {
                 q: 'How do I contact support?',
-                a: 'Email connenct.data.insights@gmail.com. Pro users receive priority response within 24 hours. Free users typically receive responses within 48-72 hours.'
+                a: 'Email contact@data-insights.cloud. Pro users receive priority response within 24 hours. Free users typically receive responses within 48-72 hours.'
             }
         ]
     }
@@ -182,7 +182,7 @@ export default function FAQPage() {
                             Still have questions?
                         </h2>
                         <p className="text-lg text-gray-600 dark:text-white/60 max-w-2xl mx-auto">
-                            Email us at connenct.data.insights@gmail.com — we're happy to help.
+                            Email us at contact@data-insights.cloud — we're happy to help.
                         </p>
                         <div className="pt-2">
                             <Link href="/contact">

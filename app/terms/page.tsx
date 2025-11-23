@@ -70,7 +70,7 @@ const sections = [
             'Pro Tier: Paid subscription with additional features. Billed monthly or annually.',
             'Billing: Subscriptions automatically renew unless cancelled. You authorize us to charge your payment method on each renewal date.',
             'Cancellation: Cancel anytime from Account Settings. Access continues until the end of your billing period.',
-            'Refunds: 30-day money-back guarantee for first-time subscribers. Contact connenct.data.insights@gmail.com.'
+            'Refunds: 30-day money-back guarantee for first-time subscribers. Contact contact@data-insights.cloud.'
         ],
         color: 'text-pink-400'
     },
@@ -243,10 +243,10 @@ export default function TermsPage() {
                                 Questions about these Terms? Contact us at:
                             </p>
                             <a
-                                href="mailto:connenct.data.insights@gmail.com"
+                                href="mailto:contact@data-insights.cloud"
                                 className="text-blue-600 dark:text-neon-primary hover:underline font-medium"
                             >
-                                connenct.data.insights@gmail.com
+                                contact@data-insights.cloud
                             </a>
                         </NeonCard>
                     </motion.div>

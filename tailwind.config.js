@@ -17,7 +17,7 @@ module.exports = {
         'neon-secondary': '#A6FFCB',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'sans-serif'],
+        sans: ['var(--font-montserrat)', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'sans-serif'],
       },
       boxShadow: {
         'neon-soft': '0 0 20px rgba(0, 255, 143, 0.15)',

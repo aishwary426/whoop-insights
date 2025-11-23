@@ -71,7 +71,7 @@ function getValidSiteUrl(): string {
 }
 
 // Auth helpers
-export const signUp = async (email: string, password: string, name: string) => {
+export const signUp = async (email: string, password: string, name: string, age?: number, nationality?: string) => {
     try {
         // Check if Supabase client is properly configured
         if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
@@ -105,6 +105,8 @@ export const signUp = async (email: string, password: string, name: string) => {
                     options: {
                         data: {
                             name: name,
+                            age: age,
+                            nationality: nationality,
                         },
                         emailRedirectTo: redirectTo,
                     },

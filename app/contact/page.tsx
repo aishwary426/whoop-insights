@@ -13,28 +13,28 @@ const contactOptions = [
     {
         icon: Mail,
         title: 'General Inquiries',
-        email: 'connenct.data.insights@gmail.com',
+        email: 'contact@data-insights.cloud',
         description: 'For partnership opportunities, press inquiries, or general questions.',
         color: 'text-blue-600 dark:text-neon-primary'
     },
     {
         icon: HelpCircle,
         title: 'Support',
-        email: 'connenct.data.insights@gmail.com',
+        email: 'contact@data-insights.cloud',
         description: 'Having trouble with the platform? Our support team typically responds within 24 hours (Pro users) or 48-72 hours (Free users).',
         color: 'text-green-500'
     },
     {
         icon: Lightbulb,
         title: 'Feature Requests',
-        email: 'connenct.data.insights@gmail.com',
+        email: 'contact@data-insights.cloud',
         description: 'Have an idea for a new feature? We read every suggestion and prioritize based on user demand.',
         color: 'text-purple-400'
     },
     {
         icon: Newspaper,
         title: 'Press & Media',
-        email: 'connenct.data.insights@gmail.com',
+        email: 'contact@data-insights.cloud',
         description: 'For interviews, press kits, or media inquiries.',
         color: 'text-yellow-400'
     }
@@ -60,7 +60,7 @@ export default function ContactPage() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         // Handle form submission
-        const mailtoLink = `mailto:connenct.data.insights@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`)}`
+        const mailtoLink = `mailto:contact@data-insights.cloud?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`)}`
         window.location.href = mailtoLink
     }
 

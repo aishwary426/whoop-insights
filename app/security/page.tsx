@@ -204,10 +204,10 @@ export default function SecurityPage() {
                                         If you discover a security vulnerability, please report it responsibly:
                                     </p>
                                     <a
-                                        href="mailto:connenct.data.insights@gmail.com"
+                                        href="mailto:contact@data-insights.cloud"
                                         className="text-blue-600 dark:text-neon-primary hover:underline font-medium"
                                     >
-                                        Email: connenct.data.insights@gmail.com
+                                        Email: contact@data-insights.cloud
                                     </a>
                                     <p className="text-sm text-gray-600 dark:text-white/60 mt-2">
                                         We appreciate responsible disclosure and will acknowledge your report within 48 hours.
@@ -228,10 +228,10 @@ export default function SecurityPage() {
                             Questions?
                         </p>
                         <a
-                            href="mailto:connenct.data.insights@gmail.com"
+                            href="mailto:contact@data-insights.cloud"
                             className="text-blue-600 dark:text-neon-primary hover:underline font-medium"
                         >
-                            Contact our security team at connenct.data.insights@gmail.com
+                            Contact our security team at contact@data-insights.cloud
                         </a>
                     </motion.div>
                 </div>

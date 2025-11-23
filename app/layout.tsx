@@ -1,9 +1,19 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Montserrat } from 'next/font/google'
 import React from 'react'
 import ThemeProvider from '../components/providers/ThemeProvider'
 
-const inter = Inter({ subsets: ['latin'] })
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-montserrat',
+})
+
+const montserratBold = Montserrat({
+  subsets: ['latin'],
+  weight: '700',
+  variable: '--font-montserrat-bold',
+})
 
 export const metadata = {
   title: 'Whoop Insights | AI-Powered Recovery Predictions for Athletes',
@@ -36,7 +46,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${montserrat.className} ${montserrat.variable} ${montserratBold.variable}`}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

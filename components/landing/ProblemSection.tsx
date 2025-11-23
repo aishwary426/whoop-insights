@@ -62,7 +62,7 @@ export default function ProblemSection() {
                 </div>
 
                 {/* Pain Points */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-8">
                     {painPoints.map((point, index) => (
                         <motion.div
                             key={index}
@@ -70,18 +70,16 @@ export default function ProblemSection() {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true, margin: "-100px" }}
                             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: index * 0.1 }}
+                            className="h-full"
                         >
-                            <NeonCard className="p-6 border-gray-200 dark:border-white/10 bg-white/50 dark:bg-[#0A0A0A]/40 hover:bg-white/60 dark:hover:bg-[#0A0A0A]/50 transition-colors">
-                                <div className="flex items-start gap-4">
-                                    <span className="text-2xl">•</span>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90 mb-2">
-                                            {point.title}
-                                        </h3>
-                                        <p className="text-gray-600 dark:text-white/60 leading-relaxed">
-                                            {point.description}
-                                        </p>
-                                    </div>
+                            <NeonCard className="h-full p-8 md:p-10 border border-gray-200/50 dark:border-white/20 bg-white/50 dark:bg-[#0A0A0A]/40 hover:bg-white/60 dark:hover:bg-[#0A0A0A]/50 transition-colors rounded-2xl">
+                                <div className="flex flex-col h-full">
+                                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                                        {point.title}
+                                    </h3>
+                                    <p className="text-base md:text-lg text-gray-600 dark:text-white/70 leading-relaxed flex-grow">
+                                        {point.description}
+                                    </p>
                                 </div>
                             </NeonCard>
                         </motion.div>

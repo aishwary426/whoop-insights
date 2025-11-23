@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,16 +6,27 @@
   :root {
     --neon-glow: rgba(0, 102, 255, 0.18);
   }
-  
+
   .dark {
     --neon-glow: rgba(0, 255, 143, 0.18);
   }
-  
+
   body {
     @apply bg-gray-50 dark:bg-[#050505] text-gray-900 dark:text-white antialiased;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    font-family: var(--font-montserrat), system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-montserrat-bold), var(--font-montserrat), system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    font-weight: 700;
   }
 }
 
@@ -31,7 +40,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-[rgb(0,102,255)] dark:bg-[rgb(0,255,143)] text-white dark:text-black shadow-neon-soft-light dark:shadow-neon-soft hover:shadow-neon-soft-light dark:hover:shadow-neon-soft hover:scale-[1.03] active:scale-95;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-[rgb(0, 102, 255)] dark:bg-[rgb(0, 255, 143)] text-white dark:text-black shadow-neon-soft-light dark:shadow-neon-soft hover:shadow-neon-soft-light dark:hover:shadow-neon-soft hover:scale-[1.03] active:scale-95;
   }
 
   .btn-ghost {
