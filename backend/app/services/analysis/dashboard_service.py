@@ -821,57 +821,102 @@ def get_calorie_gps_recommendations(
 def get_all_model_metrics(user_id: str) -> dict:
     """Get metrics for all trained models for a user."""
     from app.ml.models.model_loader import load_latest_models
+    import logging
     
+    logger = logging.getLogger(__name__)
     models = load_latest_models(user_id)
     all_metrics = {}
     
+    logger.info(f"Loading model metrics for user {user_id}, found {len(models)} model files")
+    
     # Calorie GPS Model
     calorie_gps_data = models.get("calorie_gps")
-    if calorie_gps_data and isinstance(calorie_gps_data, dict):
-        all_metrics["calorie_gps"] = {
-            "model_type": "XGBoost" if calorie_gps_data.get('xgb_model') else "GradientBoosting",
-            "r2": calorie_gps_data.get('r2'),
-            "mae": calorie_gps_data.get('mae'),
-            "sample_size": calorie_gps_data.get('sample_size'),
-            "feature_importance": calorie_gps_data.get('feature_importance', {}),
-        }
+    if calorie_gps_data:
+        if isinstance(calorie_gps_data, dict):
+            all_metrics["calorie_gps"] = {
+                "model_type": "XGBoost" if calorie_gps_data.get('xgb_model') else "GradientBoosting",
+                "r2": calorie_gps_data.get('r2'),
+                "mae": calorie_gps_data.get('mae'),
+                "sample_size": calorie_gps_data.get('sample_size'),
+                "feature_importance": calorie_gps_data.get('feature_importance', {}),
+            }
+        else:
+            # Legacy format: just the model object
+            all_metrics["calorie_gps"] = {
+                "model_type": "GradientBoosting",
+                "available": True,
+            }
     
     # Recovery Velocity Model
     recovery_velocity_data = models.get("recovery_velocity")
-    if recovery_velocity_data and isinstance(recovery_velocity_data, dict):
-        all_metrics["recovery_velocity"] = {
-            "model_type": "Linear Regression",
-            "r2": recovery_velocity_data.get('r2'),
-            "mae": recovery_velocity_data.get('mae'),
-            "sample_size": recovery_velocity_data.get('sample_size'),
-        }
+    if recovery_velocity_data:
+        if isinstance(recovery_velocity_data, dict):
+            all_metrics["recovery_velocity"] = {
+                "model_type": "Linear Regression",
+                "r2": recovery_velocity_data.get('r2'),
+                "mae": recovery_velocity_data.get('mae'),
+                "sample_size": recovery_velocity_data.get('sample_size'),
+            }
+        else:
+            # Legacy format: just the model object
+            all_metrics["recovery_velocity"] = {
+                "model_type": "Linear Regression",
+                "available": True,
+            }
     
     # Strain Tolerance Model
     strain_tolerance_data = models.get("strain_tolerance")
-    if strain_tolerance_data and isinstance(strain_tolerance_data, dict):
-        all_metrics["strain_tolerance"] = {
-            "model_type": "Random Forest Classifier",
-            "accuracy": strain_tolerance_data.get('accuracy'),
-            "sample_size": strain_tolerance_data.get('sample_size'),
-        }
+    if strain_tolerance_data:
+        if isinstance(strain_tolerance_data, dict):
+            all_metrics["strain_tolerance"] = {
+                "model_type": "Random Forest Classifier",
+                "accuracy": strain_tolerance_data.get('accuracy'),
+                "sample_size": strain_tolerance_data.get('sample_size'),
+                "safe_threshold": strain_tolerance_data.get('safe_threshold'),
+            }
+        else:
+            # Legacy format: just the model object
+            all_metrics["strain_tolerance"] = {
+                "model_type": "Random Forest Classifier",
+                "available": True,
+            }
     
     # Workout Timing Optimizer
     workout_timing_data = models.get("workout_timing")
-    if workout_timing_data and isinstance(workout_timing_data, dict):
-        all_metrics["workout_timing"] = {
-            "model_type": "Random Forest Regressor",
-            "r2": workout_timing_data.get('r2'),
-            "sample_size": workout_timing_data.get('sample_size'),
-        }
+    if workout_timing_data:
+        if isinstance(workout_timing_data, dict):
+            all_metrics["workout_timing"] = {
+                "model_type": workout_timing_data.get('model_type', 'Random Forest Classifier'),
+                "optimal_time": workout_timing_data.get('optimal_time'),
+                "optimal_category": workout_timing_data.get('optimal_category'),
+                "confidence": workout_timing_data.get('confidence'),
+                "sample_size": workout_timing_data.get('sample_size'),
+                "improvement_pct": workout_timing_data.get('improvement_pct'),
+            }
+        else:
+            # Legacy format: just the model object
+            all_metrics["workout_timing"] = {
+                "model_type": "Random Forest Classifier",
+                "available": True,
+            }
     
     # Sleep Optimizer
     sleep_optimizer_data = models.get("sleep_optimizer")
-    if sleep_optimizer_data and isinstance(sleep_optimizer_data, dict):
-        all_metrics["sleep_optimizer"] = {
-            "model_type": "Random Forest Regressor",
-            "r2": sleep_optimizer_data.get('r2'),
-            "sample_size": sleep_optimizer_data.get('sample_size'),
-        }
+    if sleep_optimizer_data:
+        if isinstance(sleep_optimizer_data, dict):
+            all_metrics["sleep_optimizer"] = {
+                "model_type": "Random Forest Classifier",
+                "optimal_bedtime": sleep_optimizer_data.get('optimal_bedtime'),
+                "optimal_bedtime_hour": sleep_optimizer_data.get('optimal_bedtime_hour'),
+                "confidence": sleep_optimizer_data.get('confidence'),
+                "sample_size": sleep_optimizer_data.get('sample_size'),
+            }
+        else:
+            # Legacy format: just the model object
+            all_metrics["sleep_optimizer"] = {
+                "model_type": "Random Forest Classifier",
+                "available": True,
+            }
     
     # Recovery Model (XGBoost or RandomForest)
     if models.get("xgb_recovery"):
@@ -897,6 +942,7 @@ def get_all_model_metrics(user_id: str) -> dict:
             "available": True,
         }
     
+    logger.info(f"Returning {len(all_metrics)} model metrics for user {user_id}")
     return all_metrics
 
 

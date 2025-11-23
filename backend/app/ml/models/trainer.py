@@ -208,7 +208,14 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     try:
         sleep_result = train_sleep_optimizer(db, user_id)
         if sleep_result and sleep_result.get('model'):
-            joblib.dump(sleep_result['model'], sleep_opt_path)
+            # Save full result dictionary with metrics (similar to calorie_gps and recovery_velocity)
+            joblib.dump({
+                'model': sleep_result['model'],
+                'optimal_bedtime_hour': sleep_result.get('optimal_bedtime_hour'),
+                'optimal_bedtime': sleep_result.get('optimal_bedtime'),
+                'confidence': sleep_result.get('confidence'),
+                'sample_size': sleep_result.get('sample_size'),
+            }, sleep_opt_path)
             personalization_models.append("sleep_optimizer")
             logger.info(f"Sleep optimizer trained and saved for user {user_id}")
     except Exception as e:
@@ -218,7 +225,17 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     try:
         timing_result = train_workout_timing_optimizer(db, user_id, is_mobile)
         if timing_result and timing_result.get('model'):
-            joblib.dump(timing_result['model'], workout_timing_path)
+            # Save full result dictionary with metrics (similar to calorie_gps and recovery_velocity)
+            joblib.dump({
+                'model': timing_result['model'],
+                'model_type': timing_result.get('model_type'),
+                'optimal_hour': timing_result.get('optimal_hour'),
+                'optimal_time': timing_result.get('optimal_time'),
+                'optimal_category': timing_result.get('optimal_category'),
+                'confidence': timing_result.get('confidence'),
+                'sample_size': timing_result.get('sample_size'),
+                'improvement_pct': timing_result.get('improvement_pct'),
+            }, workout_timing_path)
             personalization_models.append("workout_timing_optimizer")
             logger.info(f"Workout timing optimizer trained and saved for user {user_id}")
     except Exception as e:
