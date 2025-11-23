@@ -84,6 +84,10 @@ export const signUp = async (email: string, password: string, name: string) => {
             }
         }
 
+        // Get a valid site URL for redirects
+        const siteUrl = getValidSiteUrl()
+        const redirectTo = `${siteUrl}/auth/callback`
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -91,6 +95,7 @@ export const signUp = async (email: string, password: string, name: string) => {
                 data: {
                     name: name,
                 },
+                emailRedirectTo: redirectTo,
             },
         })
 
