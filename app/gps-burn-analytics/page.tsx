@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Flame, Target, TrendingUp, Activity, BarChart3, Users, Zap } from 'lucide-react'
@@ -68,8 +68,24 @@ export default function CalorieBurnAnalyticsPage() {
     checkUser()
   }, [router])
 
+  const calculateResultsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   useEffect(() => {
-    calculateResults()
+    // Clear any pending calculations
+    if (calculateResultsTimeoutRef.current) {
+      clearTimeout(calculateResultsTimeoutRef.current)
+    }
+
+    // Debounce the calculation to prevent excessive API calls
+    calculateResultsTimeoutRef.current = setTimeout(() => {
+      calculateResults()
+    }, 300) // 300ms debounce
+
+    return () => {
+      if (calculateResultsTimeoutRef.current) {
+        clearTimeout(calculateResultsTimeoutRef.current)
+      }
+    }
   }, [recovery, targetCalories, user])
 
   const calculateResults = async () => {
@@ -119,16 +135,30 @@ export default function CalorieBurnAnalyticsPage() {
       )
 
       if (response && response.recommendations) {
+        // Calculate baseline for improvement comparison
+        const neutralEfficiency = 10 // neutral baseline at 50% recovery
+        const recoveryBonus = ((recovery - 50) / 50) * 3
+        const baselineEfficiency = neutralEfficiency + recoveryBonus
+        
         // Convert API response to workout format
-        const workouts = response.recommendations.map((rec: any) => ({
-          name: rec.name,
-          emoji: rec.emoji,
-          color: rec.color,
-          efficiency: rec.efficiency,
-          time: rec.time,
-          optimal: rec.optimal,
-          improvement: rec.improvement
-        }))
+        const workouts = response.recommendations.map((rec: any) => {
+          // Calculate improvement if not provided or if it's 0 and we have efficiency
+          let improvement = rec.improvement
+          if (improvement === undefined || improvement === null || (improvement === 0 && rec.efficiency !== undefined)) {
+            // Recalculate improvement based on efficiency vs neutral baseline
+            improvement = ((rec.efficiency - neutralEfficiency) / neutralEfficiency) * 100
+          }
+          
+          return {
+            name: rec.name,
+            emoji: rec.emoji,
+            color: rec.color,
+            efficiency: rec.efficiency,
+            time: rec.time,
+            optimal: rec.optimal,
+            improvement: Math.round(improvement * 10) / 10
+          }
+        })
 
         setResults(workouts)
         setIsPersonalized(response.is_personalized || false)
@@ -211,7 +241,8 @@ export default function CalorieBurnAnalyticsPage() {
     const workouts = workoutShapes.map((w) => {
       const efficiency = baselineEfficiency * w.efficiencyFactor
       const time = baselineTime * w.timeFactor
-      // improvement shown vs neutral baseline to reflect slider changes
+      // improvement shown vs neutral baseline (10 cal/min at 50% recovery)
+      // This ensures improvement is always calculated correctly regardless of recovery level
       const improvement = ((efficiency - neutralEfficiency) / neutralEfficiency) * 100
       return {
         ...w,
