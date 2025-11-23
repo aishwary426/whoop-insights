@@ -34,15 +34,15 @@ export default function AnalyticsControls({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 {/* Date Range Selector */}
                 <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40 mr-2">Range</span>
+                    <span className="text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-white/80 mr-2">Range</span>
                     <div className="flex bg-gray-100 dark:bg-black/40 rounded-lg p-1 border border-gray-200 dark:border-white/5">
                         {RANGES.map((range) => (
                             <button
                                 key={range}
                                 onClick={() => setDateRange(range)}
-                                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${dateRange === range
+                                className={`px-4 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${dateRange === range
                                     ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-                                    : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70'
+                                    : 'text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white'
                                     }`}
                             >
                                 {range}
@@ -53,12 +53,12 @@ export default function AnalyticsControls({
 
                 {/* Presets */}
                 <div className="flex items-center gap-2">
-                    <span className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40 mr-2">Presets</span>
+                    <span className="text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-white/80 mr-2">Presets</span>
                     {PRESETS.map(preset => (
                         <button
                             key={preset.label}
                             onClick={() => setMetrics(preset.metrics)}
-                            className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                            className="px-4 py-2 text-sm font-semibold rounded-full border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                         >
                             {preset.label}
                         </button>
@@ -68,7 +68,7 @@ export default function AnalyticsControls({
 
             {/* Metric Toggles */}
             <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40 mr-2">Metrics</span>
+                <span className="text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-white/80 mr-2">Metrics</span>
                 {availableMetrics.map((metric) => {
                     const isSelected = selectedMetrics.includes(metric)
                     const color = getMetricColor(metric)
@@ -80,10 +80,10 @@ export default function AnalyticsControls({
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className={`
-                flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200
+                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200
                 ${isSelected
                                     ? 'bg-opacity-10 border-opacity-50'
-                                    : 'bg-white/50 dark:bg-black/50 border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 hover:bg-white/80 dark:hover:bg-black/70 hover:border-gray-300 dark:hover:border-white/20'}
+                                    : 'bg-white/50 dark:bg-black/50 border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/80 hover:bg-white/80 dark:hover:bg-black/70 hover:border-gray-300 dark:hover:border-white/20'}
               `}
                             style={{
                                 backgroundColor: isSelected ? `${color}20` : undefined,
@@ -92,7 +92,7 @@ export default function AnalyticsControls({
                             }}
                         >
                             <div
-                                className={`w-2 h-2 rounded-full ${isSelected ? '' : 'bg-gray-400 dark:bg-white/20'}`}
+                                className={`w-2.5 h-2.5 rounded-full ${isSelected ? '' : 'bg-gray-400 dark:bg-white/20'}`}
                                 style={{ backgroundColor: isSelected ? color : undefined }}
                             />
                             {getMetricLabel(metric)}

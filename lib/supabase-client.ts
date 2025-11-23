@@ -7,6 +7,18 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_A
     console.warn('WARNING: Missing Supabase environment variables. Using placeholders to prevent build failure.')
 }
 
-// Create Supabase client
+// Create Supabase client with optimized settings for better reliability
 // Supabase will handle browser vs server environment automatically
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce', // Use PKCE flow for better security and reliability
+    },
+    global: {
+        headers: {
+            'x-client-info': 'whoop-insights-web',
+        },
+    },
+})

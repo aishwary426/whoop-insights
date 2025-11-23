@@ -122,8 +122,8 @@ export default function AdvancedAnalyticsPage() {
             <div className="relative z-10 container mx-auto px-4 py-8 pt-24 space-y-8">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">Advanced Analytics</h1>
-                        <p className="text-gray-600 dark:text-white/60">Deep dive into your biometric trends and correlations.</p>
+                        <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-3">Advanced Analytics</h1>
+                        <p className="text-base text-gray-700 dark:text-white/80 leading-relaxed">Deep dive into your biometric trends and correlations.</p>
                     </div>
                 </div>
 

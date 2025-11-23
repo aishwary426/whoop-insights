@@ -71,17 +71,17 @@ export default function DistributionHistogram({ data, metrics, availableMetrics 
 
     return (
         <NeonCard className="px-4 pt-3 pb-4 h-[450px] border-gray-200 dark:border-white/10 flex flex-col">
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Distribution Analysis</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Distribution Analysis</h3>
 
                     {/* Metric Selector */}
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 dark:text-white/60">Metric:</span>
+                        <span className="text-sm font-semibold text-gray-700 dark:text-white/80">Metric:</span>
                         <select
                             value={selectedMetric}
                             onChange={(e) => setSelectedMetric(e.target.value)}
-                            className="px-3 py-1.5 text-xs rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-black/40 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-neon-primary"
+                            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-black/40 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-neon-primary"
                         >
                             {allMetrics.map(m => (
                                 <option key={m} value={m}>{getMetricLabel(m)}</option>
@@ -146,7 +146,7 @@ export default function DistributionHistogram({ data, metrics, availableMetrics 
                 </ResponsiveContainer>
             </div>
 
-            <p className="text-xs text-gray-600 dark:text-white/40 mt-3 leading-relaxed">
+            <p className="text-sm text-gray-700 dark:text-white/80 mt-3 leading-relaxed">
                 Shows your typical range. Taller bars mean that value occurs more often. Useful for spotting consistency or outliers.
             </p>
         </NeonCard>

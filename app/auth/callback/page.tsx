@@ -50,15 +50,15 @@ export default function AuthCallbackPage() {
 
           if (data.session && mounted) {
             setStatus('success')
-            setMessage('Email confirmed successfully! Redirecting...')
+            setMessage('Email confirmed successfully! Redirecting to login...')
             
             // Clean up the URL
             window.history.replaceState({}, '', '/auth/callback')
             
-            // Redirect to dashboard after a short delay
+            // Redirect to login after a short delay
             setTimeout(() => {
               if (mounted) {
-                router.push('/dashboard')
+                router.push('/login')
               }
             }, 1500)
             return
@@ -71,15 +71,15 @@ export default function AuthCallbackPage() {
 
           if (event === 'SIGNED_IN' && session) {
             setStatus('success')
-            setMessage('Email confirmed successfully! Redirecting...')
+            setMessage('Email confirmed successfully! Redirecting to login...')
             
             // Clean up the URL
             window.history.replaceState({}, '', '/auth/callback')
             
-            // Redirect to dashboard after a short delay
+            // Redirect to login after a short delay
             setTimeout(() => {
               if (mounted) {
-                router.push('/dashboard')
+                router.push('/login')
               }
             }, 1500)
           } else if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
@@ -106,15 +106,15 @@ export default function AuthCallbackPage() {
 
         if (session && mounted) {
           setStatus('success')
-          setMessage('Email confirmed successfully! Redirecting...')
+          setMessage('Email confirmed successfully! Redirecting to login...')
           
           // Clean up the URL
           window.history.replaceState({}, '', '/auth/callback')
           
-          // Redirect to dashboard after a short delay
+          // Redirect to login after a short delay
           setTimeout(() => {
             if (mounted) {
-              router.push('/dashboard')
+              router.push('/login')
             }
           }, 1500)
           
@@ -132,11 +132,11 @@ export default function AuthCallbackPage() {
             const { data: { session: delayedSession } } = await supabase.auth.getSession()
             if (delayedSession && mounted) {
               setStatus('success')
-              setMessage('Email confirmed successfully! Redirecting...')
+              setMessage('Email confirmed successfully! Redirecting to login...')
               window.history.replaceState({}, '', '/auth/callback')
               setTimeout(() => {
                 if (mounted) {
-                  router.push('/dashboard')
+                  router.push('/login')
                 }
               }, 1500)
               if (subscription) {

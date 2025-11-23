@@ -75,10 +75,15 @@ export const signUp = async (email: string, password: string, name: string) => {
     try {
         // Check if Supabase client is properly configured
         if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
+            console.error('Supabase configuration error:', {
+                url: supabaseUrl,
+                hasKey: !!supabaseAnonKey,
+                keyIsPlaceholder: supabaseAnonKey === 'placeholder'
+            })
             return {
                 data: null,
                 error: {
-                    message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.',
+                    message: 'Supabase is not configured. Please create a .env.local file with NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables. Make sure to restart your development server after adding these variables.',
                     name: 'ConfigurationError'
                 }
             }
@@ -88,40 +93,105 @@ export const signUp = async (email: string, password: string, name: string) => {
         const siteUrl = getValidSiteUrl()
         const redirectTo = `${siteUrl}/auth/callback`
 
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    name: name,
-                },
-                emailRedirectTo: redirectTo,
-            },
-        })
+        // Retry logic for network failures (common on first request)
+        let lastError: any = null
+        const maxRetries = 2
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            name: name,
+                        },
+                        emailRedirectTo: redirectTo,
+                    },
+                })
 
-        // Enhance error messages for network issues
-        if (error) {
-            const errorMessage = error.message || ''
-            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
-                return {
-                    data: null,
-                    error: {
-                        message: 'Failed to connect to Supabase. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active, 3) Your internet connection is working.',
-                        name: 'NetworkError'
-                    }
+                // If successful, return immediately
+                if (!error && data) {
+                    return { data, error: null }
+                }
+
+                // If error is not a network error, return immediately
+                const errorMessage = error?.message || ''
+                const isNetworkError = errorMessage.includes('Failed to fetch') || 
+                                     errorMessage.includes('NetworkError') || 
+                                     errorMessage.includes('fetch') ||
+                                     errorMessage.includes('Load failed') ||
+                                     error?.name === 'NetworkError'
+
+                if (!isNetworkError) {
+                    // Not a network error, return the error
+                    return { data, error }
+                }
+
+                // Network error - store for retry
+                lastError = error
+                
+                // If this is not the last attempt, wait a bit before retrying
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 500))
+                    continue
+                }
+            } catch (err: any) {
+                // Check if it's a network error
+                const errorMessage = err?.message || err?.toString() || ''
+                const isNetworkError = errorMessage.includes('fetch') || 
+                                     errorMessage.includes('network') || 
+                                     errorMessage.includes('Failed') ||
+                                     errorMessage.includes('Load failed') ||
+                                     err?.name === 'TypeError' ||
+                                     err?.name === 'NetworkError'
+
+                if (!isNetworkError) {
+                    // Not a network error, throw immediately
+                    throw err
+                }
+
+                // Network error - store for retry
+                lastError = err
+                
+                // If this is not the last attempt, wait a bit before retrying
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 500))
+                    continue
                 }
             }
         }
 
-        return { data, error }
-    } catch (err: any) {
-        // Catch any unexpected errors (like fetch failures)
-        const errorMessage = err.message || err.toString() || 'Unknown error'
-        if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed')) {
+        // All retries failed - return the last error
+        if (lastError) {
             return {
                 data: null,
                 error: {
-                    message: 'Failed to connect to Supabase. Please verify your Supabase configuration in .env.local and ensure your Supabase project is running.',
+                    message: 'Failed to connect to Supabase after multiple attempts. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active, 3) Your internet connection is working.',
+                    name: 'NetworkError'
+                }
+            }
+        }
+
+        return { data: null, error: lastError }
+    } catch (err: any) {
+        // Catch any unexpected errors (like fetch failures, Load failed, etc.)
+        const errorMessage = err.message || err.toString() || 'Unknown error'
+        console.error('Signup catch error:', err)
+        
+        // Check for various network/connection error patterns
+        if (errorMessage.includes('fetch') || 
+            errorMessage.includes('network') || 
+            errorMessage.includes('Failed') ||
+            errorMessage.includes('Load failed') ||
+            errorMessage.includes('NetworkError') ||
+            errorMessage.includes('ERR_') ||
+            err.name === 'TypeError' ||
+            err.name === 'NetworkError') {
+            return {
+                data: null,
+                error: {
+                    message: 'Failed to connect to Supabase. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active and running, 3) Your internet connection is working, 4) Restart your development server after adding environment variables.',
                     name: 'NetworkError'
                 }
             }
@@ -129,7 +199,7 @@ export const signUp = async (email: string, password: string, name: string) => {
         return {
             data: null,
             error: {
-                message: err.message || 'An unexpected error occurred during signup.',
+                message: err.message || 'An unexpected error occurred during signup. Please try again.',
                 name: err.name || 'UnknownError'
             }
         }

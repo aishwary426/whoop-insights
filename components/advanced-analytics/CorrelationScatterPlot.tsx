@@ -95,21 +95,21 @@ export default function CorrelationScatterPlot({ data, metrics, availableMetrics
     return (
         <NeonCard className="px-4 pt-3 pb-4 h-[450px] border-gray-200 dark:border-white/10 flex flex-col">
             {/* Title and Correlation Row */}
-            <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Correlation Analysis</h3>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Correlation Analysis</h3>
                 <div className="text-right ml-4 flex-shrink-0">
-                    <p className="text-xs uppercase tracking-widest text-gray-600 dark:text-white/40 mb-0.5 leading-tight">Correlation</p>
-                    <p className={`text-2xl font-bold leading-tight ${Math.abs(correlation) > 0.5 ? 'text-blue-600 dark:text-neon-primary' : 'text-gray-500 dark:text-white/50'}`}>
+                    <p className="text-sm font-semibold uppercase tracking-wider text-gray-700 dark:text-white/80 mb-1">Correlation</p>
+                    <p className={`text-3xl font-bold leading-tight ${Math.abs(correlation) > 0.5 ? 'text-blue-600 dark:text-neon-primary' : 'text-gray-600 dark:text-white/70'}`}>
                         {correlation.toFixed(2)}
                     </p>
                 </div>
             </div>
 
             {/* Metric Selectors */}
-            <div className="flex flex-wrap items-start gap-3 mb-3">
-                <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-start gap-4 mb-4">
+                <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 dark:text-white/60 whitespace-nowrap w-[50px]">X-Axis:</span>
+                        <span className="text-sm font-semibold text-gray-700 dark:text-white/80 whitespace-nowrap w-[60px]">X-Axis:</span>
                         <select
                             value={metricX}
                             onChange={(e) => {
@@ -118,7 +118,7 @@ export default function CorrelationScatterPlot({ data, metrics, availableMetrics
                                     setMetricX(newMetric)
                                 }
                             }}
-                            className="px-2 py-1 text-xs rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-black/40 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-neon-primary min-w-[120px]"
+                            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-black/40 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-neon-primary min-w-[140px]"
                         >
                             {allMetrics.map(metric => (
                                 <option key={metric} value={metric} disabled={metric === metricY}>
@@ -127,13 +127,13 @@ export default function CorrelationScatterPlot({ data, metrics, availableMetrics
                             ))}
                         </select>
                     </div>
-                    <span className="text-[10px] text-gray-500 dark:text-white/50 italic pl-[58px]">
+                    <span className="text-xs text-gray-600 dark:text-white/60 italic pl-[68px]">
                         Independent variable (influencer)
                     </span>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600 dark:text-white/60 whitespace-nowrap w-[50px]">Y-Axis:</span>
+                        <span className="text-sm font-semibold text-gray-700 dark:text-white/80 whitespace-nowrap w-[60px]">Y-Axis:</span>
                         <select
                             value={metricY}
                             onChange={(e) => {
@@ -142,7 +142,7 @@ export default function CorrelationScatterPlot({ data, metrics, availableMetrics
                                     setMetricY(newMetric)
                                 }
                             }}
-                            className="px-2 py-1 text-xs rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-black/40 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-neon-primary min-w-[120px]"
+                            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-200 dark:border-white/10 bg-white dark:bg-black/40 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-neon-primary min-w-[140px]"
                         >
                             {allMetrics.map(metric => (
                                 <option key={metric} value={metric} disabled={metric === metricX}>
@@ -151,7 +151,7 @@ export default function CorrelationScatterPlot({ data, metrics, availableMetrics
                             ))}
                         </select>
                     </div>
-                    <span className="text-[10px] text-gray-500 dark:text-white/50 italic pl-[58px]">
+                    <span className="text-xs text-gray-600 dark:text-white/60 italic pl-[68px]">
                         Dependent variable (outcome)
                     </span>
                 </div>
@@ -207,8 +207,8 @@ export default function CorrelationScatterPlot({ data, metrics, availableMetrics
                 </ResponsiveContainer>
             </div>
 
-            <p className="text-xs text-gray-600 dark:text-white/40 mt-3 leading-relaxed">
-                <strong className="text-gray-700 dark:text-white/80">Tip:</strong> Put the metric you think <em>influences</em> the other on X-axis, and the one you're trying to <em>understand</em> on Y-axis. Correlation measures relationship strength: <span className="text-blue-600 dark:text-neon-primary">+1.0</span> = rise together, <span className="text-red-400">-1.0</span> = opposite movement.
+            <p className="text-sm text-gray-700 dark:text-white/80 mt-3 leading-relaxed">
+                <strong className="font-bold text-gray-900 dark:text-white">Tip:</strong> Put the metric you think <em>influences</em> the other on X-axis, and the one you're trying to <em>understand</em> on Y-axis. Correlation measures relationship strength: <span className="text-blue-600 dark:text-neon-primary font-semibold">+1.0</span> = rise together, <span className="text-red-400 font-semibold">-1.0</span> = opposite movement.
             </p>
         </NeonCard>
     )

@@ -72,61 +72,39 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
         {/* Content Layer */}
         <div className="relative w-full px-4 md:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            {/* Left Side: Logo + Navigation */}
+            {/* Left Side: Logo */}
             <div className="flex items-center gap-4 md:gap-12">
               {/* Logo */}
               <Link href="/dashboard" className="flex items-center gap-2 md:gap-3 group" aria-label="Data insights dashboard">
-                <div className="relative w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
-                  <Image
-                    src="/logo.svg"
-                    alt="Whoop Insights Logo"
-                    width={32}
-                    height={32}
-                    className="w-full h-full object-contain dark:hidden"
-                    priority
-                  />
-                  <Image
-                    src="/logo-dark.svg"
-                    alt="Whoop Insights Logo"
-                    width={32}
-                    height={32}
-                    className="w-full h-full object-contain hidden dark:block"
-                    priority
-                  />
-                </div>
-                <span className="text-xs md:text-sm font-medium tracking-wide text-gray-900 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors hidden sm:inline">Data insights</span>
+                <span className="text-xl md:text-2xl font-bold tracking-wide text-neon-light dark:text-neon transition-colors">
+                  DATA INSIGHTS
+                </span>
               </Link>
-
-              {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-8">
-                {user
-                  ? navItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`text-sm font-medium transition-colors ${pathname === item.href ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white'
-                        }`}
-                    >
-                      {item.label}
-                    </Link>
-                  ))
-                  : null
-                }
-              </div>
             </div>
 
-            {/* Right side: Mobile Menu Button + Theme Toggle + User Menu */}
+            {/* Right side: Desktop Navigation + Mobile Menu Button + Theme Toggle + User Menu */}
             <div className="flex items-center gap-2 md:gap-4">
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center gap-8">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`text-sm font-medium transition-colors ${pathname === item.href ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
               {/* Mobile Menu Button */}
-              {user && (
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="md:hidden w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
-                  aria-label="Menu"
-                >
-                  {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-                </button>
-              )}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                aria-label="Menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
               <ThemeToggle />
               {user ? (
                 <div className="relative">
@@ -206,7 +184,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
 
         {/* Mobile Menu */}
         <AnimatePresence>
-          {mobileMenuOpen && user && (
+          {mobileMenuOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -221,8 +199,8 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${pathname === item.href
-                        ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10'
-                        : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
+                      ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10'
+                      : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
                       }`}
                   >
                     {item.label}

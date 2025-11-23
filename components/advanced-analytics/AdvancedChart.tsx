@@ -70,8 +70,8 @@ export default function AdvancedChart({ data, selectedMetrics }: AdvancedChartPr
     return (
         <NeonCard className="p-6 h-[500px] border-gray-200 dark:border-white/10">
             <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Multi-Metric Analysis</h3>
-                <p className="text-sm text-gray-500 dark:text-white/50">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Multi-Metric Analysis</h3>
+                <p className="text-base text-gray-700 dark:text-white/80 leading-relaxed">
                     Visualize relationships between different health metrics over time.
                 </p>
             </div>
@@ -94,7 +94,7 @@ export default function AdvancedChart({ data, selectedMetrics }: AdvancedChartPr
                         />
                         <XAxis
                             dataKey="date"
-                            tick={{ fill: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontSize: 11 }}
+                            tick={{ fill: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)', fontSize: 12, fontWeight: 500 }}
                             tickLine={false}
                             axisLine={false}
                             minTickGap={30}
@@ -109,7 +109,7 @@ export default function AdvancedChart({ data, selectedMetrics }: AdvancedChartPr
                                 key={unit}
                                 yAxisId={unit}
                                 orientation={index % 2 === 0 ? 'left' : 'right'}
-                                tick={{ fill: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)', fontSize: 11 }}
+                                tick={{ fill: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)', fontSize: 12, fontWeight: 500 }}
                                 tickLine={false}
                                 axisLine={false}
                                 unit={unit}

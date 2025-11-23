@@ -47,32 +47,32 @@ export default function ComparativeStats({ data, metrics, period }: ComparativeS
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat) => (
-                <NeonCard key={stat.metric} className="p-4 border-gray-200 dark:border-white/10">
-                    <p className="text-xs uppercase tracking-widest text-gray-500 dark:text-white/50 mb-2">
+                <NeonCard key={stat.metric} className="p-5 border-gray-200 dark:border-white/10">
+                    <p className="text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-white/80 mb-3">
                         {getMetricLabel(stat.metric)}
                     </p>
 
                     <div className="flex items-end justify-between">
                         <div>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                                 {stat.currentAvg.toFixed(1)}
-                                <span className="text-sm font-normal text-gray-500 dark:text-white/50 ml-1">
+                                <span className="text-base font-semibold text-gray-600 dark:text-white/70 ml-1">
                                     {getMetricUnit(stat.metric)}
                                 </span>
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-white/50 mt-1">
+                            <p className="text-sm text-gray-600 dark:text-white/70 font-medium">
                                 vs {stat.previousAvg.toFixed(1)} {periodLabel}
                             </p>
                         </div>
 
-                        <div className={`flex items-center gap-1 text-sm font-medium ${stat.percentChange > 0 ? 'text-emerald-500' : stat.percentChange < 0 ? 'text-rose-500' : 'text-gray-600 dark:text-gray-400'
+                        <div className={`flex items-center gap-1 text-base font-bold ${stat.percentChange > 0 ? 'text-emerald-500' : stat.percentChange < 0 ? 'text-rose-500' : 'text-gray-600 dark:text-gray-400'
                             }`}>
                             {stat.percentChange > 0 ? (
-                                <ArrowUp className="w-4 h-4" />
+                                <ArrowUp className="w-5 h-5" />
                             ) : stat.percentChange < 0 ? (
-                                <ArrowDown className="w-4 h-4" />
+                                <ArrowDown className="w-5 h-5" />
                             ) : (
-                                <Minus className="w-4 h-4" />
+                                <Minus className="w-5 h-5" />
                             )}
                             {Math.abs(stat.percentChange).toFixed(1)}%
                         </div>

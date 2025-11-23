@@ -38,11 +38,34 @@ function SignupForm() {
     setLoading(true)
 
     try {
-      const { error } = await signUp(formData.email, formData.password, formData.name)
-      if (error) throw error
-      router.push('/upload')
+      const { error, data } = await signUp(formData.email, formData.password, formData.name)
+      
+      if (error) {
+        console.error('Signup error:', error)
+        // Display a more user-friendly error message
+        const errorMessage = error.message || 'Failed to create account. Please try again.'
+        setError(errorMessage)
+        return
+      }
+
+      // Check if signup was successful (even if email confirmation is required)
+      if (data) {
+        // Redirect to login with confirmation message
+        router.push('/login?message=' + encodeURIComponent('You must have received a confirmation email. Please check your inbox and click the confirmation link to activate your account.'))
+      } else {
+        setError('Signup failed. Please try again.')
+      }
     } catch (error: any) {
-      setError(error.message)
+      console.error('Signup exception:', error)
+      // Handle network errors and other exceptions
+      const errorMessage = error?.message || error?.toString() || 'Failed to create account. Please check your connection and try again.'
+      
+      // Check for common network errors
+      if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Load failed') || errorMessage.includes('Failed to fetch')) {
+        setError('Network error: Unable to connect to the server. Please check your internet connection and ensure Supabase is configured correctly.')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }

@@ -479,28 +479,28 @@ export default function DashboardPage() {
                       key={idx}
                       className="p-6 border-gray-200 dark:border-white/10 bg-white/80 dark:bg-[#0A0A0A]"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90 mb-2">
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                             {insight.title}
                           </h3>
-                          <p className="text-sm text-gray-600 dark:text-white/60 leading-relaxed">
+                          <p className="text-sm text-gray-600 dark:text-white/70 leading-relaxed">
                             {insight.description}
                           </p>
                         </div>
                         {insight.confidence && (
-                          <span className="text-xs font-bold px-2 py-1 rounded uppercase tracking-wider bg-blue-500/20 text-blue-400">
-                            {Math.round(insight.confidence * 100)}% confidence
+                          <span className="text-xs font-bold px-3 py-1.5 rounded-md uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 ml-4 flex-shrink-0">
+                            {Math.round(insight.confidence * 100)}% CONFIDENCE
                           </span>
                         )}
                       </div>
                       {insight.data?.safe_threshold && (
-                        <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-blue-600/10 dark:from-amber-500/10 to-blue-500/5 dark:to-orange-500/5 border border-blue-600/20 dark:border-amber-500/20">
-                          <div className="text-xs uppercase tracking-wider text-blue-600 dark:text-amber-400 mb-1">Safe Strain Threshold</div>
-                          <div className="text-2xl font-bold text-blue-600 dark:text-amber-300">{insight.data.safe_threshold.toFixed(1)}</div>
+                        <div className="mt-5 p-5 rounded-xl bg-gradient-to-br from-blue-600/10 dark:from-amber-500/10 to-blue-500/5 dark:to-orange-500/5 border border-blue-600/20 dark:border-amber-500/20">
+                          <div className="text-xs uppercase tracking-wider text-blue-600 dark:text-amber-400 mb-2 font-semibold">Safe Strain Threshold</div>
+                          <div className="text-4xl font-bold text-blue-600 dark:text-amber-300 mb-2">{insight.data.safe_threshold.toFixed(1)}</div>
                           {insight.data.risk_increase_pct && (
-                            <div className="text-xs text-blue-600/80 dark:text-amber-400/80 mt-1">
-                              Risk increases by {Math.abs(insight.data.risk_increase_pct).toFixed(0)}% when exceeded
+                            <div className="text-sm text-blue-600/90 dark:text-amber-400/90 font-medium">
+                              Your safe strain threshold is {insight.data.safe_threshold.toFixed(1)} - exceeding this increases burnout risk by {Math.abs(insight.data.risk_increase_pct).toFixed(0)}%
                             </div>
                           )}
                         </div>
@@ -508,11 +508,11 @@ export default function DashboardPage() {
 
                       {/* Historical Examples */}
                       {insight.data?.examples && insight.data.examples.length > 0 && (
-                        <div className="mt-6">
-                          <div className="text-sm font-semibold text-gray-700 dark:text-white/90 mb-3">
+                        <div className="mt-8">
+                          <div className="text-base font-bold text-gray-900 dark:text-white mb-4">
                             Why {insight.data.safe_threshold.toFixed(1)}? Evidence from your data:
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {insight.data.examples.map((example: any, exIdx: number) => {
                               const isGood = example.type === 'good'
                               const dateObj = new Date(example.date)
@@ -525,40 +525,47 @@ export default function DashboardPage() {
                               return (
                                 <div
                                   key={exIdx}
-                                  className={`p-3 rounded-lg border ${isGood
-                                      ? 'bg-blue-600/10 dark:bg-green-500/10 border-blue-600/20 dark:border-green-500/20'
-                                      : 'bg-red-500/10 border-red-500/20'
+                                  className={`p-4 rounded-lg border-2 ${isGood
+                                      ? 'bg-blue-600/10 dark:bg-green-500/10 border-blue-600/30 dark:border-green-500/30'
+                                      : 'bg-red-500/10 border-red-500/30'
                                     }`}
                                 >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`w-2 h-2 rounded-full ${isGood ? 'bg-blue-600 dark:bg-green-400' : 'bg-red-400'
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex items-start gap-4 flex-1">
+                                      <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${isGood ? 'bg-blue-600 dark:bg-green-400' : 'bg-red-400'
                                         }`} />
-                                      <div>
-                                        <div className="text-xs text-gray-500 dark:text-white/50">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-semibold text-gray-700 dark:text-white/90 mb-2">
                                           {formattedDate}
                                         </div>
-                                        <div className="text-sm font-medium text-gray-700 dark:text-white/80 mt-0.5">
-                                          {example.message}
+                                        <div className="flex items-center gap-3 mb-2">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-xs font-medium text-gray-500 dark:text-white/60">Strain</span>
+                                            <span className="text-base font-bold text-gray-900 dark:text-white">{example.strain?.toFixed(1) || 'N/A'}</span>
+                                          </div>
+                                          <span className="text-gray-400 dark:text-white/40">→</span>
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-xs font-medium text-gray-500 dark:text-white/60">Recovery</span>
+                                            <span className={`text-base font-bold ${isGood ? 'text-blue-600 dark:text-green-400' : 'text-red-500'}`}>
+                                              {example.recovery?.toFixed(0) || 'N/A'}%
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className={`text-sm font-medium mt-2 ${isGood
+                                            ? 'text-blue-600/90 dark:text-green-400/90'
+                                            : 'text-red-500/90'
+                                          }`}>
+                                          {isGood ? '✓ Staying below threshold maintained strong recovery' : '⚠ Exceeding threshold led to recovery drop'}
                                         </div>
                                       </div>
                                     </div>
-                                    <div className={`text-xs font-bold px-2 py-1 rounded ${isGood
-                                        ? 'bg-blue-600/20 dark:bg-green-500/20 text-blue-600 dark:text-green-400'
-                                        : 'bg-red-500/20 text-red-400'
+                                    <div className={`text-xs font-bold px-3 py-1.5 rounded-md flex-shrink-0 ${isGood
+                                        ? 'bg-blue-600/20 dark:bg-green-500/20 text-blue-600 dark:text-green-400 border border-blue-600/30 dark:border-green-500/30'
+                                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
                                       }`}>
-                                      {isGood ? '✓ Good' : '⚠ Risk'}
+                                      {isGood ? 'Good' : 'Risk'}
                                     </div>
                                   </div>
-                                  {isGood ? (
-                                    <div className="text-xs text-blue-600/80 dark:text-green-400/80 mt-2 ml-5">
-                                      Staying below threshold maintained strong recovery
-                                    </div>
-                                  ) : (
-                                    <div className="text-xs text-red-400/80 mt-2 ml-5">
-                                      Exceeding threshold led to recovery drop
-                                    </div>
-                                  )}
                                 </div>
                               )
                             })}
