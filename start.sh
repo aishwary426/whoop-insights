@@ -57,12 +57,12 @@ if [ ! -d "backend/venv" ]; then
     echo -e "${YELLOW}   Creating Python virtual environment...${NC}"
     cd backend && python3 -m venv venv && cd ..
 fi
-if [ ! -d "backend/venv" ] || ! bash -c "source backend/venv/bin/activate && python3 -c 'import fastapi'" 2>/dev/null; then
-    echo -e "${YELLOW}   Installing backend dependencies...${NC}"
-    cd backend
-    ./venv/bin/python3 -m pip install -q -r requirements.txt
-    cd ..
-fi
+
+# Always check and install dependencies to ensure new packages are picked up
+echo -e "${YELLOW}   Checking/Installing backend dependencies...${NC}"
+cd backend
+./venv/bin/python3 -m pip install -q -r requirements.txt
+cd ..
 echo -e "${GREEN}✅ Dependencies ready${NC}"
 echo ""
 
