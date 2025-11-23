@@ -101,7 +101,29 @@ class Settings(BaseSettings):
     keep_uploaded_files: bool = os.getenv("KEEP_UPLOADED_FILES", "True").lower() == "true"  # Keep uploaded ZIP files after processing
     
     # Admin config
-    admin_emails: list = ["ctaishwary@gmail.com"]  # List of admin email addresses
+    # Read from ADMIN_EMAILS environment variable (comma-separated) or use default
+    admin_emails: list = ["ctaishwary@gmail.com"]  # Default admin email
+    
+    @field_validator('admin_emails', mode='before')
+    @classmethod
+    def parse_admin_emails(cls, v):
+        """Parse admin emails from environment variable or use provided value."""
+        # If it's already a list, return it
+        if isinstance(v, list):
+            return [email.strip().lower() for email in v]
+        
+        # Try to get from environment variable
+        env_value = os.getenv("ADMIN_EMAILS")
+        if env_value:
+            # Split by comma and clean up
+            emails = [email.strip().lower() for email in env_value.split(",") if email.strip()]
+            return emails if emails else ["ctaishwary@gmail.com"]
+        
+        # Use default if provided value is not a list
+        if isinstance(v, str):
+            return [v.strip().lower()]
+        
+        return ["ctaishwary@gmail.com"]
     
     # Image upload config
     images_dir: str = "./data/images"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Startup script for Railway deployment
+# Startup script for Production deployment (Render/Railway)
 
 # Don't exit on error - we want backend to start even if frontend has issues
 set +e
@@ -7,7 +7,7 @@ set +e
 # Set default PORT if not provided
 export PORT=${PORT:-3000}
 
-echo "Starting Railway deployment..."
+echo "Starting Production deployment..."
 echo "PORT=${PORT}"
 
 # Check if server.js exists (Next.js standalone build)
@@ -37,6 +37,27 @@ fi
 if [ ! -f "/app/backend/app/main.py" ]; then
     echo "Error: /app/backend/app/main.py not found!"
     exit 1
+fi
+
+# Run database migrations
+echo "Running database migrations..."
+if [ -d "/app/backend" ]; then
+    cd /app/backend
+    # Add backend directory to PYTHONPATH for migrations
+    export PYTHONPATH=$PYTHONPATH:/app/backend
+    
+    echo "Running migrate_add_age_nationality.py..."
+    python3 migrate_add_age_nationality.py || echo "Warning: migrate_add_age_nationality.py failed"
+    
+    echo "Running migrate_add_baseline_columns.py..."
+    python3 migrate_add_baseline_columns.py || echo "Warning: migrate_add_baseline_columns.py failed"
+    
+    echo "Running migrate_add_image_url.py..."
+    python3 migrate_add_image_url.py || echo "Warning: migrate_add_image_url.py failed"
+    
+    cd /app
+else
+    echo "Warning: /app/backend directory not found, skipping migrations"
 fi
 
 # Create supervisord config with runtime PORT

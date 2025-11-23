@@ -58,11 +58,11 @@ ENV PYTHONPATH=/app/backend
 RUN pip install supervisor
 
 # Copy startup script
-COPY start-railway.sh /app/start-railway.sh
-RUN chmod +x /app/start-railway.sh
+COPY start-prod.sh /app/start-prod.sh
+RUN chmod +x /app/start-prod.sh
 
 # Expose port (Railway will provide PORT env var, default to 3000)
 EXPOSE 3000
 
 # Use startup script that handles PORT at runtime
-CMD ["/app/start-railway.sh"]
+CMD ["/app/start-prod.sh"]
