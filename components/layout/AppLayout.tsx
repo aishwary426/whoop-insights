@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import { Target, LogOut, Settings, Menu, X, PenTool } from 'lucide-react'
+import { LogOut, Settings, Menu, X, PenTool } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { signOut } from '../../lib/auth'
 import NeonButton from '../ui/NeonButton'
@@ -75,8 +76,23 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
             <div className="flex items-center gap-4 md:gap-12">
               {/* Logo */}
               <Link href="/dashboard" className="flex items-center gap-2 md:gap-3 group" aria-label="Data insights dashboard">
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-blue-600/10 dark:bg-neon/10 flex items-center justify-center group-hover:bg-blue-600/20 dark:group-hover:bg-neon/20 transition-colors">
-                  <Target className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600 dark:text-neon-primary" />
+                <div className="relative w-7 h-7 md:w-8 md:h-8 flex-shrink-0">
+                  <Image
+                    src="/logo.svg"
+                    alt="Whoop Insights Logo"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-contain dark:hidden"
+                    priority
+                  />
+                  <Image
+                    src="/logo-dark.svg"
+                    alt="Whoop Insights Logo"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-contain hidden dark:block"
+                    priority
+                  />
                 </div>
                 <span className="text-xs md:text-sm font-medium tracking-wide text-gray-900 dark:text-white/90 group-hover:text-gray-900 dark:group-hover:text-white transition-colors hidden sm:inline">Data insights</span>
               </Link>
