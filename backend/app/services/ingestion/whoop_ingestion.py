@@ -26,9 +26,10 @@ def _get_ml_trainer():
     """Lazy import for ML model training."""
     try:
         from app.ml.models.trainer import train_user_models
+        logger.info("ML trainer imported successfully")
         return train_user_models
     except Exception as e:
-        logger.warning(f"ML training not available: {e}")
+        logger.error(f"ML training not available: {e}", exc_info=True)
         return None
 
 logger = logging.getLogger(__name__)
@@ -523,16 +524,27 @@ def ingest_whoop_zip(
             if progress_callback:
                 progress_callback(upload_id, 96, "Training models... (96%)", "processing", "training")
             logger.info(f"Starting model training for user {user_id} (mobile: {is_mobile})")
-            training_summary = train_models_fn(db, user_id, is_mobile=is_mobile)
-            if training_summary:
-                trained_models = training_summary.get('trained_models', [])
-                logger.info(f"Model training completed. Trained models: {trained_models}")
-                if 'calorie_gps' in trained_models:
-                    logger.info("✅ Calorie GPS model trained successfully!")
+            try:
+                training_summary = train_models_fn(db, user_id, is_mobile=is_mobile)
+                if training_summary:
+                    trained_models = training_summary.get('trained_models', [])
+                    status = training_summary.get('status', 'unknown')
+                    logger.info(f"Model training completed with status '{status}'. Trained models: {trained_models}")
+                    if status == "not_enough_data":
+                        days = training_summary.get('days_used', 0)
+                        logger.warning(f"Training skipped: Need at least 10 days of data, but only have {days} days")
+                    elif status == "skipped_no_ml_libs":
+                        logger.error("Training skipped: ML libraries (joblib/scikit-learn) not available!")
+                    if 'calorie_gps' in trained_models:
+                        logger.info("✅ Calorie GPS model trained successfully!")
+                    elif trained_models:
+                        logger.info("⚠️ Calorie GPS model not trained (may need more workout data with calories and duration)")
                 else:
-                    logger.info("⚠️ Calorie GPS model not trained (may need more workout data with calories and duration)")
+                    logger.warning("Model training returned None (no summary)")
+            except Exception as e:
+                logger.error(f"Error during model training: {e}", exc_info=True)
         else:
-            logger.warning("ML training not available, skipping model training")
+            logger.error("ML training function not available - _get_ml_trainer() returned None. Check if joblib/scikit-learn are installed.")
 
         upload.status = UploadStatus.COMPLETED
         upload.completed_at = datetime.utcnow()
