@@ -3,6 +3,73 @@ import { supabase } from './supabase-client'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
 
+/**
+ * Get a valid site URL for redirects with proper validation
+ * Ensures the URL is complete, has a protocol, and includes port for localhost
+ */
+function getValidSiteUrl(): string {
+    let siteUrl: string | null = null
+
+    // First, try to use window.location.origin if available (most reliable)
+    if (typeof window !== 'undefined' && window.location && window.location.origin) {
+        siteUrl = window.location.origin
+    }
+
+    // If window.location.origin is not available, try NEXT_PUBLIC_SITE_URL
+    if (!siteUrl) {
+        siteUrl = process.env.NEXT_PUBLIC_SITE_URL || null
+    }
+
+    // Validate and fix the URL if needed
+    if (siteUrl) {
+        // Remove trailing slash
+        siteUrl = siteUrl.replace(/\/$/, '')
+        
+        // Check if URL is valid and complete
+        try {
+            // If URL doesn't start with http:// or https://, add http://
+            if (!siteUrl.match(/^https?:\/\//i)) {
+                // If it looks like localhost without protocol, add http://
+                if (siteUrl.includes('localhost') || siteUrl.includes('127.0.0.1')) {
+                    siteUrl = `http://${siteUrl}`
+                } else {
+                    // For production URLs, default to https
+                    siteUrl = `https://${siteUrl}`
+                }
+            }
+            
+            // Validate the URL by creating a URL object
+            const urlObj = new URL(siteUrl)
+            
+            // Ensure localhost URLs have a port number
+            if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
+                if (!urlObj.port) {
+                    // Default to port 3000 for localhost
+                    urlObj.port = '3000'
+                }
+                siteUrl = urlObj.origin
+            } else {
+                siteUrl = urlObj.origin
+            }
+        } catch (e) {
+            // If URL parsing fails, reset to null and use fallback
+            console.warn('Invalid site URL format, using fallback:', siteUrl)
+            siteUrl = null
+        }
+    }
+
+    // Fallback for server-side rendering or invalid URLs
+    if (!siteUrl) {
+        if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+            siteUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL.replace(/\/$/, '')}`
+        } else {
+            siteUrl = 'http://localhost:3000'
+        }
+    }
+
+    return siteUrl
+}
+
 // Auth helpers
 export const signUp = async (email: string, password: string, name: string) => {
     try {
@@ -132,29 +199,8 @@ export const signInWithGoogle = async () => {
             }
         }
 
-        // Determine the redirect URL
-        // Priority: 1) NEXT_PUBLIC_SITE_URL (production), 2) Current window origin (development/production)
-        let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-
-        // If not set, use current origin (handles both client and server side)
-        if (!siteUrl && typeof window !== 'undefined') {
-            siteUrl = window.location.origin
-        }
-
-        // Fallback for server-side rendering
-        if (!siteUrl) {
-            siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-                ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-                : 'http://localhost:3000'
-        }
-
-        // Ensure we have a valid URL
-        if (!siteUrl || siteUrl === 'undefined') {
-            siteUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
-        }
-
-        // Remove trailing slash if present
-        siteUrl = siteUrl.replace(/\/$/, '')
+        // Get a valid site URL with proper validation
+        const siteUrl = getValidSiteUrl()
 
         // Construct the callback URL that Supabase will redirect to after OAuth
         // IMPORTANT: This URL must be added to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs
@@ -249,23 +295,8 @@ export const resetPassword = async (email: string) => {
             }
         }
 
-        // Determine the redirect URL
-        let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-
-        if (!siteUrl && typeof window !== 'undefined') {
-            siteUrl = window.location.origin
-        }
-
-        if (!siteUrl) {
-            siteUrl = process.env.NEXT_PUBLIC_VERCEL_URL
-                ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-                : 'http://localhost:3000'
-        }
-
-        if (!siteUrl || siteUrl === 'undefined') {
-            siteUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
-        }
-
+        // Get a valid site URL with proper validation
+        const siteUrl = getValidSiteUrl()
         const redirectTo = `${siteUrl}/reset-password`
 
         const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
