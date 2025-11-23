@@ -112,6 +112,7 @@ def _ensure_dirs(user_id: str) -> Path:
 def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Optional[Dict]:
     """Train per-user models and persist them to disk."""
     if not SKLEARN_AVAILABLE or not JOBLIB_AVAILABLE:
+        logger.warning(f"ML libraries not available for user {user_id}")
         return {
             "status": "skipped_no_ml_libs",
             "trained_models": [],
@@ -119,12 +120,15 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
         }
 
     df = _load_training_frame(db, user_id)
+    logger.info(f"Training models for user {user_id}: {len(df)} days of data available")
+    
     if df.empty or len(df) < MIN_ROWS:
+        logger.warning(f"Insufficient data for user {user_id}: {len(df)} days (need {MIN_ROWS})")
         return {
             "status": "not_enough_data",
             "trained_models": [],
             "days_used": len(df),
-            "message": "Need at least 10 days of data to train.",
+            "message": f"Need at least {MIN_ROWS} days of data to train. You have {len(df)} days.",
         }
 
     feature_cols = ["strain_score", "sleep_hours", "hrv", "acute_chronic_ratio", "sleep_debt", "consistency_score"]
@@ -146,6 +150,8 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     rf_cal_model.fit(X, y_cal)
 
     version_dir = _ensure_dirs(user_id)
+    logger.info(f"Model directory for user {user_id}: {version_dir}")
+    
     rec_path = version_dir / "recovery_model.joblib"
     burnout_path = version_dir / "burnout_model.joblib"
     cal_path = version_dir / "calorie_model.joblib"
@@ -160,10 +166,24 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
     recovery_velocity_path = version_dir / "recovery_velocity_model.joblib"
     calorie_gps_path = version_dir / "calorie_gps_model.joblib"
 
-    # Save RandomForest models
-    joblib.dump(rf_reg_model, rec_path)
-    joblib.dump(rf_cls_model, burnout_path)
-    joblib.dump(rf_cal_model, cal_path)
+    # Save RandomForest models with error handling
+    try:
+        joblib.dump(rf_reg_model, rec_path)
+        logger.info(f"✓ Saved recovery model to {rec_path}")
+    except Exception as e:
+        logger.error(f"✗ Failed to save recovery model to {rec_path}: {e}", exc_info=True)
+    
+    try:
+        joblib.dump(rf_cls_model, burnout_path)
+        logger.info(f"✓ Saved burnout model to {burnout_path}")
+    except Exception as e:
+        logger.error(f"✗ Failed to save burnout model to {burnout_path}: {e}", exc_info=True)
+    
+    try:
+        joblib.dump(rf_cal_model, cal_path)
+        logger.info(f"✓ Saved calorie model to {cal_path}")
+    except Exception as e:
+        logger.error(f"✗ Failed to save calorie model to {cal_path}: {e}", exc_info=True)
 
     # Train and save XGBoost models (improved performance)
     trained_models = ["recovery", "burnout_classifier", "calorie"]
@@ -305,12 +325,47 @@ def train_user_models(db: Session, user_id: str, is_mobile: bool = False) -> Opt
 
     all_models = trained_models + personalization_models + (["cluster"] if cluster_model else [])
     
+    # Verify models were actually saved
+    saved_models = []
+    model_paths_to_check = [
+        ("recovery", rec_path),
+        ("burnout", burnout_path),
+        ("calorie", cal_path),
+    ]
+    
+    if XGBOOST_AVAILABLE:
+        model_paths_to_check.extend([
+            ("xgb_recovery", xgb_rec_path),
+            ("xgb_burnout", xgb_burnout_path),
+        ])
+    
+    model_paths_to_check.extend([
+        ("sleep_optimizer", sleep_opt_path),
+        ("workout_timing", workout_timing_path),
+        ("strain_tolerance", strain_tolerance_path),
+        ("recovery_velocity", recovery_velocity_path),
+        ("calorie_gps", calorie_gps_path),
+    ])
+    
+    if cluster_model:
+        model_paths_to_check.append(("cluster", cluster_path))
+    
+    for model_name, model_path in model_paths_to_check:
+        if model_path.exists():
+            saved_models.append(model_name)
+            file_size = model_path.stat().st_size
+            logger.info(f"✓ Model file exists: {model_path} ({file_size} bytes)")
+        else:
+            logger.warning(f"✗ Model file missing: {model_path}")
+    
     logger.info(
-        "Training completed",
+        f"Training completed for user {user_id}: {len(all_models)} models trained, {len(saved_models)} files verified",
         extra={
             "user_id": user_id,
             "model_version": settings.model_version,
             "trained_models": all_models,
+            "saved_models": saved_models,
+            "model_directory": str(version_dir),
         },
     )
 
