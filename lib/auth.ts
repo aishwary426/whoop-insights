@@ -3,11 +3,20 @@ import { supabase } from './supabase-client'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
 
+// Cache the site URL to avoid recalculating on every signup
+let cachedSiteUrl: string | null = null
+
 /**
  * Get a valid site URL for redirects with proper validation
  * Ensures the URL is complete, has a protocol, and includes port for localhost
+ * Results are cached for performance
  */
 function getValidSiteUrl(): string {
+    // Return cached value if available
+    if (cachedSiteUrl) {
+        return cachedSiteUrl
+    }
+
     let siteUrl: string | null = null
 
     // First, try to use window.location.origin if available (most reliable)
@@ -67,7 +76,21 @@ function getValidSiteUrl(): string {
         }
     }
 
+    // Cache the result
+    cachedSiteUrl = siteUrl
     return siteUrl
+}
+
+/**
+ * Wraps a promise with a timeout
+ */
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+        )
+    ])
 }
 
 // Auth helpers
@@ -89,17 +112,20 @@ export const signUp = async (email: string, password: string, name: string, age?
             }
         }
 
-        // Get a valid site URL for redirects
+        // Get a valid site URL for redirects (cached for performance)
         const siteUrl = getValidSiteUrl()
         const redirectTo = `${siteUrl}/auth/callback`
 
         // Retry logic for network failures (common on first request)
+        // Reduced retries and delays for faster signup
         let lastError: any = null
-        const maxRetries = 2
+        const maxRetries = 1 // Reduced from 2 to 1 for faster failure
+        const retryDelay = 100 // Reduced from 500ms to 100ms
         
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
             try {
-                const { data, error } = await supabase.auth.signUp({
+                // Add timeout to prevent hanging (10 seconds)
+                const signUpPromise = supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -112,6 +138,8 @@ export const signUp = async (email: string, password: string, name: string, age?
                     },
                 })
 
+                const { data, error } = await withTimeout(signUpPromise, 10000)
+
                 // If successful, return immediately
                 if (!error && data) {
                     return { data, error: null }
@@ -123,6 +151,7 @@ export const signUp = async (email: string, password: string, name: string, age?
                                      errorMessage.includes('NetworkError') || 
                                      errorMessage.includes('fetch') ||
                                      errorMessage.includes('Load failed') ||
+                                     errorMessage.includes('timeout') ||
                                      error?.name === 'NetworkError'
 
                 if (!isNetworkError) {
@@ -134,17 +163,18 @@ export const signUp = async (email: string, password: string, name: string, age?
                 lastError = error
                 
                 // If this is not the last attempt, wait a bit before retrying
-                if (attempt < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 500))
+                if (attempt <= maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay))
                     continue
                 }
             } catch (err: any) {
-                // Check if it's a network error
+                // Check if it's a network error or timeout
                 const errorMessage = err?.message || err?.toString() || ''
                 const isNetworkError = errorMessage.includes('fetch') || 
                                      errorMessage.includes('network') || 
                                      errorMessage.includes('Failed') ||
                                      errorMessage.includes('Load failed') ||
+                                     errorMessage.includes('timeout') ||
                                      err?.name === 'TypeError' ||
                                      err?.name === 'NetworkError'
 
@@ -157,8 +187,8 @@ export const signUp = async (email: string, password: string, name: string, age?
                 lastError = err
                 
                 // If this is not the last attempt, wait a bit before retrying
-                if (attempt < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 500))
+                if (attempt <= maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, retryDelay))
                     continue
                 }
             }
