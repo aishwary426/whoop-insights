@@ -85,6 +85,25 @@ def calorie_gps_recommendations(
 
 
 @router.get("/model-metrics")
-def model_metrics(user_id: str):
+def model_metrics(user_id: str, db: Session = Depends(get_db)):
     """Get all trained model metrics for a user."""
-    return get_all_model_metrics(user_id)
+    import logging
+    from pathlib import Path
+    from app.core_config import get_settings
+    
+    logger = logging.getLogger(__name__)
+    settings = get_settings()
+    
+    # Log model directory for debugging
+    model_dir = Path(settings.model_dir) / user_id
+    logger.info(f"Checking for models in: {model_dir}")
+    logger.info(f"Model directory exists: {model_dir.exists()}")
+    
+    if model_dir.exists():
+        version_dirs = [d for d in model_dir.iterdir() if d.is_dir()]
+        logger.info(f"Found {len(version_dirs)} version directories: {[str(d.name) for d in version_dirs]}")
+    
+    metrics = get_all_model_metrics(user_id)
+    logger.info(f"Returning {len(metrics)} model metrics for user {user_id}: {list(metrics.keys())}")
+    
+    return metrics

@@ -821,13 +821,23 @@ def get_calorie_gps_recommendations(
 def get_all_model_metrics(user_id: str) -> dict:
     """Get metrics for all trained models for a user."""
     from app.ml.models.model_loader import load_latest_models
+    from pathlib import Path
+    from app.core_config import get_settings
     import logging
     
     logger = logging.getLogger(__name__)
+    settings = get_settings()
+    
+    # Check if model directory exists
+    model_dir = Path(settings.model_dir) / user_id
+    logger.info(f"Model directory for user {user_id}: {model_dir}")
+    logger.info(f"Model directory exists: {model_dir.exists()}")
+    logger.info(f"Model directory path: {settings.model_dir}")
+    
     models = load_latest_models(user_id)
     all_metrics = {}
     
-    logger.info(f"Loading model metrics for user {user_id}, found {len(models)} model files")
+    logger.info(f"Loading model metrics for user {user_id}, found {len(models)} model files: {list(models.keys())}")
     
     # Calorie GPS Model
     calorie_gps_data = models.get("calorie_gps")
