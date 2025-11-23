@@ -6,9 +6,11 @@ import logging
 try:
     import joblib
     JOBLIB_AVAILABLE = True
-except ImportError:
+    logger.info("joblib is available for model loading")
+except ImportError as e:
     JOBLIB_AVAILABLE = False
     joblib = None
+    logger.error(f"joblib not available: {e}. Models cannot be loaded. Please install joblib: pip install joblib>=1.3.0")
 
 from app.core_config import get_settings
 
