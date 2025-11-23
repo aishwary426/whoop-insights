@@ -76,8 +76,25 @@ def clear_existing_data(db: Session, user_id: str) -> Tuple[int, int, int]:
 
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+    """Normalize column names: lowercase, strip, replace spaces with underscores."""
+    if df.empty or len(df.columns) == 0:
+        return df
+    df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
     return df
+
+
+def _read_csv_safe(path: str) -> pd.DataFrame:
+    """Read CSV file with encoding fallback handling."""
+    try:
+        # Try UTF-8 first (most common)
+        return pd.read_csv(path, encoding='utf-8')
+    except UnicodeDecodeError:
+        try:
+            # Try Latin-1 (handles most Western European characters)
+            return pd.read_csv(path, encoding='latin-1')
+        except Exception:
+            # Fallback: ignore encoding errors
+            return pd.read_csv(path, encoding='utf-8', errors='ignore')
 
 
 def discover_whoop_csvs(extracted_dir: str) -> Dict[str, List[str]]:
@@ -109,13 +126,24 @@ def parse_physiological_cycles(paths: List[str]) -> pd.DataFrame:
     """Parse the consolidated physiological cycles file."""
     frames = []
     for path in paths:
-        df = pd.read_csv(path)
-        df = _normalize_columns(df)
+        if not os.path.exists(path):
+            logger.warning(f"CSV file not found: {path}")
+            continue
+        try:
+            df = _read_csv_safe(path)
+            if df.empty:
+                logger.warning(f"CSV file {path} is empty")
+                continue
+            df = _normalize_columns(df)
+        except Exception as e:
+            logger.error(f"Error reading CSV file {path}: {e}", exc_info=True)
+            raise ValueError(f"Failed to read physiological_cycles.csv: {str(e)}")
         
         # Map columns
         # Cycle start time -> date
         date_col = next((c for c in df.columns if "cycle_start" in c), None)
         if not date_col:
+            logger.warning(f"No 'cycle_start' column found in {path}")
             continue
             
         df["date"] = pd.to_datetime(df[date_col]).dt.date
@@ -196,8 +224,18 @@ def parse_physiological_cycles(paths: List[str]) -> pd.DataFrame:
 def parse_sleep(paths: List[str]) -> pd.DataFrame:
     frames = []
     for path in paths:
-        df = pd.read_csv(path)
-        df = _normalize_columns(df)
+        if not os.path.exists(path):
+            logger.warning(f"CSV file not found: {path}")
+            continue
+        try:
+            df = _read_csv_safe(path)
+            if df.empty:
+                logger.warning(f"CSV file {path} is empty")
+                continue
+            df = _normalize_columns(df)
+        except Exception as e:
+            logger.error(f"Error reading sleep CSV file {path}: {e}", exc_info=True)
+            continue  # Continue with other files
         date_col = "date" if "date" in df.columns else "day"
         if date_col not in df.columns:
             continue
@@ -214,8 +252,18 @@ def parse_sleep(paths: List[str]) -> pd.DataFrame:
 def parse_recovery(paths: List[str]) -> pd.DataFrame:
     frames = []
     for path in paths:
-        df = pd.read_csv(path)
-        df = _normalize_columns(df)
+        if not os.path.exists(path):
+            logger.warning(f"CSV file not found: {path}")
+            continue
+        try:
+            df = _read_csv_safe(path)
+            if df.empty:
+                logger.warning(f"CSV file {path} is empty")
+                continue
+            df = _normalize_columns(df)
+        except Exception as e:
+            logger.error(f"Error reading recovery CSV file {path}: {e}", exc_info=True)
+            continue  # Continue with other files
         date_col = "date" if "date" in df.columns else "day"
         if date_col not in df.columns:
             continue
@@ -245,8 +293,18 @@ def parse_recovery(paths: List[str]) -> pd.DataFrame:
 def parse_strain(paths: List[str]) -> pd.DataFrame:
     frames = []
     for path in paths:
-        df = pd.read_csv(path)
-        df = _normalize_columns(df)
+        if not os.path.exists(path):
+            logger.warning(f"CSV file not found: {path}")
+            continue
+        try:
+            df = _read_csv_safe(path)
+            if df.empty:
+                logger.warning(f"CSV file {path} is empty")
+                continue
+            df = _normalize_columns(df)
+        except Exception as e:
+            logger.error(f"Error reading strain CSV file {path}: {e}", exc_info=True)
+            continue  # Continue with other files
         if "date" not in df.columns and "day" not in df.columns:
             continue
         date_series = df["date"] if "date" in df.columns else df["day"]
@@ -260,8 +318,18 @@ def parse_strain(paths: List[str]) -> pd.DataFrame:
 def parse_workouts(paths: List[str]) -> List[dict]:
     workouts: List[dict] = []
     for path in paths:
-        df = pd.read_csv(path)
-        df = _normalize_columns(df)
+        if not os.path.exists(path):
+            logger.warning(f"CSV file not found: {path}")
+            continue
+        try:
+            df = _read_csv_safe(path)
+            if df.empty:
+                logger.warning(f"CSV file {path} is empty")
+                continue
+            df = _normalize_columns(df)
+        except Exception as e:
+            logger.error(f"Error reading workouts CSV file {path}: {e}", exc_info=True)
+            continue  # Continue with other files
         date_col = "date" if "date" in df.columns else "day"
         if date_col not in df.columns:
             continue
@@ -289,8 +357,18 @@ def parse_workouts(paths: List[str]) -> List[dict]:
 def parse_journal(paths: List[str]) -> pd.DataFrame:
     frames = []
     for path in paths:
-        df = pd.read_csv(path)
-        df = _normalize_columns(df)
+        if not os.path.exists(path):
+            logger.warning(f"CSV file not found: {path}")
+            continue
+        try:
+            df = _read_csv_safe(path)
+            if df.empty:
+                logger.warning(f"CSV file {path} is empty")
+                continue
+            df = _normalize_columns(df)
+        except Exception as e:
+            logger.error(f"Error reading journal CSV file {path}: {e}", exc_info=True)
+            continue  # Continue with other files
         date_col = "date" if "date" in df.columns else "day"
         if date_col not in df.columns:
             continue
@@ -324,13 +402,26 @@ def _merge_daily_metrics(sleep_df: pd.DataFrame, recovery_df: pd.DataFrame, stra
         return pd.DataFrame(columns=["date", "sleep_hours", "recovery_score", "hrv", "resting_hr", "strain_score"])
 
     df = None
-    candidates = [c for c in [sleep_df, recovery_df, strain_df, journal_df] if c is not None and not c.empty]
+    # Only include candidates that have a "date" column
+    candidates = [
+        c for c in [sleep_df, recovery_df, strain_df, journal_df] 
+        if c is not None and not c.empty and "date" in c.columns
+    ]
+    
+    if not candidates:
+        logger.warning("No valid dataframes with 'date' column to merge")
+        return pd.DataFrame(columns=["date", "sleep_hours", "recovery_score", "hrv", "resting_hr", "strain_score"])
     
     for candidate in candidates:
         if df is None:
-            df = candidate
+            df = candidate.copy()
         else:
-            df = df.merge(candidate, on="date", how="outer")
+            try:
+                df = df.merge(candidate, on="date", how="outer")
+            except Exception as e:
+                logger.error(f"Error merging dataframes: {e}")
+                # Continue with next candidate
+                continue
             
     if df is None:
         return pd.DataFrame()
@@ -464,45 +555,106 @@ def ingest_whoop_zip(
             progress_callback(upload_id, 15, "Unpacking WHOOP export...", "processing", "unzip")
         extracted = unzip_whoop_export(zip_path)
         csv_map = discover_whoop_csvs(extracted)
+        
+        # Validate that we found at least some CSV files
+        total_csvs = sum(len(paths) for paths in csv_map.values())
+        if total_csvs == 0:
+            raise ValueError(
+                "No CSV files found in the ZIP archive. "
+                "Please ensure you're uploading a valid WHOOP export ZIP file. "
+                "The ZIP should contain CSV files like sleep.csv, recovery.csv, strain.csv, or physiological_cycles.csv"
+            )
+        
+        logger.info(f"Found CSV files: {dict((k, len(v)) for k, v in csv_map.items())}")
+        
         if progress_callback:
             progress_callback(upload_id, 92, "Parsing CSV files... (92%)", "processing", "parsing")
 
         # Check for physiological_cycles.csv (consolidated format)
-        journal_df = parse_journal(csv_map["journal"])
+        try:
+            journal_df = parse_journal(csv_map["journal"])
+        except Exception as e:
+            logger.warning(f"Error parsing journal CSV: {e}")
+            journal_df = pd.DataFrame(columns=["date", "extra"])
         
         if csv_map["physiological_cycles"]:
             logger.info("Found physiological_cycles.csv, using consolidated parsing")
-            metrics_df = parse_physiological_cycles(csv_map["physiological_cycles"])
-            
-            # Merge journal_df if it exists
-            if not journal_df.empty:
-                # If metrics_df already has 'extra', merge will create extra_x, extra_y
-                metrics_df = metrics_df.merge(journal_df, on="date", how="outer")
+            try:
+                metrics_df = parse_physiological_cycles(csv_map["physiological_cycles"])
                 
-                # Combine extras logic (duplicated from _merge_daily_metrics but necessary here)
-                extra_cols = [c for c in metrics_df.columns if "extra" in c]
-                if extra_cols:
-                    def _combine_extras(row):
-                        combined = {}
-                        for col in extra_cols:
-                            val = row[col]
-                            if isinstance(val, dict):
-                                combined.update(val)
-                        return combined if combined else None
+                if metrics_df.empty:
+                    raise ValueError(
+                        "physiological_cycles.csv was found but could not be parsed. "
+                        "Please check that the file format is correct."
+                    )
+                
+                # Merge journal_df if it exists
+                if not journal_df.empty and "date" in journal_df.columns and "date" in metrics_df.columns:
+                    try:
+                        # If metrics_df already has 'extra', merge will create extra_x, extra_y
+                        metrics_df = metrics_df.merge(journal_df, on="date", how="outer")
                         
-                    metrics_df["extra"] = metrics_df.apply(_combine_extras, axis=1)
-                    for col in extra_cols:
-                        if col != "extra":
-                            metrics_df = metrics_df.drop(columns=[col])
+                        # Combine extras logic (duplicated from _merge_daily_metrics but necessary here)
+                        extra_cols = [c for c in metrics_df.columns if "extra" in c]
+                        if extra_cols:
+                            def _combine_extras(row):
+                                combined = {}
+                                for col in extra_cols:
+                                    val = row[col]
+                                    if isinstance(val, dict):
+                                        combined.update(val)
+                                return combined if combined else None
+                                
+                            metrics_df["extra"] = metrics_df.apply(_combine_extras, axis=1)
+                            for col in extra_cols:
+                                if col != "extra":
+                                    metrics_df = metrics_df.drop(columns=[col])
+                    except Exception as e:
+                        logger.warning(f"Error merging journal data: {e}")
+                        # Continue without journal data
+            except Exception as e:
+                logger.error(f"Error parsing physiological_cycles.csv: {e}", exc_info=True)
+                raise ValueError(
+                    f"Failed to parse physiological_cycles.csv: {str(e)}. "
+                    "Please ensure the file is a valid WHOOP export CSV."
+                )
                             
         else:
             logger.info("Using legacy separate CSV parsing")
-            sleep_df = parse_sleep(csv_map["sleep"])
-            recovery_df = parse_recovery(csv_map["recovery"])
-            strain_df = parse_strain(csv_map["strain"])
-            metrics_df = _merge_daily_metrics(sleep_df, recovery_df, strain_df, journal_df)
+            try:
+                sleep_df = parse_sleep(csv_map["sleep"])
+                recovery_df = parse_recovery(csv_map["recovery"])
+                strain_df = parse_strain(csv_map["strain"])
+                metrics_df = _merge_daily_metrics(sleep_df, recovery_df, strain_df, journal_df)
+                
+                if metrics_df.empty:
+                    raise ValueError(
+                        "No valid data found in CSV files. "
+                        "Please check that your WHOOP export contains sleep.csv, recovery.csv, and/or strain.csv files with valid data."
+                    )
+            except Exception as e:
+                logger.error(f"Error parsing legacy CSV files: {e}", exc_info=True)
+                if isinstance(e, ValueError):
+                    raise
+                raise ValueError(
+                    f"Failed to parse CSV files: {str(e)}. "
+                    "Please ensure your WHOOP export contains valid CSV files."
+                )
 
-        workouts = parse_workouts(csv_map["workouts"])
+        try:
+            workouts = parse_workouts(csv_map["workouts"])
+        except Exception as e:
+            logger.warning(f"Error parsing workouts CSV: {e}")
+            workouts = []
+
+        # Validate that we have some data to insert
+        if metrics_df.empty:
+            raise ValueError(
+                "No valid data found after parsing CSV files. "
+                "Please check that your WHOOP export contains valid data in sleep.csv, recovery.csv, strain.csv, or physiological_cycles.csv"
+            )
+        
+        logger.info(f"Parsed {len(metrics_df)} daily metrics rows and {len(workouts)} workouts")
 
         upsert_count = upsert_daily_metrics(db, user_id, metrics_df)
         created_workouts, skipped_workouts = persist_workouts(db, user_id, workouts)

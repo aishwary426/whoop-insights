@@ -66,11 +66,6 @@ fi
 echo -e "${GREEN}✅ Dependencies ready${NC}"
 echo ""
 
-# Build frontend
-echo -e "${BLUE}🔨 Building frontend...${NC}"
-npm run build > /dev/null 2>&1
-echo -e "${GREEN}✅ Frontend built${NC}"
-echo ""
 
 # Start backend
 echo -e "${BLUE}🚀 Starting backend server...${NC}"

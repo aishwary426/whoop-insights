@@ -5,6 +5,18 @@ from pathlib import Path
 import os
 
 
+def _is_cloud_platform():
+    """Detect if running on a cloud platform (Vercel, Railway, Render)."""
+    return bool(
+        os.getenv("VERCEL") or 
+        os.getenv("VERCEL_ENV") or 
+        os.getenv("RAILWAY_ENVIRONMENT") or 
+        os.getenv("RENDER") or 
+        os.getenv("RENDER_SERVICE_NAME") or 
+        os.getenv("RENDER_SERVICE_ID")
+    )
+
+
 def _get_default_database_url():
     """Get default database URL, preferring SQLite on serverless platforms."""
     import logging
@@ -70,9 +82,10 @@ class Settings(BaseSettings):
 
     # Data directories
     # Use /tmp for cloud platforms (Vercel, Railway, Render) since local dirs may not be writable
-    upload_dir: str = "/tmp/data/raw" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/raw"
-    processed_dir: str = "/tmp/data/processed" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/processed"
-    model_dir: str = "/tmp/data/models" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/models"
+    # These will be computed at runtime in __init__
+    upload_dir: str = "./data/raw"
+    processed_dir: str = "./data/processed"
+    model_dir: str = "./data/models"
 
     # API config
     api_v1_prefix: str = "/api/v1"
@@ -88,7 +101,7 @@ class Settings(BaseSettings):
     admin_emails: list = ["ctaishwary@gmail.com"]  # List of admin email addresses
     
     # Image upload config
-    images_dir: str = "/tmp/data/images" if (os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER")) else "./data/images"
+    images_dir: str = "./data/images"
     
     # Logging
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
@@ -116,9 +129,23 @@ class Settings(BaseSettings):
         import logging
         logger = logging.getLogger(__name__)
 
+        # Detect cloud platform and set directories accordingly
+        is_cloud = _is_cloud_platform()
+        is_render = bool(os.getenv("RENDER") or os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID"))
+        is_vercel = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
+        is_railway = bool(os.getenv("RAILWAY_ENVIRONMENT"))
+        
+        if is_cloud:
+            # Override with /tmp paths for cloud platforms
+            self.upload_dir = "/tmp/data/raw"
+            self.processed_dir = "/tmp/data/processed"
+            self.model_dir = "/tmp/data/models"
+            self.images_dir = "/tmp/data/images"
+
         logger.info(f"Initializing settings with database: {self.database_url[:30]}...")
         logger.info(f"Upload directory: {self.upload_dir}")
-        logger.info(f"Environment: VERCEL={os.getenv('VERCEL')}, RAILWAY={os.getenv('RAILWAY_ENVIRONMENT')}, RENDER={os.getenv('RENDER')}")
+        logger.info(f"Environment: VERCEL={os.getenv('VERCEL')}, RAILWAY={os.getenv('RAILWAY_ENVIRONMENT')}, RENDER={os.getenv('RENDER') or os.getenv('RENDER_SERVICE_NAME')}")
+        logger.info(f"Cloud platform detected: Render={is_render}, Vercel={is_vercel}, Railway={is_railway}, Cloud={is_cloud}")
 
         # Ensure directories exist (with error handling for serverless)
         for dir_path in [self.upload_dir, self.processed_dir, self.model_dir, self.images_dir]:

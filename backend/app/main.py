@@ -52,6 +52,8 @@ async def startup_event():
     logger.info(f"  - VERCEL: {os.getenv('VERCEL')}")
     logger.info(f"  - RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_ENVIRONMENT')}")
     logger.info(f"  - RENDER: {os.getenv('RENDER')}")
+    logger.info(f"  - RENDER_SERVICE_NAME: {os.getenv('RENDER_SERVICE_NAME')}")
+    logger.info(f"  - RENDER_SERVICE_ID: {os.getenv('RENDER_SERVICE_ID')}")
     logger.info(f"  - DATABASE_URL: {'Set' if os.getenv('DATABASE_URL') else 'Not Set'}")
     logger.info("=" * 60)
 
@@ -113,10 +115,23 @@ async def http_exception_handler(request: Request, exc: FastAPIHTTPException):
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch any unhandled exceptions and return proper JSON response."""
     logger.exception(f"Unhandled exception: {exc}", exc_info=exc)
+    error_type = type(exc).__name__
+    error_msg = str(exc)
+    
+    # Always include error details for better debugging, but sanitize in production
+    if settings.debug:
+        detail = f"Internal server error ({error_type}): {error_msg}"
+    else:
+        # In production, still include error type and a sanitized message
+        # This helps with debugging without exposing sensitive info
+        detail = f"Internal server error: {error_type}"
+        if error_msg and len(error_msg) < 200:  # Only include short, safe messages
+            detail = f"Internal server error: {error_msg[:200]}"
+    
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
-            "detail": f"Internal server error: {str(exc)}" if settings.debug else "Internal server error"
+            "detail": detail
         }
     )
 

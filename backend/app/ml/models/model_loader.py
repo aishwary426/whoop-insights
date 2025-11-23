@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Optional
 import logging
 
+logger = logging.getLogger(__name__)
+
 # Optional ML dependencies
 try:
     import joblib
@@ -14,7 +16,6 @@ except ImportError as e:
 
 from app.core_config import get_settings
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
