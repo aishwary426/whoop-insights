@@ -7,7 +7,6 @@ import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
 import { signIn } from '../../lib/auth'
 import NeonButton from '../../components/ui/NeonButton'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 
 function LoginForm() {
   const router = useRouter()
@@ -45,8 +44,7 @@ function LoginForm() {
         throw error
       }
 
-      // Wait a bit for session to be set
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Redirect immediately - session is already set by Supabase
       router.push('/dashboard')
     } catch (error: any) {
       console.error('Login error:', error)
@@ -60,7 +58,6 @@ function LoginForm() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark">
-      <TranscendentalBackground />
       <div className="relative z-10">
         <AuthCard
           title="Welcome back"
@@ -148,7 +145,6 @@ export default function LoginPage() {
   return (
     <Suspense fallback={
       <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark flex items-center justify-center">
-        <TranscendentalBackground />
         <div className="relative z-10 text-gray-900 dark:text-white">Loading...</div>
       </div>
     }>

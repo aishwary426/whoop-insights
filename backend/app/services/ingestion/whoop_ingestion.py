@@ -35,30 +35,58 @@ def _get_ml_trainer():
 logger = logging.getLogger(__name__)
 
 
-def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Optional[str] = None, age: Optional[int] = None, nationality: Optional[str] = None) -> User:
+def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Optional[str] = None, age: Optional[int] = None, nationality: Optional[str] = None, goal: Optional[str] = None) -> User:
+    # Normalize name: treat "-", empty strings, and None as invalid
+    if name:
+        name = name.strip()
+        if name == "-" or name == "":
+            name = None
+    
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
+        # Only set default name if no valid name provided
+        final_name = name if name else None  # Don't use default "User {id}" anymore
         user = User(
             id=user_id,
             email=email or f"{user_id}@auto.com",
-            name=name or f"User {user_id}",
+            name=final_name,
             age=age,
             nationality=nationality,
+            goal=goal,
         )
         db.add(user)
         db.commit()
         logger.info(f"Created new user: {user_id}")
     else:
-        # Update user fields if provided and not already set
-        if name and not user.name:
-            user.name = name
-        if age and not user.age:
+        # Update user fields if provided (always update to keep in sync)
+        updated = False
+        # Only update name if a valid name is provided (not "-" or empty)
+        if name and name != "-" and name.strip() != "":
+            # Also clear existing "-" or default names
+            if not user.name or user.name == "-" or user.name.startswith("User "):
+                user.name = name
+                updated = True
+            elif user.name != name:
+                user.name = name
+                updated = True
+        # If name is "-" or empty and user has "-", clear it
+        elif (not name or name == "-") and user.name == "-":
+            user.name = None
+            updated = True
+        if age is not None and (not user.age or user.age != age):
             user.age = age
-        if nationality and not user.nationality:
+            updated = True
+        if nationality and (not user.nationality or user.nationality != nationality):
             user.nationality = nationality
-        if email and not user.email:
+            updated = True
+        if goal and (not user.goal or user.goal != goal):
+            user.goal = goal
+            updated = True
+        if email and (not user.email or user.email != email):
             user.email = email
-        db.commit()
+            updated = True
+        if updated:
+            db.commit()
     return user
 
 
@@ -524,6 +552,9 @@ def ingest_whoop_zip(
     file_obj,
     email: Optional[str] = None,
     name: Optional[str] = None,
+    age: Optional[int] = None,
+    nationality: Optional[str] = None,
+    goal: Optional[str] = None,
     upload_id: Optional[str] = None,
     progress_callback: Optional[Callable[[str, int, str, str, Optional[str]], None]] = None,
     zip_path: Optional[str] = None,
@@ -536,7 +567,7 @@ def ingest_whoop_zip(
     upload_id = upload_id or str(uuid.uuid4())
     
     # Step 1: Ensure user exists
-    ensure_user(db, user_id, email, name)
+    ensure_user(db, user_id, email, name, age, nationality, goal)
     
     # Step 2: Clear existing data to ensure fresh start with new upload
     # This ensures that new ZIP files replace old data completely

@@ -35,7 +35,7 @@ export default function ParticleBackground({
         const PARTICLE_COUNT = particleCount
         const FOCAL_LENGTH = 800
         const DEPTH = 2000
-        const BASE_SIZE = 1.5
+        const BASE_SIZE = 2.0
         const MAGNETIC_RADIUS = variant === 'swirl' ? 400 : 1200
         const MAGNETIC_RADIUS_SQ = MAGNETIC_RADIUS * MAGNETIC_RADIUS
         const MAGNETIC_FORCE = 0.7 // Increased force for more motion
@@ -288,6 +288,53 @@ export default function ParticleBackground({
                 p.draw(ctx, pColor)
             })
 
+            // Draw connections
+            ctx.lineWidth = 0.3
+            const CONNECT_DISTANCE = 200
+            const CONNECT_DISTANCE_SQ = CONNECT_DISTANCE * CONNECT_DISTANCE
+
+            // Optimization: Only connect a subset of particles to avoid O(N^2) on all 1000
+            // We'll connect the first 100 particles to any other close particles
+            // This gives the effect of a network without the cost
+            const CONNECT_LIMIT = 100
+
+            for (let i = 0; i < Math.min(particles.length, CONNECT_LIMIT); i++) {
+                const p1 = particles[i]
+                // Skip if p1 is too far back or invisible
+                if (p1.z < -FOCAL_LENGTH + 200) continue
+
+                const scale1 = FOCAL_LENGTH / (FOCAL_LENGTH + p1.z)
+                const x1 = width / 2 + p1.x * scale1
+                const y1 = height / 2 + p1.y * scale1
+
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j]
+
+                    // 3D Distance check (approximate)
+                    const dx = p1.x - p2.x
+                    const dy = p1.y - p2.y
+                    const dz = p1.z - p2.z
+
+                    const distSq = dx * dx + dy * dy + dz * dz
+
+                    if (distSq < CONNECT_DISTANCE_SQ * 2) { // 3D distance threshold
+                        const scale2 = FOCAL_LENGTH / (FOCAL_LENGTH + p2.z)
+                        const x2 = width / 2 + p2.x * scale2
+                        const y2 = height / 2 + p2.y * scale2
+
+                        const alpha = (1 - distSq / (CONNECT_DISTANCE_SQ * 2)) * 0.2
+
+                        if (alpha > 0.01) {
+                            ctx.beginPath()
+                            ctx.strokeStyle = isLightMode ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha})`
+                            ctx.moveTo(x1, y1)
+                            ctx.lineTo(x2, y2)
+                            ctx.stroke()
+                        }
+                    }
+                }
+            }
+
             ctx.globalAlpha = 1
             animationFrameId = requestAnimationFrame(animate)
         }
@@ -307,8 +354,15 @@ export default function ParticleBackground({
         }
 
         let lastScrollY = 0
+        let scrollVelocity = 0
+
         const handleScroll = () => {
             const currentScrollY = window.scrollY
+            const delta = currentScrollY - lastScrollY
+
+            // Calculate velocity (simple difference)
+            scrollVelocity = delta
+
             // Only update if scroll change is significant (reduces unnecessary updates)
             if (Math.abs(currentScrollY - lastScrollY) > 2) {
                 lastScrollY = currentScrollY
@@ -321,6 +375,8 @@ export default function ParticleBackground({
         window.addEventListener('scroll', handleScroll, { passive: true })
 
         init()
+
+        // Animation Loop
         animate()
 
         return () => {
@@ -331,7 +387,7 @@ export default function ParticleBackground({
             window.removeEventListener('scroll', handleScroll)
             cancelAnimationFrame(animationFrameId)
         }
-        }, [particleCount, effectiveAccentColor, variant, theme])
+    }, [particleCount, effectiveAccentColor, variant, theme])
 
     return (
         <canvas

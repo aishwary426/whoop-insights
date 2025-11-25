@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, HelpCircle } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
 
@@ -115,7 +114,6 @@ const faqSections = [
 export default function FAQPage() {
     return (
         <AppLayout>
-            <TranscendentalBackground />
             <div className="relative z-10 min-h-screen py-24 px-6 md:px-12">
                 <div className="max-w-4xl mx-auto space-y-12">
                     {/* Header */}

@@ -124,7 +124,7 @@ export function ParallaxBlob({
 // ... ParallaxBlob component ...
 
 function FloatingParticles({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
-  const particleCount = 100
+  const particleCount = 25
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -156,7 +156,8 @@ function Particle({ index, mouseX, mouseY, isLight }: { index: number, mouseX: a
     <motion.div
       className={clsx(
         "absolute rounded-full",
-        isLight ? "bg-gray-900/10" : "bg-white/20"
+        isLight ? "bg-gray-900/10" : "bg-white/20",
+        "will-change-transform"
       )}
       style={{
         width: size,
@@ -290,7 +291,7 @@ function NeonStructure({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center perspective-1000">
       <motion.div
-        className="relative w-[38rem] h-[38rem] max-w-[90vw]"
+        className="relative w-[38rem] h-[38rem] max-w-[90vw] will-change-transform"
         style={{ rotateX, rotateY }}
         aria-hidden
       >

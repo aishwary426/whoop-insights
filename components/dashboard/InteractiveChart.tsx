@@ -1,24 +1,10 @@
 'use client'
 
-import { useState, memo, useMemo, useEffect } from 'react'
+import { useState, memo, useMemo, useCallback } from 'react'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import NeonCard from '../ui/NeonCard'
 import { useTheme } from 'next-themes'
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-  
-  return isMobile
-}
+import { useIsMobile } from '../../lib/hooks/useIsMobile'
 
 interface InteractiveChartProps {
   title: string
@@ -43,7 +29,7 @@ function InteractiveChart({
   const { theme } = useTheme()
   const isMobile = useIsMobile()
 
-  const chartData = useMemo(() => 
+  const chartData = useMemo(() =>
     data.map((item, idx) => ({
       ...item,
       index: idx,
@@ -55,7 +41,7 @@ function InteractiveChart({
     return data.length > 0 && data.some(item => item.value !== null && item.value !== undefined)
   }, [data])
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = useCallback(({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
@@ -68,10 +54,24 @@ function InteractiveChart({
       )
     }
     return null
-  }
+  }, [color, unit])
 
   const tickColor = theme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'
   const dotFill = theme === 'dark' ? '#0A0A0A' : '#ffffff'
+
+  // Debounce hover updates to prevent jitter
+  const handleMouseMove = useCallback((e: any) => {
+    if (e && e.activeTooltipIndex !== undefined) {
+      // Use requestAnimationFrame for smoother updates
+      requestAnimationFrame(() => {
+        setHoveredIndex(e.activeTooltipIndex)
+      })
+    }
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null)
+  }, [])
 
   return (
     <NeonCard className={`p-4 md:p-6 border-gray-200 dark:border-white/10 flex flex-col ${className || ''}`}>
@@ -85,12 +85,8 @@ function InteractiveChart({
             <AreaChart
               data={chartData}
               margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
-              onMouseMove={(e: any) => {
-                if (e && e.activeTooltipIndex !== undefined) {
-                  setHoveredIndex(e.activeTooltipIndex)
-                }
-              }}
-              onMouseLeave={() => setHoveredIndex(null)}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
             >
               <defs>
                 <linearGradient id={`gradient-${title.toLowerCase().replace(/\s+/g, '-')}-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
@@ -114,13 +110,14 @@ function InteractiveChart({
                 tick={{ fill: tickColor, fontSize: 11 }}
                 width={40}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
               <Area
                 type="monotone"
                 dataKey="value"
                 stroke={color}
                 strokeWidth={2.5}
                 fill={`url(#gradient-${title.toLowerCase().replace(/\s+/g, '-')}-${color.replace('#', '')})`}
+                isAnimationActive={false} // Disable animation for better performance
                 dot={(props: any) => {
                   const { cx, cy, payload } = props
                   const isHovered = hoveredIndex === payload.index
@@ -155,4 +152,5 @@ function InteractiveChart({
 }
 
 export default memo(InteractiveChart)
+
 

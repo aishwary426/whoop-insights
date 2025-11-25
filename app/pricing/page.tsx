@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, Check, X } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
 
@@ -109,7 +108,6 @@ const comparisonFeatures = [
 export default function PricingPage() {
     return (
         <AppLayout>
-            <TranscendentalBackground />
             <div className="relative z-10 min-h-screen py-24 px-6 md:px-12">
                 <div className="max-w-6xl mx-auto space-y-16">
                     {/* Header */}

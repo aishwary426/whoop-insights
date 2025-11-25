@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import AuthCard from '../../components/auth/AuthCard'
 import NeonButton from '../../components/ui/NeonButton'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { resetPassword } from '../../lib/auth'
 
 export default function ForgotPasswordPage() {
@@ -32,7 +31,6 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-bgDark">
-            <TranscendentalBackground />
             <div className="relative z-10">
                 <AuthCard
                     title="Reset Password"

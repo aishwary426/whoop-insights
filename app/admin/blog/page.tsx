@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, Save, Trash2, Plus, Upload, X, CheckCircle, XCircle } from 'lucide-react'
 import AppLayout from '../../../components/layout/AppLayout'
-import TranscendentalBackground from '../../../components/ui/TranscendentalBackground'
 import NeonCard from '../../../components/ui/NeonCard'
 import { api } from '../../../lib/api'
 import { getCurrentUser } from '../../../lib/auth'
@@ -191,7 +190,6 @@ export default function AdminBlogPage() {
 
     return (
         <AppLayout>
-            <TranscendentalBackground />
             <div className="relative z-10 min-h-screen py-24 px-6 md:px-12">
                 <div className="max-w-6xl mx-auto space-y-8">
                     {/* Header */}

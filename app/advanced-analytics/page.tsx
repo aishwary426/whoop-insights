@@ -8,11 +8,12 @@ import AdvancedChart from '../../components/advanced-analytics/AdvancedChart'
 import CorrelationScatterPlot from '../../components/advanced-analytics/CorrelationScatterPlot'
 import DistributionHistogram from '../../components/advanced-analytics/DistributionHistogram'
 import ComparativeStats from '../../components/advanced-analytics/ComparativeStats'
+import HabitImpactVisualization from '../../components/advanced-analytics/HabitImpactVisualization'
 import { api, type TrendsResponse } from '../../lib/api'
 import { getCurrentUser } from '../../lib/auth'
 import { filterDataByRange } from '../../lib/analytics-utils'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { motion } from 'framer-motion'
+import ScrollReveal from '../../components/ui/ScrollReveal'
 
 const AVAILABLE_METRICS = [
     'recovery',
@@ -31,6 +32,7 @@ export default function AdvancedAnalyticsPage() {
     const [user, setUser] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [trends, setTrends] = useState<TrendsResponse | null>(null)
+    const [journalInsights, setJournalInsights] = useState<any[]>([])
 
     // Filter State
     const [dateRange, setDateRange] = useState('1M')
@@ -53,8 +55,12 @@ export default function AdvancedAnalyticsPage() {
 
     const loadData = async () => {
         try {
-            const trendsData = await api.getTrends()
+            const [trendsData, insightsData] = await Promise.all([
+                api.getTrends(),
+                api.getJournalInsights().catch(() => []) // Gracefully handle if no journal data
+            ])
             setTrends(trendsData)
+            setJournalInsights(insightsData)
         } catch (error) {
             console.error('Error loading analytics data:', error)
         } finally {
@@ -117,8 +123,6 @@ export default function AdvancedAnalyticsPage() {
 
     return (
         <AppLayout user={user}>
-            <TranscendentalBackground />
-
             <div className="relative z-10 container mx-auto px-4 py-8 pt-24 space-y-8">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
@@ -139,48 +143,53 @@ export default function AdvancedAnalyticsPage() {
                 {filteredData.length > 0 ? (
                     <div className="space-y-8">
                         {/* Comparative Stats */}
-                        <ComparativeStats
-                            data={filteredData}
-                            metrics={selectedMetrics}
-                            period={comparisonPeriod}
-                        />
+                        <ScrollReveal>
+                            <ComparativeStats
+                                data={filteredData}
+                                metrics={selectedMetrics}
+                                period={comparisonPeriod}
+                            />
+                        </ScrollReveal>
 
                         {/* Main Chart */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5 }}
-                        >
+                        <ScrollReveal>
                             <AdvancedChart data={filteredData} selectedMetrics={selectedMetrics} />
-                        </motion.div>
+                        </ScrollReveal>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Correlation */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: 0.1 }}
-                            >
+                            <ScrollReveal delay={0.1}>
                                 <CorrelationScatterPlot
                                     data={filteredData}
                                     metrics={selectedMetrics}
                                     availableMetrics={AVAILABLE_METRICS}
                                 />
-                            </motion.div>
+                            </ScrollReveal>
 
                             {/* Distribution */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: 0.2 }}
-                            >
+                            <ScrollReveal delay={0.2}>
                                 <DistributionHistogram
                                     data={filteredData}
                                     metrics={selectedMetrics}
                                     availableMetrics={AVAILABLE_METRICS}
                                 />
-                            </motion.div>
+                            </ScrollReveal>
                         </div>
+
+                        {/* Habit Impact Analysis */}
+                        {journalInsights.length > 0 && (
+                            <ScrollReveal delay={0.3} className="mt-12">
+                                <div className="mb-6">
+                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                                        Habit Impact Analysis
+                                    </h2>
+                                    <p className="text-base text-gray-700 dark:text-white/80">
+                                        Quantify how journal entries (alcohol, stress, travel) affect your recovery with statistical significance.
+                                    </p>
+                                </div>
+                                <HabitImpactVisualization insights={journalInsights} />
+                            </ScrollReveal>
+                        )}
                     </div>
                 ) : (
                     <div className="text-center py-20">

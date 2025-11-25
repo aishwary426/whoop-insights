@@ -1,7 +1,8 @@
 'use client'
 
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring, useVelocity } from 'framer-motion'
 import ParticleBackground from './ParticleBackground'
+import CyberGrid from './CyberGrid'
 
 // --- Layer 3: Cosmic Void (The "Deep Data" Vibe) ---
 function CosmicVoid({ opacity }: { opacity: any }) {
@@ -36,14 +37,22 @@ function CosmicVoid({ opacity }: { opacity: any }) {
 }
 
 export default function TranscendentalBackground() {
-    const { scrollYProgress } = useScroll()
+    const { scrollYProgress, scrollY } = useScroll()
+    const scrollVelocity = useVelocity(scrollY)
+
     // Smoother spring physics (lower stiffness, optimized damping) with reduced precision for better performance
     const smoothScroll = useSpring(scrollYProgress, { stiffness: 100, damping: 30, mass: 0.5, restDelta: 0.001 })
+    const smoothVelocity = useSpring(scrollVelocity, { stiffness: 50, damping: 20 })
 
     // Opacity transitions for different layers
     // Particles visible from the start with rotating effect
     const particleOpacity = useTransform(smoothScroll, [0, 0.8, 1], [1, 1, 0], { clamp: true })
     const cosmicOpacity = useTransform(smoothScroll, [0.6, 0.8, 1], [0, 1, 1], { clamp: true })
+
+    // Warp effect based on velocity
+    // When scrolling fast, scale up slightly and blur
+    const warpScale = useTransform(smoothVelocity, [-1000, 0, 1000], [1.05, 1, 1.05], { clamp: true })
+    const warpBlur = useTransform(smoothVelocity, [-2000, 0, 2000], ["blur(2px)", "blur(0px)", "blur(2px)"])
 
     // Parallax movement for the background layers with clamped values
     const y2 = useTransform(smoothScroll, [0, 1], [0, 100], { clamp: true })
@@ -51,20 +60,28 @@ export default function TranscendentalBackground() {
 
     return (
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" style={{ backgroundColor: 'transparent' }}>
+            {/* Layer -1: Base Background */}
+            <div className="absolute inset-0 bg-gray-50 dark:bg-[#02030A]" />
+
+            {/* Layer 0: Cyber Grid (Bottom-most) */}
+            <div className="absolute inset-0 opacity-40 dark:opacity-60">
+                <CyberGrid />
+            </div>
+
             {/* Layer 1: Particle Network (Middle) */}
             <motion.div
-                style={{ y: y2, opacity: particleOpacity }}
+                style={{ y: y2, opacity: particleOpacity, scale: warpScale, filter: warpBlur }}
                 className="absolute inset-0 will-change-transform"
                 initial={false}
             >
                 <div className="absolute inset-0">
-                    <ParticleBackground particleCount={2000} accentColor="#3B82F6" />
+                    <ParticleBackground particleCount={1000} accentColor="#3B82F6" />
                 </div>
             </motion.div>
 
             {/* Layer 2: Cosmic Void (Bottom) */}
             <motion.div
-                style={{ y: y3, opacity: cosmicOpacity }}
+                style={{ y: y3, opacity: cosmicOpacity, scale: warpScale }}
                 className="absolute inset-0 will-change-transform"
                 initial={false}
             >

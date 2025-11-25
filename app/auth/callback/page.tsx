@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase-client'
-import TranscendentalBackground from '../../../components/ui/TranscendentalBackground'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -188,7 +187,6 @@ export default function AuthCallbackPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark">
-      <TranscendentalBackground />
       <div className="relative z-10 flex items-center justify-center min-h-screen">
         <div className="bg-white/10 dark:bg-white/5 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full mx-4 border border-white/20">
           <div className="text-center">

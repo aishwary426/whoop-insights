@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
 import NeonButton from '../../components/ui/NeonButton'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { supabase } from '../../lib/supabase-client'
 import { updatePassword } from '../../lib/auth'
 
@@ -121,7 +120,6 @@ export default function ResetPasswordPage() {
     if (isValidToken === null) {
         return (
             <div className="relative min-h-screen overflow-hidden bg-bgDark">
-                <TranscendentalBackground />
                 <div className="relative z-10">
                     <AuthCard
                         title="Verifying Reset Link"
@@ -138,7 +136,6 @@ export default function ResetPasswordPage() {
     if (isValidToken === false) {
         return (
             <div className="relative min-h-screen overflow-hidden bg-bgDark">
-                <TranscendentalBackground />
                 <div className="relative z-10">
                     <AuthCard
                         title="Invalid Reset Link"
@@ -177,7 +174,6 @@ export default function ResetPasswordPage() {
     if (success) {
         return (
             <div className="relative min-h-screen overflow-hidden bg-bgDark">
-                <TranscendentalBackground />
                 <div className="relative z-10">
                     <AuthCard
                         title="Password Reset Successful"
@@ -197,7 +193,6 @@ export default function ResetPasswordPage() {
     // Show password reset form
     return (
         <div className="relative min-h-screen overflow-hidden bg-bgDark">
-            <TranscendentalBackground />
             <div className="relative z-10">
                 <AuthCard
                     title="Set New Password"

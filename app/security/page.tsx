@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, Shield, Lock, Server, Eye, Key, AlertTriangle } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import NeonCard from '../../components/ui/NeonCard'
 
 const securityPrinciples = [
@@ -81,7 +80,6 @@ const dataFlowSteps = [
 export default function SecurityPage() {
     return (
         <AppLayout>
-            <TranscendentalBackground />
             <div className="relative z-10 min-h-screen py-24 px-6 md:px-12">
                 <div className="max-w-5xl mx-auto space-y-16">
                     {/* Header */}

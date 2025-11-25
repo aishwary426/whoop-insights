@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Brain, TrendingUp, BarChart3, Users, Zap, Activity, Clock, Heart, Flame, Target } from 'lucide-react'
-import AppLayout from '../../components/layout/AppLayout'
-import NeonCard from '../../components/ui/NeonCard'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
-import { getCurrentUser } from '../../lib/auth'
-import { api } from '../../lib/api'
+import AppLayout from '../../../components/layout/AppLayout'
+import NeonCard from '../../../components/ui/NeonCard'
+import { getCurrentUser } from '../../../lib/auth'
+import { api } from '../../../lib/api'
 
 interface ModelMetrics {
   [key: string]: {
@@ -172,7 +171,6 @@ export default function ModelMetricsPage() {
   if (loading) {
     return (
       <AppLayout user={user}>
-        <TranscendentalBackground />
         <div className="relative z-10 flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="w-14 h-14 border-4 border-blue-600/15 dark:border-neon-primary/15 border-t-blue-600 dark:border-t-neon-primary rounded-full animate-spin mx-auto mb-4" />
@@ -187,7 +185,6 @@ export default function ModelMetricsPage() {
 
   return (
     <AppLayout user={user}>
-      <TranscendentalBackground />
       <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-16 text-gray-950 dark:text-white">
         <motion.div
           initial={{ opacity: 0, y: 16 }}

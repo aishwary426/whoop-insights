@@ -37,6 +37,11 @@ def upload_whoop_data(
     user_id: str = Form(..., description="User identifier"),
     file: UploadFile = File(..., description="WHOOP export ZIP file"),
     is_mobile: bool = Form(False, description="Client hint for mobile uploads"),
+    name: Optional[str] = Form(None, description="User's name from profile"),
+    email: Optional[str] = Form(None, description="User's email from profile"),
+    age: Optional[int] = Form(None, description="User's age from profile"),
+    nationality: Optional[str] = Form(None, description="User's nationality from profile"),
+    goal: Optional[str] = Form(None, description="User's goal from profile"),
 ):
     """
     Upload and process WHOOP export ZIP file synchronously.
@@ -111,6 +116,11 @@ def upload_whoop_data(
                 progress_callback=None,  # No progress callback for sync
                 zip_path=zip_path,
                 is_mobile=is_mobile_client,
+                name=name,
+                email=email,
+                age=age,
+                nationality=nationality,
+                goal=goal,
             )
             # Ensure all changes are flushed to the database
             db.flush()

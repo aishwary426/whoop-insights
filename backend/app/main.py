@@ -11,7 +11,7 @@ from app.api.v1.router import api_router
 from app.core_config import get_settings
 from app.utils.logger import setup_logging
 from app.db_session import engine
-from app.models.database import Base
+from app.models.database import Base, AdminEmail  # Import AdminEmail to register it
 
 # Initialize logging (with error handling)
 try:

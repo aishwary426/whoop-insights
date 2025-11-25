@@ -1,25 +1,12 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useMemo, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import NeonCard from '../ui/NeonCard'
 import { Clock } from 'lucide-react'
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-  
-  return isMobile
-}
+import { useTheme } from 'next-themes'
+import { useIsMobile } from '../../lib/hooks/useIsMobile'
 
 interface PerformanceSectionProps {
     strainData: any[]
@@ -27,8 +14,6 @@ interface PerformanceSectionProps {
 }
 
 const WINDOW_OPTIONS = [7, 14, 21, 28]
-
-import { useTheme } from 'next-themes'
 
 export default function PerformanceSection({ strainData, sleepData }: PerformanceSectionProps) {
     const [view, setView] = useState<'strain' | 'sleep' | 'compare'>('strain')
@@ -70,7 +55,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
         return [Math.max(0, min - (max - min) * 0.1), max + (max - min) * 0.1]
     }, [chartData, view])
 
-    const CustomTooltip = ({ active, payload, label }: any) => {
+    const CustomTooltip = useCallback(({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
                 <div className="bg-white/90 dark:bg-black/90 backdrop-blur-md border border-gray-200 dark:border-white/10 p-4 rounded-xl shadow-2xl">
@@ -88,14 +73,14 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
             )
         }
         return null
-    }
+    }, [])
 
     const dotFill = theme === 'dark' ? '#0A0A0A' : '#ffffff'
     const tickColor = theme === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'
     const gridColor = theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
     const cursorColor = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
 
-    const renderDot = (props: any, color: string) => {
+    const renderDot = useCallback((props: any, color: string) => {
         const { cx, cy, payload } = props
         const isHovered = hoveredIndex === payload.index
         return (
@@ -110,7 +95,20 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                 style={{ filter: isHovered ? `drop-shadow(0 0 8px ${color})` : 'none' }}
             />
         )
-    }
+    }, [hoveredIndex, isMobile, dotFill])
+
+    // Debounce hover updates
+    const handleMouseMove = useCallback((e: any) => {
+        if (e && e.activeTooltipIndex !== undefined) {
+            requestAnimationFrame(() => {
+                setHoveredIndex(e.activeTooltipIndex)
+            })
+        }
+    }, [])
+
+    const handleMouseLeave = useCallback(() => {
+        setHoveredIndex(null)
+    }, [])
 
     return (
         <section className="relative min-h-screen flex flex-col justify-center py-12 md:py-20 overflow-hidden">
@@ -217,12 +215,8 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                         <AreaChart
                                             data={chartData}
                                             margin={{ top: 5, right: 10, bottom: 10, left: 5 }}
-                                            onMouseMove={(e: any) => {
-                                                if (e && e.activeTooltipIndex !== undefined) {
-                                                    setHoveredIndex(e.activeTooltipIndex)
-                                                }
-                                            }}
-                                            onMouseLeave={() => setHoveredIndex(null)}
+                                            onMouseMove={handleMouseMove}
+                                            onMouseLeave={handleMouseLeave}
                                         >
                                             <defs>
                                                 <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
@@ -265,7 +259,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                                     return value.toFixed(1)
                                                 }}
                                             />
-                                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: cursorColor, strokeWidth: 2 }} />
+                                            <Tooltip content={<CustomTooltip />} cursor={{ stroke: cursorColor, strokeWidth: 2 }} isAnimationActive={false} />
 
                                             {(view === 'strain' || view === 'compare') && (
                                                 <Area

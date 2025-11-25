@@ -7,7 +7,6 @@ import { Flame, Target, TrendingUp, Activity, BarChart3, Users, Zap } from 'luci
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import { getCurrentUser } from '../../lib/auth'
 
 export default function CalorieBurnAnalyticsPage() {
@@ -278,7 +277,6 @@ export default function CalorieBurnAnalyticsPage() {
 
   return (
     <AppLayout user={user}>
-      <TranscendentalBackground />
       <div className="relative min-h-screen text-gray-900 dark:text-white">
         <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-12 space-y-10">
           <motion.div

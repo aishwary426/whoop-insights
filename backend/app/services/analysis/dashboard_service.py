@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -33,6 +33,14 @@ from app.ml.models.strain_tolerance_model import predict_burnout_risk
 from app.ml.models.recovery_velocity import predict_recovery_days
 from app.ml.models.calorie_gps_model import predict_workout_recommendations
 import numpy as np
+
+# Try to import scipy for statistical tests, fallback to manual calculation
+try:
+    from scipy import stats as scipy_stats
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+    logger.warning("scipy not available, using manual statistical calculations")
 
 logger = logging.getLogger(__name__)
 
@@ -97,44 +105,10 @@ def _predict_tomorrow_recovery(db: Session, user_id: str, dm: DailyMetrics) -> T
         except Exception as e:
             logger.warning(f"Error using ML model for recovery prediction: {e}", exc_info=True)
     
-    # Rule-based fallback
-    recovery = dm.recovery_score or 50
-    strain = dm.strain_score or 0
-    sleep = dm.sleep_hours or 7.5
-    hrv = dm.hrv or 50
-    
-    # Simple heuristic: recovery improves with rest, degrades with strain
-    # Base prediction on current recovery
-    base_prediction = recovery
-    
-    # Adjust based on strain (higher strain → lower recovery)
-    if strain > 15:
-        base_prediction -= 15
-    elif strain > 10:
-        base_prediction -= 10
-    elif strain > 5:
-        base_prediction -= 5
-    
-    # Adjust based on sleep (more sleep → better recovery)
-    if sleep < 6:
-        base_prediction -= 10
-    elif sleep < 7:
-        base_prediction -= 5
-    elif sleep >= 8:
-        base_prediction += 5
-    
-    # Adjust based on HRV (lower HRV → lower recovery)
-    if hrv and hrv < 40:
-        base_prediction -= 5
-    elif hrv and hrv > 60:
-        base_prediction += 3
-    
-    # Clip to valid range
-    base_prediction = max(0, min(100, base_prediction))
-    
+    # Rule-based fallback REMOVED - Return empty prediction if ML fails
     return TomorrowPrediction(
-        recovery_forecast=base_prediction,
-        confidence=0.5  # Lower confidence for rule-based
+        recovery_forecast=None,
+        confidence=0.0
     )
 
 
@@ -638,8 +612,76 @@ def get_personalization_insights(db: Session, user_id: str) -> List[InsightItem]
     return insights
 
 
+def _calculate_confidence_interval(data: List[float], confidence: float = 0.95) -> Tuple[float, float]:
+    """Calculate confidence interval for a dataset."""
+    if not data or len(data) < 2:
+        return (0.0, 0.0)
+    
+    n = len(data)
+    mean = np.mean(data)
+    std_err = np.std(data, ddof=1) / np.sqrt(n) if n > 1 else 0
+    
+    if SCIPY_AVAILABLE:
+        # Use t-distribution for small samples
+        t_critical = scipy_stats.t.ppf((1 + confidence) / 2, df=n - 1)
+    else:
+        # Approximate with normal distribution for large samples, t for small
+        if n < 30:
+            # Rough approximation: t-value for 95% CI
+            t_critical = 2.0 if n < 10 else 1.96
+        else:
+            t_critical = 1.96  # z-value for 95% CI
+    
+    margin = t_critical * std_err
+    return (mean - margin, mean + margin)
+
+
+def _calculate_t_test(group1: List[float], group2: List[float]) -> Tuple[float, float]:
+    """Calculate t-test statistic and p-value between two groups."""
+    if len(group1) < 2 or len(group2) < 2:
+        return (0.0, 1.0)
+    
+    if SCIPY_AVAILABLE:
+        try:
+            t_stat, p_value = scipy_stats.ttest_ind(group1, group2, equal_var=False)
+            return (float(t_stat), float(p_value))
+        except Exception as e:
+            logger.warning(f"Error in scipy t-test: {e}")
+            return (0.0, 1.0)
+    else:
+        # Manual t-test calculation (Welch's t-test approximation)
+        n1, n2 = len(group1), len(group2)
+        mean1, mean2 = np.mean(group1), np.mean(group2)
+        var1, var2 = np.var(group1, ddof=1), np.var(group2, ddof=1)
+        
+        # Pooled standard error
+        se = np.sqrt(var1/n1 + var2/n2)
+        if se == 0:
+            return (0.0, 1.0)
+        
+        t_stat = (mean1 - mean2) / se
+        
+        # Approximate degrees of freedom (Welch-Satterthwaite)
+        df = (var1/n1 + var2/n2)**2 / ((var1/n1)**2/(n1-1) + (var2/n2)**2/(n2-1))
+        df = max(1, int(df))
+        
+        # Approximate p-value using t-distribution (rough approximation)
+        # For simplicity, use a lookup table approximation
+        abs_t = abs(t_stat)
+        if abs_t > 2.5:
+            p_value = 0.01  # Very significant
+        elif abs_t > 2.0:
+            p_value = 0.05  # Significant
+        elif abs_t > 1.5:
+            p_value = 0.10  # Marginally significant
+        else:
+            p_value = 0.20  # Not significant
+        
+        return (float(t_stat), p_value)
+
+
 def get_journal_insights(db: Session, user_id: str) -> List[InsightItem]:
-    """Analyze how journal entries affect next day's recovery."""
+    """Analyze how journal entries affect next day's recovery with statistical significance."""
     rows = (
         db.query(DailyMetrics)
         .filter(DailyMetrics.user_id == user_id)
@@ -660,6 +702,8 @@ def get_journal_insights(db: Session, user_id: str) -> List[InsightItem]:
     for key in journal_keys:
         with_factor = []
         without_factor = []
+        with_dates = []
+        without_dates = []
 
         for i, r in enumerate(rows[:-1]):
             next_day = rows[i+1]
@@ -678,36 +722,73 @@ def get_journal_insights(db: Session, user_id: str) -> List[InsightItem]:
 
             if is_present:
                 with_factor.append(next_day.recovery_score)
+                with_dates.append(next_day.date)
             else:
                 without_factor.append(next_day.recovery_score)
+                without_dates.append(next_day.date)
 
         if len(with_factor) < 3 or len(without_factor) < 3:
             continue
 
-        avg_with = sum(with_factor) / len(with_factor)
-        avg_without = sum(without_factor) / len(without_factor)
+        # Calculate statistics
+        avg_with = np.mean(with_factor)
+        avg_without = np.mean(without_factor)
         diff = avg_with - avg_without
+        
+        # Calculate confidence intervals
+        ci_with = _calculate_confidence_interval(with_factor)
+        ci_without = _calculate_confidence_interval(without_factor)
+        
+        # Calculate t-test for statistical significance
+        t_stat, p_value = _calculate_t_test(with_factor, without_factor)
+        
+        # Determine if statistically significant (p < 0.05)
+        is_significant = p_value < 0.05
+        
+        # Only include insights with meaningful impact
+        if abs(diff) < 0.5:
+            continue
 
-        if abs(diff) > 0.5:
-            impact = "Positive" if diff > 0 else "Negative"
-            clean_key = key.replace("Question: ", "").replace("_", " ").capitalize()
+        impact = "Positive" if diff > 0 else "Negative"
+        clean_key = key.replace("Question: ", "").replace("_", " ").capitalize()
+        
+        # Format description with statistical significance
+        instance_count = len(with_factor)
+        if is_significant:
+            description = f"{clean_key} {'improves' if diff > 0 else 'reduces'} your recovery by {abs(diff):.1f}% on average. Based on {instance_count} day{'s' if instance_count != 1 else ''} of data - this is a reliable pattern."
+        else:
+            description = f"{clean_key} {'improves' if diff > 0 else 'reduces'} your recovery by {abs(diff):.1f}% on average. Based on {instance_count} day{'s' if instance_count != 1 else ''} of data - we need more data to be confident."
 
-            insights.append(
-                InsightItem(
-                    insight_type="journal_impact",
-                    title=f"{clean_key}",
-                    description=f"{impact} Impact: Recovery is {abs(diff):.1f}% {'higher' if diff > 0 else 'lower'} when you do this.",
-                    confidence=0.8,
-                    data={
-                        "factor": clean_key,
-                        "impact_val": diff,
-                        "avg_with": avg_with,
-                        "avg_without": avg_without
-                    }
-                )
+        insights.append(
+            InsightItem(
+                insight_type="journal_impact",
+                title=f"{clean_key}",
+                description=description,
+                confidence=1.0 - p_value if is_significant else 0.5,  # Higher confidence for significant results
+                data={
+                    "factor": clean_key,
+                    "factor_key": key,  # Store original key for API calls
+                    "impact_val": float(diff),
+                    "impact_percent": float(abs(diff)),
+                    "avg_with": float(avg_with),
+                    "avg_without": float(avg_without),
+                    "instance_count": instance_count,
+                    "total_days": len(without_factor),
+                    "p_value": float(p_value),
+                    "t_statistic": float(t_stat),
+                    "is_significant": is_significant,
+                    "ci_with": [float(ci_with[0]), float(ci_with[1])],
+                    "ci_without": [float(ci_without[0]), float(ci_without[1])],
+                    "with_recovery_scores": with_factor,
+                    "without_recovery_scores": without_factor,
+                    "with_dates": [d.isoformat() for d in with_dates],
+                    "without_dates": [d.isoformat() for d in without_dates]
+                }
             )
+        )
 
-    insights.sort(key=lambda x: abs(x.data["impact_val"]), reverse=True)
+    # Sort by statistical significance first, then by impact magnitude
+    insights.sort(key=lambda x: (x.data["is_significant"], abs(x.data["impact_val"])), reverse=True)
     return insights
 
 

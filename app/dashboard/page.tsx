@@ -11,12 +11,13 @@ import RecoveryBaselinePanel from '../../components/dashboard/RecoveryBaselinePa
 import ForecastCard from '../../components/dashboard/ForecastCard'
 import NeonButton from '../../components/ui/NeonButton'
 import NeonCard from '../../components/ui/NeonCard'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import ParallaxSection from '../../components/ui/ParallaxSection'
 import PerformanceSection from '../../components/dashboard/PerformanceSection'
+import ScrollReveal from '../../components/ui/ScrollReveal'
 import DashboardSkeleton, { PersonalizationInsightsSkeleton } from '../../components/dashboard/DashboardSkeleton'
 import { api, type DashboardSummary, type TrendsResponse } from '../../lib/api'
 import { getCurrentUser } from '../../lib/auth'
+import { useIsMobile } from '../../lib/hooks/useIsMobile'
 
 // Typewriter Animation Component
 function TypewriterText({ words }: { words: string[] }) {
@@ -64,22 +65,6 @@ function TypewriterText({ words }: { words: string[] }) {
       </motion.span>
     </span>
   )
-}
-
-// Hook to detect mobile
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  return isMobile
 }
 
 export default function DashboardPage() {
@@ -353,7 +338,6 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <AppLayout user={user}>
-        <TranscendentalBackground />
         <DashboardSkeleton />
       </AppLayout>
     )
@@ -361,7 +345,6 @@ export default function DashboardPage() {
 
   return (
     <AppLayout user={user}>
-      <TranscendentalBackground />
 
       {/* Scroll Indicator */}
       <motion.div
@@ -400,26 +383,6 @@ export default function DashboardPage() {
           }
         >
           <div className="space-y-4 md:space-y-6">
-            {/* Admin View Banner */}
-            {viewingUserId && (
-              <NeonCard className="p-4 border-blue-500/30 bg-blue-500/10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">👁️</span>
-                    <div>
-                      <p className="font-semibold text-blue-600 dark:text-neon-primary">Admin View Mode</p>
-                      <p className="text-sm text-gray-600 dark:text-white/60">Viewing data for user: {viewingUserId}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push('/admin/users')}
-                    className="px-4 py-2 text-sm bg-blue-600 dark:bg-neon-primary text-black dark:text-black rounded-lg hover:bg-blue-700 dark:hover:bg-neon-primary/90 transition-colors"
-                  >
-                    Back to Users
-                  </button>
-                </div>
-              </NeonCard>
-            )}
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold leading-tight text-gray-900 dark:text-white">
               Today's Overview
             </h1>
@@ -503,9 +466,11 @@ export default function DashboardPage() {
             </ParallaxSection>
 
             {/* Section 4: Performance Metrics (Immersive) */}
-            <div className="relative z-20" data-chart="performance-section">
-              <PerformanceSection strainData={last30Strain} sleepData={last30Sleep} />
-            </div>
+            <ScrollReveal>
+              <div className="relative z-20" data-chart="performance-section">
+                <PerformanceSection strainData={last30Strain} sleepData={last30Sleep} />
+              </div>
+            </ScrollReveal>
 
             {/* Section 5: Personalization Insights */}
             <ParallaxSection
@@ -575,8 +540,8 @@ export default function DashboardPage() {
                                 <div
                                   key={exIdx}
                                   className={`p-4 rounded-lg border-2 ${isGood
-                                      ? 'bg-blue-600/10 dark:bg-green-500/10 border-blue-600/30 dark:border-green-500/30'
-                                      : 'bg-red-500/10 border-red-500/30'
+                                    ? 'bg-blue-600/10 dark:bg-green-500/10 border-blue-600/30 dark:border-green-500/30'
+                                    : 'bg-red-500/10 border-red-500/30'
                                     }`}
                                 >
                                   <div className="flex items-start justify-between gap-4">
@@ -601,16 +566,16 @@ export default function DashboardPage() {
                                           </div>
                                         </div>
                                         <div className={`text-sm font-medium mt-2 ${isGood
-                                            ? 'text-blue-600/90 dark:text-green-400/90'
-                                            : 'text-red-500/90'
+                                          ? 'text-blue-600/90 dark:text-green-400/90'
+                                          : 'text-red-500/90'
                                           }`}>
                                           {isGood ? '✓ Staying below threshold maintained strong recovery' : '⚠ Exceeding threshold led to recovery drop'}
                                         </div>
                                       </div>
                                     </div>
                                     <div className={`text-xs font-bold px-3 py-1.5 rounded-md flex-shrink-0 ${isGood
-                                        ? 'bg-blue-600/20 dark:bg-green-500/20 text-blue-600 dark:text-green-400 border border-blue-600/30 dark:border-green-500/30'
-                                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                      ? 'bg-blue-600/20 dark:bg-green-500/20 text-blue-600 dark:text-green-400 border border-blue-600/30 dark:border-green-500/30'
+                                      : 'bg-red-500/20 text-red-400 border border-red-500/30'
                                       }`}>
                                       {isGood ? 'Good' : 'Risk'}
                                     </div>

@@ -33,7 +33,7 @@ function getValidSiteUrl(): string {
     if (siteUrl) {
         // Remove trailing slash
         siteUrl = siteUrl.replace(/\/$/, '')
-        
+
         // Check if URL is valid and complete
         try {
             // If URL doesn't start with http:// or https://, add http://
@@ -46,10 +46,10 @@ function getValidSiteUrl(): string {
                     siteUrl = `https://${siteUrl}`
                 }
             }
-            
+
             // Validate the URL by creating a URL object
             const urlObj = new URL(siteUrl)
-            
+
             // Ensure localhost URLs have a port number
             if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
                 if (!urlObj.port) {
@@ -87,7 +87,7 @@ function getValidSiteUrl(): string {
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
     return Promise.race([
         promise,
-        new Promise<T>((_, reject) => 
+        new Promise<T>((_, reject) =>
             setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
         )
     ])
@@ -116,104 +116,83 @@ export const signUp = async (email: string, password: string, name: string, age?
         const siteUrl = getValidSiteUrl()
         const redirectTo = `${siteUrl}/auth/callback`
 
-        // Retry logic for network failures (common on first request)
-        // Reduced retries and delays for faster signup
-        let lastError: any = null
-        const maxRetries = 1 // Reduced from 2 to 1 for faster failure
-        const retryDelay = 100 // Reduced from 500ms to 100ms
-        
-        for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-            try {
-                // Add timeout to prevent hanging (10 seconds)
-                const signUpPromise = supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            name: name,
-                            age: age,
-                            nationality: nationality,
-                        },
-                        emailRedirectTo: redirectTo,
+        // Signup with reasonable timeout - Supabase may need time to send confirmation email
+        try {
+            // Increased timeout to 20s to allow for email sending and network latency
+            const signUpPromise = supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        name: name,
+                        full_name: name, // Standard field for Supabase
+                        display_name: name, // Standard field for Supabase
+                        age: age,
+                        nationality: nationality,
                     },
-                })
+                    emailRedirectTo: redirectTo,
+                },
+            })
 
-                const { data, error } = await withTimeout(signUpPromise, 10000)
+            const { data, error } = await withTimeout(signUpPromise, 20000)
 
-                // If successful, return immediately
-                if (!error && data) {
-                    return { data, error: null }
-                }
-
-                // If error is not a network error, return immediately
+            if (error) {
+                // Enhance error messages for network issues
                 const errorMessage = error?.message || ''
-                const isNetworkError = errorMessage.includes('Failed to fetch') || 
-                                     errorMessage.includes('NetworkError') || 
-                                     errorMessage.includes('fetch') ||
-                                     errorMessage.includes('Load failed') ||
-                                     errorMessage.includes('timeout') ||
-                                     error?.name === 'NetworkError'
-
-                if (!isNetworkError) {
-                    // Not a network error, return the error
-                    return { data, error }
-                }
-
-                // Network error - store for retry
-                lastError = error
                 
-                // If this is not the last attempt, wait a bit before retrying
-                if (attempt <= maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, retryDelay))
-                    continue
+                // Check for rate limit errors first
+                if (errorMessage.toLowerCase().includes('rate limit') || 
+                    errorMessage.toLowerCase().includes('too many requests') ||
+                    errorMessage.toLowerCase().includes('email rate limit') ||
+                    error?.status === 429) {
+                    return {
+                        data: null,
+                        error: {
+                            message: 'Email rate limit exceeded. Too many signup attempts were made. Please wait a few minutes before trying again.',
+                            name: 'RateLimitError'
+                        }
+                    }
                 }
-            } catch (err: any) {
-                // Check if it's a network error or timeout
-                const errorMessage = err?.message || err?.toString() || ''
-                const isNetworkError = errorMessage.includes('fetch') || 
-                                     errorMessage.includes('network') || 
-                                     errorMessage.includes('Failed') ||
-                                     errorMessage.includes('Load failed') ||
-                                     errorMessage.includes('timeout') ||
-                                     err?.name === 'TypeError' ||
-                                     err?.name === 'NetworkError'
-
-                if (!isNetworkError) {
-                    // Not a network error, throw immediately
-                    throw err
-                }
-
-                // Network error - store for retry
-                lastError = err
                 
-                // If this is not the last attempt, wait a bit before retrying
-                if (attempt <= maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, retryDelay))
-                    continue
+                if (errorMessage.includes('Failed to fetch') ||
+                    errorMessage.includes('NetworkError') ||
+                    errorMessage.includes('fetch') ||
+                    errorMessage.includes('Load failed') ||
+                    errorMessage.includes('timeout') ||
+                    error?.name === 'NetworkError') {
+                    return {
+                        data: null,
+                        error: {
+                            message: 'Failed to connect to Supabase. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active, 3) Your internet connection is working.',
+                            name: 'NetworkError'
+                        }
+                    }
                 }
             }
-        }
 
-        // All retries failed - return the last error
-        if (lastError) {
-            return {
-                data: null,
-                error: {
-                    message: 'Failed to connect to Supabase after multiple attempts. Please check: 1) Your .env.local file has correct NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, 2) Your Supabase project is active, 3) Your internet connection is working.',
-                    name: 'NetworkError'
+            return { data, error }
+        } catch (err: any) {
+            // Handle timeout and other errors
+            const errorMessage = err?.message || err?.toString() || ''
+            if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout')) {
+                return {
+                    data: null,
+                    error: {
+                        message: 'Signup request timed out. This can happen if: 1) Your internet connection is slow, 2) Supabase is experiencing high load, or 3) There are network issues. Please check your connection and try again. If the problem persists, wait a moment and retry.',
+                        name: 'TimeoutError'
+                    }
                 }
             }
+            throw err
         }
-
-        return { data: null, error: lastError }
     } catch (err: any) {
         // Catch any unexpected errors (like fetch failures, Load failed, etc.)
         const errorMessage = err.message || err.toString() || 'Unknown error'
         console.error('Signup catch error:', err)
-        
+
         // Check for various network/connection error patterns
-        if (errorMessage.includes('fetch') || 
-            errorMessage.includes('network') || 
+        if (errorMessage.includes('fetch') ||
+            errorMessage.includes('network') ||
             errorMessage.includes('Failed') ||
             errorMessage.includes('Load failed') ||
             errorMessage.includes('NetworkError') ||
@@ -251,15 +230,22 @@ export const signIn = async (email: string, password: string) => {
             }
         }
 
-        const { data, error } = await supabase.auth.signInWithPassword({
+        // Add timeout for faster failure detection (5 seconds)
+        const signInPromise = supabase.auth.signInWithPassword({
             email,
             password,
         })
 
+        const { data, error } = await withTimeout(signInPromise, 5000)
+
         // Enhance error messages for network issues
         if (error) {
             const errorMessage = error.message || ''
-            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+            if (errorMessage.includes('Failed to fetch') ||
+                errorMessage.includes('NetworkError') ||
+                errorMessage.includes('fetch') ||
+                errorMessage.includes('Load failed') ||
+                errorMessage.includes('timeout')) {
                 return {
                     data: null,
                     error: {
@@ -272,8 +258,17 @@ export const signIn = async (email: string, password: string) => {
 
         return { data, error }
     } catch (err: any) {
-        // Catch any unexpected errors (like fetch failures)
-        const errorMessage = err.message || err.toString() || 'Unknown error'
+        // Handle timeout and other errors
+        const errorMessage = err?.message || err?.toString() || 'Unknown error'
+        if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout')) {
+            return {
+                data: null,
+                error: {
+                    message: 'Request timed out. Please check your connection and try again.',
+                    name: 'TimeoutError'
+                }
+            }
+        }
         if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed')) {
             return {
                 data: null,

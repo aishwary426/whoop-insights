@@ -10,17 +10,6 @@ export default function HeroSection() {
             {/* Content */}
             <div className="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center gap-8 md:gap-10">
 
-                {/* Product Label */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 backdrop-blur-sm"
-                >
-                    <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-neon animate-pulse"></span>
-                    <span className="text-xs md:text-sm font-medium text-gray-800 dark:text-white/80 tracking-wide uppercase">AI for WHOOP Athletes</span>
-                </motion.div>
-
                 {/* Headline */}
                 <motion.h1
                     initial={{ opacity: 0, y: 30 }}

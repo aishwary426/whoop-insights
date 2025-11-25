@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowLeft, Brain, TrendingUp, Activity, Zap, Target, MessageSquare, Layers, LayoutDashboard } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
 
@@ -83,7 +82,6 @@ const itemVariants = {
 export default function WhyPage() {
     return (
         <AppLayout>
-            <TranscendentalBackground />
             <div className="relative min-h-screen pt-24 pb-20 px-6 md:px-8 z-10">
 
                 <div className="relative z-10 max-w-6xl mx-auto">

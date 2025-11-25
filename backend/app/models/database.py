@@ -36,6 +36,10 @@ class User(Base):
     uploads = relationship("Upload", back_populates="user", cascade="all, delete-orphan")
     daily_metrics = relationship("DailyMetrics", back_populates="user", cascade="all, delete-orphan")
     workouts = relationship("Workout", back_populates="user", cascade="all, delete-orphan")
+    
+    __table_args__ = (
+        Index('idx_user_email', 'email'),  # Index for faster email lookups during auth
+    )
 
 class Upload(Base):
     __tablename__ = "uploads"
@@ -210,4 +214,16 @@ class NewsletterSubscriber(Base):
     __table_args__ = (
         Index('idx_subscriber_email', 'email'),
         Index('idx_subscriber_status', 'subscribed'),
+    )
+
+class AdminEmail(Base):
+    __tablename__ = "admin_emails"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, unique=True, nullable=False)
+    added_by = Column(String, nullable=False)  # Email of the admin who added this
+    added_at = Column(DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        Index('idx_admin_email', 'email'),
     )

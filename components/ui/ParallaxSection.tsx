@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
-import { motion } from 'framer-motion'
+import ScrollReveal from './ScrollReveal'
 
 interface ParallaxSectionProps {
     children: React.ReactNode
@@ -31,16 +31,9 @@ export default function ParallaxSection({
               ${stickyPosition === 'left' ? 'lg:w-1/3 lg:order-1 lg:sticky lg:top-24 lg:self-start' : ''}
               ${stickyPosition === 'right' ? 'lg:w-1/3 lg:order-2 lg:sticky lg:top-24 lg:self-start' : ''}
             `}>
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, margin: "-100px" }}
-                                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                                layout={false}
-                                className="will-change-transform"
-                            >
+                            <ScrollReveal>
                                 {stickyContent}
-                            </motion.div>
+                            </ScrollReveal>
                         </div>
 
                         {/* Scrollable Content Side */}
@@ -51,13 +44,15 @@ export default function ParallaxSection({
                 ${stickyPosition === 'right' ? 'lg:w-2/3 lg:order-1' : ''}
               `}
                         >
-                            {children}
+                            <ScrollReveal delay={0.2}>
+                                {children}
+                            </ScrollReveal>
                         </div>
                     </div>
                 ) : (
-                    <div>
+                    <ScrollReveal>
                         {children}
-                    </div>
+                    </ScrollReveal>
                 )}
             </div>
         </section>

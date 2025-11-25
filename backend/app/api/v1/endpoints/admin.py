@@ -1,172 +1,219 @@
 """
-Admin endpoints for managing users and viewing their data.
+Admin endpoints for managing admin emails.
 """
 import logging
-import os
-import shutil
-from pathlib import Path
-from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, Header, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.db_session import get_db
-from app.models.database import User, DailyMetrics, Upload, Workout, Insight, DailyPrediction
+from app.models.database import AdminEmail
 from app.core_config import get_settings
-from app.utils.admin_auth import require_admin
+from app.utils.admin_auth import require_super_admin, invalidate_admin_cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin"])
 settings = get_settings()
 
 
-@router.get("/users")
-async def get_all_users(
-    admin_email: str = Depends(require_admin),
+def _get_admin_email_with_db(
+    authorization: Optional[str] = Header(None, alias="Authorization"),
+    db: Session = Depends(get_db),
+) -> str:
+    """Helper to get admin email with database session."""
+    from app.utils.admin_auth import get_user_email_from_header, is_admin_email
+    email = get_user_email_from_header(authorization)
+    if not email:
+        raise HTTPException(status_code=401, detail="Authorization required")
+    if not is_admin_email(email, db):
+        raise HTTPException(status_code=403, detail="Access denied")
+    return email
+
+
+@router.get("/admins")
+async def get_admin_emails(
+    admin_email: str = Depends(_get_admin_email_with_db),
     db: Session = Depends(get_db),
 ):
     """
-    Get all users with their data, uploads, and zip file information.
-    Admin only.
+    Get list of all admin emails.
+    Only accessible by super admin (ctaishwary@gmail.com).
     """
     try:
-        # Get all users
-        users = db.query(User).all()
+        # Check if user is super admin
+        if not require_super_admin(admin_email):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only super admin can view admin emails"
+            )
         
-        # Get upload directory
-        upload_dir = Path(settings.upload_dir)
+        # Get admin emails from database
+        admin_records = db.query(AdminEmail).order_by(AdminEmail.added_at.desc()).all()
         
-        users_data = []
-        for user in users:
-            # Get user's uploads from database
-            uploads = db.query(Upload).filter(Upload.user_id == user.id).all()
-            
-            # Get zip files from filesystem
-            user_dir = upload_dir / user.id
-            zip_files = []
-            if user_dir.exists():
-                zip_files = [
-                    {
-                        "upload_id": f.stem,
-                        "filename": f.name,
-                        "size_bytes": f.stat().st_size,
-                        "size_mb": round(f.stat().st_size / (1024 * 1024), 2),
-                        "created_at": f.stat().st_ctime,
-                    }
-                    for f in user_dir.glob("*.zip")
-                ]
-            
-            # Get metrics count
-            metrics_count = db.query(DailyMetrics).filter(DailyMetrics.user_id == user.id).count()
-            
-            # Get latest metrics date
-            latest_metric = db.query(DailyMetrics).filter(
-                DailyMetrics.user_id == user.id
-            ).order_by(DailyMetrics.date.desc()).first()
-            
-            users_data.append({
-                "id": user.id,
-                "email": user.email,
-                "name": user.name,
-                "age": user.age,
-                "nationality": user.nationality,
-                "goal": user.goal,
-                "created_at": user.created_at.isoformat() if user.created_at else None,
-                "uploads_count": len(uploads),
-                "zip_files": zip_files,
-                "zip_files_count": len(zip_files),
-                "metrics_count": metrics_count,
-                "latest_metric_date": latest_metric.date.isoformat() if latest_metric else None,
-            })
+        # Also include emails from config/env
+        settings = get_settings()
+        config_admins = settings.admin_emails if hasattr(settings, 'admin_emails') else []
         
-        # Sort by created_at (newest first)
-        users_data.sort(key=lambda x: x["created_at"] or "", reverse=True)
+        # Combine and deduplicate
+        all_admins = []
+        seen = set()
         
-        return JSONResponse(content={
-            "users": users_data,
-            "total": len(users_data),
+        # Add super admin first
+        all_admins.append({
+            "email": "ctaishwary@gmail.com",
+            "added_by": "system",
+            "added_at": None,
+            "is_super_admin": True,
+            "source": "system"
         })
-    
-    except Exception as e:
-        logger.exception(f"Error getting all users: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get users: {str(e)}")
-
-
-@router.delete("/users/{user_id}")
-async def delete_user(
-    user_id: str,
-    admin_email: str = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    """
-    Delete a user and all their associated data.
-    This will delete:
-    - User record from database (cascade deletes related records)
-    - User's ZIP files from filesystem
-    - User's model files (if any)
-    Admin only.
-    """
-    try:
-        # Get user
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+        seen.add("ctaishwary@gmail.com")
         
-        logger.info(f"Admin {admin_email} deleting user {user_id} ({user.email})")
+        # Add config admins
+        for email in config_admins:
+            email_lower = email.lower()
+            if email_lower not in seen:
+                all_admins.append({
+                    "email": email_lower,
+                    "added_by": "config",
+                    "added_at": None,
+                    "is_super_admin": False,
+                    "source": "config"
+                })
+                seen.add(email_lower)
         
-        # Delete user's ZIP files from filesystem
-        upload_dir = Path(settings.upload_dir)
-        user_dir = upload_dir / user_id
-        if user_dir.exists():
-            try:
-                shutil.rmtree(user_dir)
-                logger.info(f"Deleted user directory: {user_dir}")
-            except Exception as e:
-                logger.warning(f"Failed to delete user directory {user_dir}: {e}")
-        
-        # Delete user's model files
-        model_dir = Path(settings.model_dir) / user_id
-        if model_dir.exists():
-            try:
-                shutil.rmtree(model_dir)
-                logger.info(f"Deleted user model directory: {model_dir}")
-            except Exception as e:
-                logger.warning(f"Failed to delete user model directory {model_dir}: {e}")
-        
-        # Delete user's processed data directory
-        processed_dir = Path(settings.processed_dir) / user_id
-        if processed_dir.exists():
-            try:
-                shutil.rmtree(processed_dir)
-                logger.info(f"Deleted user processed directory: {processed_dir}")
-            except Exception as e:
-                logger.warning(f"Failed to delete user processed directory {processed_dir}: {e}")
-        
-        # Delete user from database (cascade will handle related records)
-        # But let's also explicitly delete related records to be safe
-        db.query(Insight).filter(Insight.user_id == user_id).delete()
-        db.query(DailyPrediction).filter(DailyPrediction.user_id == user_id).delete()
-        db.query(Workout).filter(Workout.user_id == user_id).delete()
-        db.query(DailyMetrics).filter(DailyMetrics.user_id == user_id).delete()
-        db.query(Upload).filter(Upload.user_id == user_id).delete()
-        
-        # Finally delete the user
-        db.delete(user)
-        db.commit()
-        
-        logger.info(f"Successfully deleted user {user_id} and all associated data")
+        # Add database admins
+        for record in admin_records:
+            email_lower = record.email.lower()
+            if email_lower not in seen:
+                all_admins.append({
+                    "email": email_lower,
+                    "added_by": record.added_by,
+                    "added_at": record.added_at.isoformat() if record.added_at else None,
+                    "is_super_admin": False,
+                    "source": "database"
+                })
+                seen.add(email_lower)
         
         return JSONResponse(content={
-            "success": True,
-            "message": f"User {user_id} ({user.email}) deleted successfully",
-            "deleted_user_id": user_id,
+            "admins": all_admins,
+            "total": len(all_admins)
         })
     
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error deleting user {user_id}: {e}")
+        logger.exception(f"Error getting admin emails: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get admin emails: {str(e)}")
+
+
+@router.post("/admins")
+async def add_admin_email(
+    email: str,
+    admin_email: str = Depends(_get_admin_email_with_db),
+    db: Session = Depends(get_db),
+):
+    """
+    Add an email to the admin list.
+    Only accessible by super admin (ctaishwary@gmail.com).
+    """
+    try:
+        # Check if user is super admin
+        if not require_super_admin(admin_email):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only super admin can add admin emails"
+            )
+        
+        email = email.strip().lower()
+        
+        # Validate email
+        if not email or "@" not in email:
+            raise HTTPException(status_code=400, detail="Invalid email address")
+        
+        # Don't allow adding super admin
+        if email == "ctaishwary@gmail.com":
+            raise HTTPException(status_code=400, detail="Cannot modify super admin")
+        
+        # Check if already exists in database
+        existing = db.query(AdminEmail).filter(AdminEmail.email == email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Email {email} is already an admin")
+        
+        # Add to database
+        admin_record = AdminEmail(
+            email=email,
+            added_by=admin_email
+        )
+        db.add(admin_record)
+        db.commit()
+        
+        # Invalidate cache
+        invalidate_admin_cache()
+        
+        logger.info(f"Super admin {admin_email} added {email} as admin")
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": f"Added {email} as admin",
+            "email": email
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error adding admin email: {e}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add admin email: {str(e)}")
+
+
+@router.delete("/admins/{email}")
+async def remove_admin_email(
+    email: str,
+    admin_email: str = Depends(_get_admin_email_with_db),
+    db: Session = Depends(get_db),
+):
+    """
+    Remove an email from the admin list.
+    Only accessible by super admin (ctaishwary@gmail.com).
+    """
+    try:
+        # Check if user is super admin
+        if not require_super_admin(admin_email):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only super admin can remove admin emails"
+            )
+        
+        email = email.strip().lower()
+        
+        # Don't allow removing super admin
+        if email == "ctaishwary@gmail.com":
+            raise HTTPException(status_code=400, detail="Cannot remove super admin")
+        
+        # Find and delete from database
+        admin_record = db.query(AdminEmail).filter(AdminEmail.email == email).first()
+        if not admin_record:
+            raise HTTPException(status_code=404, detail=f"Email {email} is not in the admin list")
+        
+        db.delete(admin_record)
+        db.commit()
+        
+        # Invalidate cache
+        invalidate_admin_cache()
+        
+        logger.info(f"Super admin {admin_email} removed {email} from admins")
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": f"Removed {email} from admins",
+            "email": email
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error removing admin email: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to remove admin email: {str(e)}")
 

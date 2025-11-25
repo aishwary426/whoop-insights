@@ -7,9 +7,8 @@ import { Eye, EyeOff } from 'lucide-react'
 import AuthCard from '../../components/auth/AuthCard'
 import { signUp } from '../../lib/auth'
 import NeonButton from '../../components/ui/NeonButton'
-import TranscendentalBackground from '../../components/ui/TranscendentalBackground'
 
-// List of all countries
+// List of all countries - sorted once at module load time for performance
 const COUNTRIES = [
   'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria',
   'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan',
@@ -95,7 +94,17 @@ function SignupForm() {
       if (error) {
         console.error('Signup error:', error)
         // Display a more user-friendly error message
-        const errorMessage = error.message || 'Failed to create account. Please try again.'
+        let errorMessage = error.message || 'Failed to create account. Please try again.'
+        
+        // Handle specific error types
+        if (error.name === 'TimeoutError' || errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('timed out')) {
+          errorMessage = 'Signup request timed out. This can happen if your connection is slow or Supabase is experiencing high load. Please check your internet connection and try again. If the problem persists, wait a moment and retry.'
+        } else if (errorMessage.toLowerCase().includes('rate limit') || 
+            errorMessage.toLowerCase().includes('too many requests') ||
+            errorMessage.toLowerCase().includes('email rate limit')) {
+          errorMessage = 'Email rate limit exceeded. This usually happens when too many signup attempts are made in a short time. Please wait a few minutes before trying again, or contact support if you continue to see this error.'
+        }
+        
         setError(errorMessage)
         return
       }
@@ -112,8 +121,10 @@ function SignupForm() {
       // Handle network errors and other exceptions
       const errorMessage = error?.message || error?.toString() || 'Failed to create account. Please check your connection and try again.'
       
-      // Check for common network errors
-      if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Load failed') || errorMessage.includes('Failed to fetch')) {
+      // Check for timeout errors
+      if (errorMessage.includes('timeout') || errorMessage.includes('timed out') || error?.name === 'TimeoutError') {
+        setError('Signup request timed out. This can happen if your connection is slow or Supabase is experiencing high load. Please check your internet connection and try again. If the problem persists, wait a moment and retry.')
+      } else if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Load failed') || errorMessage.includes('Failed to fetch')) {
         setError('Network error: Unable to connect to the server. Please check your internet connection and ensure Supabase is configured correctly.')
       } else {
         setError(errorMessage)
@@ -126,7 +137,6 @@ function SignupForm() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark">
-      <TranscendentalBackground />
       <div className="relative z-10">
         <AuthCard
           title="Create your account"
@@ -254,7 +264,6 @@ export default function SignupPage() {
   return (
     <Suspense fallback={
       <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-bgDark flex items-center justify-center">
-        <TranscendentalBackground />
         <div className="relative z-10 text-gray-900 dark:text-white">Loading...</div>
       </div>
     }>
