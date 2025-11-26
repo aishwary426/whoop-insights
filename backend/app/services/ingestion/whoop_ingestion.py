@@ -109,7 +109,7 @@ def clear_existing_data(db: Session, user_id: str) -> Tuple[int, int, int]:
     # Delete all insights (they'll be regenerated from new data)
     deleted_insights = db.query(Insight).filter(Insight.user_id == user_id).delete()
     
-    db.commit()
+    # db.commit()  # REMOVED: Keep transaction open so we can rollback if ingestion fails
     
     logger.info(f"Cleared {deleted_metrics} daily metrics, {deleted_workouts} workouts, and {deleted_insights} insights for user {user_id}")
     

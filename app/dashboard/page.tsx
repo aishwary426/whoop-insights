@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Heart, Dumbbell, Zap, Moon, ArrowDown } from 'lucide-react'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import AppLayout from '../../components/layout/AppLayout'
@@ -70,6 +70,8 @@ function TypewriterText({ words }: { words: string[] }) {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const uploaded = searchParams.get('uploaded')
   const [user, setUser] = useState<any>(null)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null)
   const { scrollY } = useScroll()
@@ -116,8 +118,8 @@ export default function DashboardPage() {
   const targetUserId = viewingUserId || user?.id
 
   // SWR Hooks
-  const { summary, isLoading: summaryLoading } = useDashboardSummary(targetUserId)
-  const { trends, isLoading: trendsLoading } = useTrends(undefined, undefined, targetUserId)
+  const { summary, isLoading: summaryLoading } = useDashboardSummary(targetUserId, uploaded)
+  const { trends, isLoading: trendsLoading } = useTrends(undefined, undefined, targetUserId, uploaded)
   const { insights: personalizationInsights, isLoading: personalizationLoading } = usePersonalizationInsights(targetUserId)
 
   const loading = summaryLoading || trendsLoading

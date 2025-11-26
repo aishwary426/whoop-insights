@@ -12,9 +12,9 @@ const fetcher = (url: string) => {
 }
 
 // Custom hook for Dashboard Summary
-export function useDashboardSummary(userId?: string) {
+export function useDashboardSummary(userId?: string, refreshKey?: string | number) {
     const { data, error, isLoading, mutate } = useSWR<DashboardSummary>(
-        userId ? `/dashboard/summary?user_id=${userId}` : null,
+        userId ? [`/dashboard/summary?user_id=${userId}`, refreshKey] : null,
         () => api.getDashboardSummary(userId),
         {
             refreshInterval: 300000, // 5 minutes
@@ -32,9 +32,9 @@ export function useDashboardSummary(userId?: string) {
 }
 
 // Custom hook for Trends
-export function useTrends(startDate?: string, endDate?: string, userId?: string) {
+export function useTrends(startDate?: string, endDate?: string, userId?: string, refreshKey?: string | number) {
     // Create a stable key that changes when params change
-    const key = userId ? ['/dashboard/trends', userId, startDate, endDate] : null
+    const key = userId ? ['/dashboard/trends', userId, startDate, endDate, refreshKey] : null
 
     const { data, error, isLoading } = useSWR<TrendsResponse>(
         key,

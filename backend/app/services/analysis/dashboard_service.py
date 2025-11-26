@@ -34,6 +34,8 @@ from app.ml.models.recovery_velocity import predict_recovery_days
 from app.ml.models.calorie_gps_model import predict_workout_recommendations
 import numpy as np
 
+logger = logging.getLogger(__name__)
+
 # Try to import scipy for statistical tests, fallback to manual calculation
 try:
     from scipy import stats as scipy_stats
@@ -209,7 +211,9 @@ def _simple_recommendation(db: Session, user_id: str, dm: DailyMetrics) -> Today
 
 @cached(cache=summary_cache, key=_user_cache_key)
 def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
+    logger.info(f"get_dashboard_summary called for {user_id}")
     dm = _latest_daily_metrics(db, user_id)
+    logger.info(f"Latest daily metrics for {user_id}: {dm.date if dm else 'None'}")
     if not dm:
         return DashboardSummary(
             today=TodayMetrics(

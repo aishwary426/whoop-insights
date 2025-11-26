@@ -4,10 +4,15 @@ WORKDIR /app/frontend
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Copy source and build
-COPY . .
+COPY next.config.js tailwind.config.js postcss.config.js tsconfig.json jsconfig.json next-env.d.ts ./
+COPY app ./app
+COPY components ./components
+COPY lib ./lib
+COPY public ./public
+COPY scripts ./scripts
 
 # Build arguments for Supabase (passed from Render environment)
 ARG NEXT_PUBLIC_SUPABASE_URL
@@ -19,23 +24,22 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-RUN npm run build
+# Mount .next/cache for faster subsequent builds
+RUN --mount=type=cache,target=/app/frontend/.next/cache npm run build
 
 # Stage 2: Build Backend & Final Image
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (Node.js for Next.js)
-RUN apt-get update && apt-get install -y \
-    curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+# Install uv for faster pip installation
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Install Python dependencies
+# Install Python dependencies needed for the backend and API
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Use uv to install dependencies (much faster than pip)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system -r requirements.txt
 
 # Copy Backend Code
 COPY backend ./backend
@@ -53,10 +57,6 @@ ENV HOST=0.0.0.0
 ENV API_URL=http://127.0.0.1:8000
 ENV PYTHONPATH=/app/backend
 # PORT will be provided by Railway at runtime
-
-# Install a process manager to run both
-RUN pip install supervisor
-
 # Copy startup script
 COPY start-prod.sh /app/start-prod.sh
 RUN chmod +x /app/start-prod.sh

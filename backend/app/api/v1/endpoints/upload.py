@@ -129,25 +129,25 @@ def upload_whoop_data(
             logger.info(f"[{upload_id}] Ingestion completed successfully, data committed to database")
             
             # Invalidate caches for this user
+            # Invalidate caches
             try:
-                # We can't easily clear only this user's keys with TTLCache without iterating
-                # For now, we'll clear the entire cache or iterate if needed.
-                # Since TTLCache doesn't support pattern deletion, and we want to be safe:
-                # Ideally we iterate keys, but for MVP/single-instance, clearing all is safest 
-                # or we just let TTL handle it (but user wants instant update).
-                # Let's try to find keys for this user if possible, or just clear all for now.
-                # Actually, iterating is fine for small cache size (100).
-                keys_to_remove = [k for k in analytics_cache.keys() if k[0] == user_id]
-                for k in keys_to_remove:
-                    del analytics_cache[k]
-                
-                keys_to_remove_summary = [k for k in summary_cache.keys() if k[0] == user_id]
-                for k in keys_to_remove_summary:
-                    del summary_cache[k]
-                    
-                logger.info(f"[{upload_id}] Cleared {len(keys_to_remove) + len(keys_to_remove_summary)} cache entries for user {user_id}")
+                # Clear entire caches to ensure fresh data is loaded
+                # This is safer than partial clearing which might miss keys
+                analytics_cache.clear()
+                summary_cache.clear()
+                logger.info(f"[{upload_id}] Cleared all analytics and summary caches")
             except Exception as e:
                 logger.warning(f"[{upload_id}] Failed to clear cache: {e}")
+
+            # Verify data was actually inserted
+            from app.models.database import DailyMetrics
+            metrics_count = db.query(DailyMetrics).filter(DailyMetrics.user_id == user_id).count()
+            logger.info(f"[{upload_id}] Verified {metrics_count} daily metrics records for user {user_id}")
+            
+            if metrics_count == 0:
+                # This catches the case where ingestion "succeeded" but produced no data
+                # which causes the frontend to loop back to upload page
+                raise HTTPException(status_code=500, detail="Ingestion processed but no data was saved. Please check your ZIP file contains valid CSVs.")
 
             return UploadResponse(
                 upload_id=upload_id,

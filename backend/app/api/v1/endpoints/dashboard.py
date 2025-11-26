@@ -23,14 +23,21 @@ router = APIRouter(tags=["dashboard"])
 
 @router.get("/dashboard/summary", response_model=DashboardSummary)
 def summary(user_id: str, db: Session = Depends(get_db)):
-    return get_dashboard_summary(db, user_id)
+    logger.info(f"Fetching dashboard summary for user_id: {user_id}")
+    summary_data = get_dashboard_summary(db, user_id)
+    logger.info(f"Summary data found for {user_id}: {summary_data.today.date if summary_data and summary_data.today else 'None'}")
+    return summary_data
 
 
 from typing import Optional
 
 @router.get("/dashboard/trends", response_model=TrendsResponse)
 def trends(user_id: str, start_date: Optional[date] = None, end_date: Optional[date] = None, db: Session = Depends(get_db)):
-    return get_trends(db, user_id, start_date, end_date)
+    logger.info(f"Fetching trends for user_id: {user_id}")
+    trends_data = get_trends(db, user_id, start_date, end_date)
+    recovery_len = len(trends_data.series.recovery) if trends_data and trends_data.series and trends_data.series.recovery else 0
+    logger.info(f"Trends data found for {user_id}: {recovery_len} points")
+    return trends_data
 
 
 @router.get("/dashboard/insights", response_model=InsightsFeed)

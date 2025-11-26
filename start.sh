@@ -71,7 +71,7 @@ echo ""
 echo -e "${BLUE}🚀 Starting backend server...${NC}"
 cd backend
 source venv/bin/activate
-uvicorn app.main:app --reload --port 8000 --host 0.0.0.0 > /dev/null 2>&1 &
+uvicorn app.main:app --reload --port 8000 --host 0.0.0.0 &
 BACKEND_PID=$!
 cd ..
 

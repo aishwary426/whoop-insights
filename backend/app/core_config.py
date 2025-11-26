@@ -42,12 +42,20 @@ def _get_default_database_url():
                 return db_url
             except ImportError:
                 logger.error("PostgreSQL URL set but psycopg2 not installed - falling back to SQLite")
-                return "sqlite:///./whoop.db"
+                # Use absolute path for local SQLite
+                backend_dir = Path(__file__).parent.parent
+                db_path = backend_dir / "whoop.db"
+                return f"sqlite:///{str(db_path.absolute())}"
         return db_url
 
-    # Default to SQLite for local development
+    # Default to SQLite for local development - use absolute path to avoid confusion
     logger.info("No DATABASE_URL set, using local SQLite")
-    return "sqlite:///./whoop.db"
+    # Get the backend directory (parent of app directory)
+    backend_dir = Path(__file__).parent.parent
+    db_path = backend_dir / "whoop.db"
+    abs_path = str(db_path.absolute())
+    logger.info(f"Using SQLite database at: {abs_path}")
+    return f"sqlite:///{abs_path}"
 
 
 class Settings(BaseSettings):
@@ -73,7 +81,10 @@ class Settings(BaseSettings):
                 import psycopg2  # noqa: F401
             except ImportError:
                 # PostgreSQL URL set but psycopg2 not installed - use SQLite
-                return "sqlite:///./whoop.db"
+                # Use absolute path for local SQLite
+                backend_dir = Path(__file__).parent.parent
+                db_path = backend_dir / "whoop.db"
+                return f"sqlite:///{db_path.absolute()}"
         
         return v
     

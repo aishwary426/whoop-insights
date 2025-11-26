@@ -43,7 +43,6 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
     { href: '/advanced-analytics', label: 'Advanced Analytics' },
     { href: '/upload', label: 'Upload' },
     { href: '/gps-burn-analytics', label: 'Calorie Burn Analytics' },
-    { href: '/gps-burn-analytics', label: 'Calorie Burn Analytics' },
     { href: '/zenith', label: 'Zenith' },
   ]
 

@@ -25,3 +25,10 @@ build/
 # macOS
 .DS_Store
 .vercel
+
+# Data and Logs
+backend/data/
+backend/logs/
+*.db
+*.sqlite
+*.zip
