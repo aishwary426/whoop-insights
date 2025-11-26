@@ -11,6 +11,7 @@ import ComparativeStats from '../../components/advanced-analytics/ComparativeSta
 import HabitImpactVisualization from '../../components/advanced-analytics/HabitImpactVisualization'
 import { api, type TrendsResponse } from '../../lib/api'
 import { getCurrentUser } from '../../lib/auth'
+import { useTrends, useJournalInsights } from '../../lib/hooks/useDashboardData'
 import { filterDataByRange } from '../../lib/analytics-utils'
 import { motion } from 'framer-motion'
 import ScrollReveal from '../../components/ui/ScrollReveal'
@@ -30,9 +31,12 @@ const AVAILABLE_METRICS = [
 export default function AdvancedAnalyticsPage() {
     const router = useRouter()
     const [user, setUser] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
-    const [trends, setTrends] = useState<TrendsResponse | null>(null)
-    const [journalInsights, setJournalInsights] = useState<any[]>([])
+
+    // SWR Hooks
+    const { trends, isLoading: trendsLoading } = useTrends(undefined, undefined, user?.id)
+    const { insights: journalInsights, isLoading: insightsLoading } = useJournalInsights(user?.id)
+
+    const loading = trendsLoading || insightsLoading
 
     // Filter State
     const [dateRange, setDateRange] = useState('1M')
@@ -49,22 +53,6 @@ export default function AdvancedAnalyticsPage() {
             router.push('/login')
         } else {
             setUser(currentUser)
-            loadData()
-        }
-    }
-
-    const loadData = async () => {
-        try {
-            const [trendsData, insightsData] = await Promise.all([
-                api.getTrends(),
-                api.getJournalInsights().catch(() => []) // Gracefully handle if no journal data
-            ])
-            setTrends(trendsData)
-            setJournalInsights(insightsData)
-        } catch (error) {
-            console.error('Error loading analytics data:', error)
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -187,7 +175,7 @@ export default function AdvancedAnalyticsPage() {
                                         Quantify how journal entries (alcohol, stress, travel) affect your recovery with statistical significance.
                                     </p>
                                 </div>
-                                <HabitImpactVisualization insights={journalInsights} />
+                                <HabitImpactVisualization insights={journalInsights.filter(i => i.data) as any} />
                             </ScrollReveal>
                         )}
                     </div>

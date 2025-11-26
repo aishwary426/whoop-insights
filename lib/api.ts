@@ -112,6 +112,16 @@ export interface TrendsResponse {
     series: TrendsSeries
 }
 
+export interface InsightItem {
+    insight_type: string
+    title: string
+    description: string
+    confidence: number
+    period_start?: string
+    period_end?: string
+    data?: any
+}
+
 async function fetchWithAuth(endpoint: string, params: Record<string, any> = {}, timeoutMs = 30000, overrideUserId?: string) {
     const user = await getCurrentUser()
     if (!user) {

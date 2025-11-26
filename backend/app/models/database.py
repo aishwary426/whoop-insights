@@ -124,6 +124,10 @@ class Workout(Base):
 
     user = relationship("User", back_populates="workouts")
 
+    __table_args__ = (
+        Index('idx_workout_user_date', 'user_id', 'date'),
+    )
+
 class PredictionRun(Base):
     __tablename__ = "prediction_runs"
 

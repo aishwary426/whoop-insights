@@ -42,7 +42,18 @@ except ImportError:
     SCIPY_AVAILABLE = False
     logger.warning("scipy not available, using manual statistical calculations")
 
-logger = logging.getLogger(__name__)
+# Caching configuration
+from cachetools import TTLCache, cached
+from cachetools.keys import hashkey
+
+# Cache for expensive analytics (1 hour TTL, max 100 items)
+analytics_cache = TTLCache(maxsize=100, ttl=3600)
+# Cache for dashboard summary (5 minutes TTL, max 100 items)
+summary_cache = TTLCache(maxsize=100, ttl=300)
+
+def _user_cache_key(db, user_id, *args, **kwargs):
+    """Create a cache key based on user_id and arguments, ignoring db session."""
+    return hashkey(user_id, *args, **kwargs)
 
 
 def _latest_daily_metrics(db: Session, user_id: str) -> Optional[DailyMetrics]:
@@ -196,6 +207,7 @@ def _simple_recommendation(db: Session, user_id: str, dm: DailyMetrics) -> Today
     )
 
 
+@cached(cache=summary_cache, key=_user_cache_key)
 def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
     dm = _latest_daily_metrics(db, user_id)
     if not dm:
@@ -263,6 +275,7 @@ def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
     )
 
 
+@cached(cache=analytics_cache, key=_user_cache_key)
 def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end_date: Optional[date] = None) -> TrendsResponse:
     query = db.query(DailyMetrics).filter(DailyMetrics.user_id == user_id)
     if start_date:
@@ -458,6 +471,7 @@ def get_calorie_analysis(db: Session, user_id: str) -> CalorieAnalysis:
     )
 
 
+@cached(cache=analytics_cache, key=_user_cache_key)
 def get_personalization_insights(db: Session, user_id: str) -> List[InsightItem]:
     """Get personalized insights from ML models (sleep, workout timing, strain tolerance)."""
     insights = []
@@ -680,6 +694,7 @@ def _calculate_t_test(group1: List[float], group2: List[float]) -> Tuple[float, 
         return (float(t_stat), p_value)
 
 
+@cached(cache=analytics_cache, key=_user_cache_key)
 def get_journal_insights(db: Session, user_id: str) -> List[InsightItem]:
     """Analyze how journal entries affect next day's recovery with statistical significance."""
     rows = (

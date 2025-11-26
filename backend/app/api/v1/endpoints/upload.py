@@ -17,6 +17,7 @@ from app.utils.device import is_mobile_user_agent
 from app.utils.zip_utils import save_upload_file
 from app.core_config import get_settings
 from app.utils.admin_auth import require_admin, get_user_email_from_header
+from app.services.analysis.dashboard_service import analytics_cache, summary_cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/whoop", tags=["upload"])
@@ -127,6 +128,27 @@ def upload_whoop_data(
             db.commit()  # Explicitly commit instead of just flush
             logger.info(f"[{upload_id}] Ingestion completed successfully, data committed to database")
             
+            # Invalidate caches for this user
+            try:
+                # We can't easily clear only this user's keys with TTLCache without iterating
+                # For now, we'll clear the entire cache or iterate if needed.
+                # Since TTLCache doesn't support pattern deletion, and we want to be safe:
+                # Ideally we iterate keys, but for MVP/single-instance, clearing all is safest 
+                # or we just let TTL handle it (but user wants instant update).
+                # Let's try to find keys for this user if possible, or just clear all for now.
+                # Actually, iterating is fine for small cache size (100).
+                keys_to_remove = [k for k in analytics_cache.keys() if k[0] == user_id]
+                for k in keys_to_remove:
+                    del analytics_cache[k]
+                
+                keys_to_remove_summary = [k for k in summary_cache.keys() if k[0] == user_id]
+                for k in keys_to_remove_summary:
+                    del summary_cache[k]
+                    
+                logger.info(f"[{upload_id}] Cleared {len(keys_to_remove) + len(keys_to_remove_summary)} cache entries for user {user_id}")
+            except Exception as e:
+                logger.warning(f"[{upload_id}] Failed to clear cache: {e}")
+
             return UploadResponse(
                 upload_id=upload_id,
                 status=UploadStatus.COMPLETED,

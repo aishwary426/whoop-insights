@@ -17,6 +17,7 @@ import ScrollReveal from '../../components/ui/ScrollReveal'
 import DashboardSkeleton, { PersonalizationInsightsSkeleton } from '../../components/dashboard/DashboardSkeleton'
 import { api, type DashboardSummary, type TrendsResponse } from '../../lib/api'
 import { getCurrentUser } from '../../lib/auth'
+import { useDashboardSummary, useTrends, usePersonalizationInsights } from '../../lib/hooks/useDashboardData'
 import { useIsMobile } from '../../lib/hooks/useIsMobile'
 
 // Typewriter Animation Component
@@ -70,11 +71,6 @@ function TypewriterText({ words }: { words: string[] }) {
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [summary, setSummary] = useState<DashboardSummary | null>(null)
-  const [trends, setTrends] = useState<TrendsResponse | null>(null)
-  const [personalizationInsights, setPersonalizationInsights] = useState<any[]>([])
-  const [loadingPersonalization, setLoadingPersonalization] = useState(true)
   const [viewingUserId, setViewingUserId] = useState<string | null>(null)
   const { scrollY } = useScroll()
   const scrollOpacity = useTransform(scrollY, [0, 100], [1, 0])
@@ -93,18 +89,6 @@ export default function DashboardPage() {
     return isAdminView && viewUserId ? viewUserId : null
   }
 
-  // Safety timeout - if loading takes more than 30 seconds, stop loading
-  useEffect(() => {
-    if (!loading) return
-
-    const timeoutId = setTimeout(() => {
-      console.warn('Dashboard loading timeout after 30 seconds - stopping load')
-      setLoading(false)
-    }, 30000) // 30 second timeout
-
-    return () => clearTimeout(timeoutId)
-  }, [loading])
-
   const checkUser = async () => {
     const currentUser = await getCurrentUser()
     if (!currentUser) {
@@ -122,115 +106,25 @@ export default function DashboardPage() {
       }
       setUser(currentUser)
       setViewingUserId(viewUserId)
-      loadDashboardData(viewUserId)
     } else {
       setUser(currentUser)
       setViewingUserId(null)
-      loadDashboardData(currentUser.id)
     }
   }
 
-  const loadDashboardData = async (userId: string, retryCount = 0) => {
-    try {
-      console.log(`Loading dashboard data (attempt ${retryCount + 1})...`)
-      const startTime = Date.now()
+  // Determine target user ID for data fetching
+  const targetUserId = viewingUserId || user?.id
 
-      // Check if we're viewing another user's data (admin view)
-      const viewUserId = getViewUserId()
-      const targetUserId = viewUserId || userId
+  // SWR Hooks
+  const { summary, isLoading: summaryLoading } = useDashboardSummary(targetUserId)
+  const { trends, isLoading: trendsLoading } = useTrends(undefined, undefined, targetUserId)
+  const { insights: personalizationInsights, isLoading: personalizationLoading } = usePersonalizationInsights(targetUserId)
 
-      // Load critical data first (summary and trends) - these are fast
-      const [summaryData, trendsData] = await Promise.all([
-        api.getDashboardSummary(targetUserId !== userId ? targetUserId : undefined),
-        api.getTrends(undefined, undefined, targetUserId !== userId ? targetUserId : undefined)
-      ])
+  const loading = summaryLoading || trendsLoading
+  const loadingPersonalization = personalizationLoading
 
-      const criticalLoadTime = Date.now() - startTime
-      console.log(`Critical Dashboard Data Loaded in ${criticalLoadTime}ms:`, {
-        summary: summaryData ? '✓' : '✗',
-        trends: trendsData ? '✓' : '✗',
-        trendsRecoveryLength: trendsData?.series?.recovery?.length || 0
-      })
-
-      // Check if we have data
-      const hasRecoveryData = trendsData?.series?.recovery && trendsData.series.recovery.length > 0
-      const justUploaded = typeof window !== 'undefined' && window.location.search.includes('uploaded=')
-
-      // Set critical data immediately so dashboard can render
-      setSummary(summaryData)
-      setTrends(trendsData)
-
-      // Stop loading state early so user sees content faster
-      // Personalization insights will load in background
-      setLoading(false)
-
-      // Load personalization insights in the background (these are slow due to ML models)
-      // Don't block the UI for these
-      setLoadingPersonalization(true)
-      api.getPersonalizationInsights(targetUserId !== userId ? targetUserId : undefined)
-        .then((personalizationData) => {
-          console.log('Personalization insights loaded:', personalizationData?.length || 0)
-          const recoveryVelocityInsight = personalizationData?.find((insight: any) => insight.insight_type === 'recovery_velocity')
-          if (recoveryVelocityInsight) {
-            console.log('Recovery Velocity Insight Found:', recoveryVelocityInsight)
-          }
-          setPersonalizationInsights(personalizationData || [])
-          setLoadingPersonalization(false)
-        })
-        .catch((err) => {
-          console.warn('Personalization insights not available:', err)
-          setPersonalizationInsights([])
-          setLoadingPersonalization(false)
-        })
-
-      // If we just uploaded and data is still empty, retry with increasing delays
-      // Increase retry count to 5 and use longer delays to account for database commit propagation
-      if (!hasRecoveryData && justUploaded && retryCount < 5) {
-        const retryDelay = (retryCount + 1) * 3000 // 3s, 6s, 9s, 12s, 15s
-        console.log(`No data found after upload (attempt ${retryCount + 1}/5), retrying in ${retryDelay / 1000} seconds...`)
-        setTimeout(() => {
-          loadDashboardData(userId, retryCount + 1)
-        }, retryDelay)
-        // Keep loading state during retry
-        setLoading(true)
-        return
-      }
-
-      if (!hasRecoveryData && justUploaded) {
-        console.warn('Data still not available after retries. Backend processing may still be in progress.')
-        console.log('Summary data:', summaryData)
-        console.log('Trends data:', trendsData)
-      }
-
-    } catch (error: any) {
-      console.error('Error loading dashboard data:', error)
-      console.error('Error details:', {
-        message: error?.message,
-        name: error?.name,
-        status: error?.status
-      })
-
-      // Always stop loading on error after max retries
-      const justUploaded = typeof window !== 'undefined' && window.location.search.includes('uploaded=')
-      if (retryCount < 5 && justUploaded) {
-        const retryDelay = (retryCount + 1) * 3000 // 3s, 6s, 9s, 12s, 15s
-        console.log(`Error loading data (attempt ${retryCount + 1}/5), retrying in ${retryDelay / 1000} seconds...`)
-        setTimeout(() => {
-          loadDashboardData(userId, retryCount + 1)
-        }, retryDelay)
-        // Keep loading state during retry
-        return
-      }
-
-      // Stop loading and set empty state so UI shows "No Data" message
-      setLoading(false)
-      console.error('Failed to load dashboard data after retries. Showing "No Data" UI.')
-
-      // Ensure we have null state so the "No Data" UI can show
-      if (!summary) setSummary(null)
-      if (!trends) setTrends(null)
-    }
-  }
+  // Check if we have data
+  const hasRecoveryData = trends?.series?.recovery && trends.series.recovery.length > 0
 
   // Memoize all data transformations BEFORE early return (Rules of Hooks)
   const hasData = useMemo(() => {

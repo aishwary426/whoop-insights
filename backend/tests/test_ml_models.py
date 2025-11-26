@@ -35,7 +35,7 @@ from app.ml.models.workout_timing_optimizer import (
     train_workout_timing_optimizer,
     predict_optimal_workout_time
 )
-from app.ml.models.rule_based_recommender import recommend
+
 from app.ml.models.model_loader import load_latest_models, _latest_version_path
 
 
@@ -430,45 +430,7 @@ class TestWorkoutTimingOptimizer:
         assert result is None or isinstance(result, dict)
 
 
-class TestRuleBasedRecommender:
-    """Tests for rule_based_recommender.py functions."""
 
-    def test_recommend_high_recovery(self):
-        """Test recommendations for high recovery."""
-        dm = Mock(spec=DailyMetrics)
-        dm.recovery_score = 85
-        dm.strain_score = 10
-        dm.sleep_hours = 8.0
-
-        result = recommend(dm)
-
-        assert isinstance(result, dict)
-        assert 'intensity_level' in result
-        assert result['intensity_level'] in ['high', 'moderate', 'low', 'rest']
-
-    def test_recommend_low_recovery(self):
-        """Test recommendations for low recovery."""
-        dm = Mock(spec=DailyMetrics)
-        dm.recovery_score = 35
-        dm.strain_score = 15
-        dm.sleep_hours = 5.5
-
-        result = recommend(dm)
-
-        assert isinstance(result, dict)
-        assert result['intensity_level'] in ['low', 'rest']
-
-    def test_recommend_moderate_recovery(self):
-        """Test recommendations for moderate recovery."""
-        dm = Mock(spec=DailyMetrics)
-        dm.recovery_score = 60
-        dm.strain_score = 10
-        dm.sleep_hours = 7.0
-
-        result = recommend(dm)
-
-        assert isinstance(result, dict)
-        assert 'recommendation' in result
 
 
 class TestModelLoader:

@@ -86,26 +86,30 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
             {/* Right side: Desktop Navigation + Mobile Menu Button + Theme Toggle + User Menu */}
             <div className="flex items-center gap-2 md:gap-4">
               {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-8">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`text-sm font-medium transition-colors ${pathname === item.href ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+              {pathname !== '/' && (
+                <div className="hidden md:flex items-center gap-8">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`text-sm font-medium transition-colors ${pathname === item.href ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
               {/* Mobile Menu Button */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
-                aria-label="Menu"
-              >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
+              {pathname !== '/' && (
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="md:hidden w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+                  aria-label="Menu"
+                >
+                  {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              )}
               <ThemeToggle />
               {user ? (
                 <div className="relative">

@@ -39,3 +39,4 @@ mangum==0.17.0
 # AI/LLM support for Zenith (free options)
 groq>=0.4.0  # Free, fast AI API (recommended)
 requests>=2.31.0  # For Hugging Face API alternative
+cachetools==5.3.2
