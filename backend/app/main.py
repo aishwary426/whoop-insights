@@ -147,6 +147,11 @@ app.include_router(api_router, prefix="")
 
 
 @app.get("/healthz")
-def health():
+def healthz():
     """Health check endpoint."""
+    return {"status": "ok", "version": "1.0.0"}
+
+@app.get("/health")
+def health():
+    """Health check alias."""
     return {"status": "ok", "version": "1.0.0"}
