@@ -36,6 +36,9 @@ class TodayMetrics(APIBase):
     hrv: Optional[float] = None
     resting_hr: Optional[float] = None
     workouts_count: int = 0
+    rem_sleep_min: Optional[float] = None
+    deep_sleep_min: Optional[float] = None
+    sleep_efficiency: Optional[float] = None
 
 
 class TodayRecommendation(APIBase):

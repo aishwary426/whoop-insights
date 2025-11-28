@@ -217,8 +217,21 @@ export const signUp = async (email: string, password: string, name: string, age?
     }
 }
 
+export const prefetchDashboard = () => {
+    if (typeof window !== 'undefined') {
+        // Prefetch the dashboard page
+        const link = document.createElement('link')
+        link.rel = 'prefetch'
+        link.href = '/dashboard'
+        document.head.appendChild(link)
+    }
+}
+
 export const signIn = async (email: string, password: string) => {
     try {
+        // Start prefetching dashboard immediately
+        prefetchDashboard()
+
         // Check if Supabase client is properly configured
         if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co' || !supabaseAnonKey || supabaseAnonKey === 'placeholder') {
             return {
@@ -230,13 +243,13 @@ export const signIn = async (email: string, password: string) => {
             }
         }
 
-        // Add timeout for faster failure detection (5 seconds)
+        // Add timeout for faster failure detection (8 seconds)
         const signInPromise = supabase.auth.signInWithPassword({
             email,
             password,
         })
 
-        const { data, error } = await withTimeout(signInPromise, 5000)
+        const { data, error } = await withTimeout(signInPromise, 8000)
 
         // Enhance error messages for network issues
         if (error) {

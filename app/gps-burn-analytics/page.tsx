@@ -515,14 +515,14 @@ export default function CalorieBurnAnalyticsPage() {
                 Recovery Drivers
               </h2>
               <div className="grid md:grid-cols-2 gap-6">
-                {journalInsights.map((insight, i) => (
+                {journalInsights.filter(i => i.data && typeof i.data.impact_val === 'number').map((insight, i) => (
                   <NeonCard key={i} className="p-6 border-gray-200 dark:border-white/10 bg-white/80 dark:bg-[#0A0A0A] flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-medium text-gray-900 dark:text-white/90">{insight.title}</h3>
                         <span className={`text-xs font-bold px-2 py-1 rounded uppercase tracking-wider ${insight.data.impact_val > 0 ? 'bg-blue-500/20 dark:bg-green-500/20 text-blue-500 dark:text-green-400' : 'bg-red-500/20 text-red-400'
                           }`}>
-                          {insight.data.impact_val > 0 ? '+' : ''}{insight.data.impact_val.toFixed(1)}% Recovery
+                          {insight.data.impact_val > 0 ? '+' : ''}{insight.data.impact_val?.toFixed(1) ?? '0.0'}% Recovery
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-white/60 mb-4">{insight.description}</p>

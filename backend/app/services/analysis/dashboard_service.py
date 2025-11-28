@@ -68,6 +68,39 @@ def _latest_daily_metrics(db: Session, user_id: str) -> Optional[DailyMetrics]:
 
 
 def _to_today_metrics(dm: DailyMetrics) -> TodayMetrics:
+    rem_sleep = None
+    deep_sleep = None
+    sleep_efficiency = None
+
+    if dm.extra:
+        # Try to find REM sleep
+        for k in ['rem_sleep_duration_(min)', 'rem_sleep_duration', 'rem_minutes']:
+            if k in dm.extra:
+                try:
+                    rem_sleep = float(dm.extra[k])
+                    break
+                except (ValueError, TypeError):
+                    pass
+        
+        # Try to find Deep sleep
+        for k in ['deep_sleep_duration_(min)', 'deep_sleep_duration', 'deep_sleep_minutes', 'sws_duration_(min)']:
+            if k in dm.extra:
+                try:
+                    deep_sleep = float(dm.extra[k])
+                    break
+                except (ValueError, TypeError):
+                    pass
+
+        # Try to find Sleep Efficiency
+        for k in ['sleep_efficiency_%', 'sleep_efficiency', 'sleep_performance_%']:
+            if k in dm.extra:
+                try:
+                    val_str = str(dm.extra[k]).replace('%', '').replace(',', '').strip()
+                    sleep_efficiency = float(val_str)
+                    break
+                except (ValueError, TypeError):
+                    pass
+
     return TodayMetrics(
         date=dm.date,
         recovery_score=dm.recovery_score,
@@ -76,6 +109,9 @@ def _to_today_metrics(dm: DailyMetrics) -> TodayMetrics:
         hrv=dm.hrv,
         resting_hr=dm.resting_hr,
         workouts_count=dm.workouts_count or 0,
+        rem_sleep_min=rem_sleep,
+        deep_sleep_min=deep_sleep,
+        sleep_efficiency=sleep_efficiency,
     )
 
 
@@ -316,11 +352,15 @@ def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end
                 for key in ['energy_burned_(cal)', 'energy_burned', 'calories', 'total_calories', 'kilojoules']:
                     if key in row.extra:
                         try:
-                            raw_val = float(row.extra[key])
+                            raw_val = row.extra[key]
+                            if isinstance(raw_val, str):
+                                raw_val = raw_val.replace(",", "").strip()
+                            
+                            val_float = float(raw_val)
                             if 'kilojoules' in key:
-                                val = raw_val / 4.184  # Convert kJ to kcal
+                                val = val_float / 4.184  # Convert kJ to kcal
                             else:
-                                val = raw_val
+                                val = val_float
                             break
                         except (ValueError, TypeError):
                             continue
@@ -341,7 +381,8 @@ def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end
                 for k, v in row.extra.items():
                     if key_part in k:
                         try:
-                            val = float(v)
+                            val_str = str(v).replace(",", "").strip()
+                            val = float(val_str)
                         except (ValueError, TypeError):
                             pass
                         break

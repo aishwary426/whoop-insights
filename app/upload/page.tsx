@@ -7,6 +7,7 @@ import { Upload, X, FileText, ShieldCheck } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
+import ConnectWhoopButton from '../../components/ConnectWhoopButton'
 import { getCurrentUser } from '../../lib/auth'
 import { api } from '../../lib/api'
 
@@ -271,6 +272,16 @@ export default function UploadPage() {
                 <span>Upload it here!</span>
               </li>
             </ol>
+          </div>
+
+          <div className="mt-8 text-center">
+            <div className="relative flex py-5 items-center">
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+              <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-white/40 text-sm">OR</span>
+              <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
+            </div>
+            <p className="mb-4 text-gray-600 dark:text-white/60">Connect directly to fetch your data automatically</p>
+            <ConnectWhoopButton />
           </div>
         </NeonCard>
       </div>

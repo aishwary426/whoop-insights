@@ -46,6 +46,9 @@ export interface TodayMetrics {
     hrv: number | null
     resting_hr: number | null
     workouts_count: number
+    rem_sleep_min?: number | null
+    deep_sleep_min?: number | null
+    sleep_efficiency?: number | null
 }
 
 export interface TodayRecommendation {
@@ -119,14 +122,70 @@ export interface InsightItem {
     confidence: number
     period_start?: string
     period_end?: string
-    data?: any
+    data?: Record<string, any>
+}
+
+export interface CalorieGPSWorkout {
+    type: string
+    name: string
+    emoji: string
+    color: string
+    efficiency: number
+    time: number
+    optimal: boolean
+    improvement: number
+}
+
+export interface CalorieGPSModelMetrics {
+    mae?: number
+    r2?: number
+    sample_size?: number
+    feature_importance?: Record<string, number>
+    model_type?: string
+}
+
+export interface CalorieGPSResponse {
+    recommendations: CalorieGPSWorkout[]
+    is_personalized: boolean
+    model_confidence?: number
+    model_metrics?: CalorieGPSModelMetrics
+}
+
+export interface BlogPost {
+    id: number
+    title: string
+    category: string
+    reading_time?: string
+    preview: string
+    content?: string
+    image_url?: string
+    slug: string
+    published: number
+    created_at: string
+    updated_at: string
+}
+
+export interface BlogPostList {
+    posts: BlogPost[]
+}
+
+export interface NewsletterSubscribe {
+    email: string
+}
+
+export interface NewsletterResponse {
+    success: boolean
+    message: string
 }
 
 async function fetchWithAuth(endpoint: string, params: Record<string, any> = {}, timeoutMs = 30000, overrideUserId?: string) {
+    console.log(`fetchWithAuth: calling ${endpoint}`)
     const user = await getCurrentUser()
     if (!user) {
+        console.error('fetchWithAuth: User not authenticated')
         throw new Error('User not authenticated')
     }
+    console.log(`fetchWithAuth: got user ${user.id}`)
 
     const url = new URL(`${API_BASE_URL}${endpoint}`, typeof window !== 'undefined' ? window.location.origin : undefined)
     // Use overrideUserId if provided (for admin viewing), otherwise use current user's ID
@@ -227,7 +286,7 @@ export const api = {
         if (consistencyScore !== undefined) params.consistency_score = consistencyScore
 
         // Use the same backend endpoint (we'll update backend to support both)
-        return fetchWithAuth('/calorie-gps/recommendations', params)
+        return fetchWithAuth('/calorie-gps/recommendations', params) as Promise<CalorieGPSResponse>
     },
 
     // Legacy function name for backward compatibility
@@ -280,7 +339,7 @@ export const api = {
             throw new Error(`Failed to fetch blog posts: ${response.statusText}`)
         }
 
-        return response.json()
+        return response.json() as Promise<BlogPostList>
     },
 
     getBlogPost: async (postId: number) => {
@@ -296,7 +355,7 @@ export const api = {
             throw new Error(`Failed to fetch blog post: ${response.statusText}`)
         }
 
-        return response.json()
+        return response.json() as Promise<BlogPost>
     },
 
     // Newsletter API (no auth required)
@@ -316,7 +375,7 @@ export const api = {
             throw new Error(errorData.detail || `Failed to subscribe: ${response.statusText}`)
         }
 
-        return response.json()
+        return response.json() as Promise<NewsletterResponse>
     },
 
     // Admin Blog API (requires admin authentication)
@@ -626,5 +685,13 @@ export const api = {
         }
 
         return response.json()
+    },
+
+    getWhoopAuthUrl: async () => {
+        return fetchWithAuth('/whoop/authorize')
+    },
+
+    syncWhoopData: async (code: string, state: string) => {
+        return fetchWithAuth('/whoop/callback', { code, state })
     },
 }

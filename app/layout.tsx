@@ -3,6 +3,8 @@ import { Montserrat } from 'next/font/google'
 import React from 'react'
 import ThemeProvider from '../components/providers/ThemeProvider'
 import TranscendentalBackground from '../components/ui/TranscendentalBackground'
+import { SubscriptionProvider } from '../lib/hooks/useSubscription'
+import { UserProvider } from '../lib/contexts/UserContext'
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -56,12 +58,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${montserrat.className} ${montserrat.variable} ${montserratBold.variable}`}>
         <ThemeProvider>
-          <div className="fixed inset-0 z-[-1]">
-            <TranscendentalBackground />
-          </div>
-          <div className="relative z-10">
-            {children}
-          </div>
+          <UserProvider>
+            <SubscriptionProvider>
+              <div className="fixed inset-0 z-[-1]">
+                <TranscendentalBackground />
+              </div>
+              <div className="relative z-10">
+                {children}
+              </div>
+            </SubscriptionProvider>
+          </UserProvider>
         </ThemeProvider>
       </body>
     </html>

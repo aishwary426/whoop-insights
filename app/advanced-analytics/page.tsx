@@ -175,7 +175,7 @@ export default function AdvancedAnalyticsPage() {
                                         Quantify how journal entries (alcohol, stress, travel) affect your recovery with statistical significance.
                                     </p>
                                 </div>
-                                <HabitImpactVisualization insights={journalInsights.filter(i => i.data) as any} />
+                                <HabitImpactVisualization insights={journalInsights.filter(i => i.data && typeof i.data.impact_percent === 'number') as any} />
                             </ScrollReveal>
                         )}
                     </div>

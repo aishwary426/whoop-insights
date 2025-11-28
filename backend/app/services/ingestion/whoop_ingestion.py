@@ -43,6 +43,16 @@ def ensure_user(db: Session, user_id: str, email: Optional[str] = None, name: Op
             name = None
     
     user = db.query(User).filter(User.id == user_id).first()
+    
+    # If not found by ID, try finding by email to avoid Unique constraint violation
+    if not user and email:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            logger.info(f"Found existing user by email {email} (ID: {user.id}) matching request ID {user_id}")
+            # We use the existing user. 
+            # Note: The user_id passed in might be different. 
+            # In a strict system we might error, but here we want to link.
+    
     if not user:
         # Only set default name if no valid name provided
         final_name = name if name else None  # Don't use default "User {id}" anymore
@@ -433,6 +443,8 @@ def parse_journal(paths: List[str]) -> pd.DataFrame:
 
 def _safe_float(val):
     try:
+        if isinstance(val, str):
+            val = val.replace(",", "").strip()
         return float(val)
     except Exception:
         return None

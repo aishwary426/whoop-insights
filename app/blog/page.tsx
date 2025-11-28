@@ -12,7 +12,7 @@ interface BlogPost {
     id: number
     title: string
     category: string
-    reading_time: string
+    reading_time?: string
     preview: string
     content?: string
     image_url?: string

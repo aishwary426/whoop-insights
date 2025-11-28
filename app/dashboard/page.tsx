@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Heart, Dumbbell, Zap, Moon, ArrowDown } from 'lucide-react'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
@@ -19,68 +19,57 @@ import { api, type DashboardSummary, type TrendsResponse } from '../../lib/api'
 import { getCurrentUser } from '../../lib/auth'
 import { useDashboardSummary, useTrends, usePersonalizationInsights } from '../../lib/hooks/useDashboardData'
 import { useIsMobile } from '../../lib/hooks/useIsMobile'
+import { useUser } from '../../lib/contexts/UserContext'
+import { formatShortDate, formatWeekday, formatDayWeekday, formatFullDate } from '../../lib/formatters'
 
-// Typewriter Animation Component
-function TypewriterText({ words }: { words: string[] }) {
-  const [currentWordIndex, setCurrentWordIndex] = useState(0)
-  const [displayedText, setDisplayedText] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  useEffect(() => {
-    const currentWord = words[currentWordIndex]
-    const typingSpeed = isDeleting ? 50 : 100
-
-    const timer = setTimeout(() => {
-      if (!isDeleting) {
-        // Typing forward
-        if (displayedText.length < currentWord.length) {
-          setDisplayedText(currentWord.slice(0, displayedText.length + 1))
-        } else {
-          // Finished typing, wait then start deleting
-          setTimeout(() => setIsDeleting(true), 2000)
-        }
-      } else {
-        // Deleting backward
-        if (displayedText.length > 0) {
-          setDisplayedText(currentWord.slice(0, displayedText.length - 1))
-        } else {
-          // Finished deleting, move to next word
-          setIsDeleting(false)
-          setCurrentWordIndex((prev) => (prev + 1) % words.length)
-        }
-      }
-    }, typingSpeed)
-
-    return () => clearTimeout(timer)
-  }, [displayedText, isDeleting, currentWordIndex, words])
-
-  return (
-    <span className="inline-block">
-      {displayedText}
-      <motion.span
-        animate={{ opacity: [1, 0] }}
-        transition={{ duration: 0.8, repeat: Infinity, repeatType: 'reverse' }}
-        className="inline-block ml-1"
-      >
-        |
-      </motion.span>
-    </span>
-  )
-}
+import TypewriterText from '../../components/ui/TypewriterText'
+import MorningBriefing from '../../components/dashboard/MorningBriefing'
 
 export default function DashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const uploaded = searchParams.get('uploaded')
-  const [user, setUser] = useState<any>(null)
+  const { user, isLoading: userLoading } = useUser()
   const [viewingUserId, setViewingUserId] = useState<string | null>(null)
   const { scrollY } = useScroll()
   const scrollOpacity = useTransform(scrollY, [0, 100], [1, 0])
   const isMobile = useIsMobile()
 
   useEffect(() => {
-    checkUser()
-  }, [])
+    if (!userLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, userLoading, router])
+
+  // Handle Whoop OAuth callback
+  const callbackProcessed = useRef(false)
+
+  useEffect(() => {
+    const code = searchParams.get('code')
+    const state = searchParams.get('state')
+
+    if (code && state && !callbackProcessed.current) {
+      callbackProcessed.current = true
+      
+      // Clean up URL immediately to prevent re-triggers
+      window.history.replaceState({}, '', '/dashboard')
+
+      const syncData = async () => {
+        try {
+          // Show some loading state if needed, or just let it happen in background
+          // Ideally we'd have a toast or notification here
+          await api.syncWhoopData(code, state)
+          // Clear query params
+          router.replace('/dashboard?uploaded=' + Date.now())
+        } catch (error) {
+          console.error('Failed to sync Whoop data:', error)
+          // Handle error (show toast/alert)
+          callbackProcessed.current = false // Allow retry on error if needed, or keep locked
+        }
+      }
+      syncData()
+    }
+  }, [searchParams, router])
 
   // Get view_user_id from URL params for admin viewing
   const getViewUserId = () => {
@@ -91,28 +80,22 @@ export default function DashboardPage() {
     return isAdminView && viewUserId ? viewUserId : null
   }
 
-  const checkUser = async () => {
-    const currentUser = await getCurrentUser()
-    if (!currentUser) {
-      router.push('/login')
-      return
+  useEffect(() => {
+    if (user) {
+        // Check if admin is viewing another user's data
+        const viewUserId = getViewUserId()
+        if (viewUserId) {
+            // Verify admin access
+            if (user.email?.toLowerCase() !== 'ctaishwary@gmail.com') {
+                router.push('/')
+                return
+            }
+            setViewingUserId(viewUserId)
+        } else {
+            setViewingUserId(null)
+        }
     }
-
-    // Check if admin is viewing another user's data
-    const viewUserId = getViewUserId()
-    if (viewUserId) {
-      // Verify admin access
-      if (currentUser.email?.toLowerCase() !== 'ctaishwary@gmail.com') {
-        router.push('/')
-        return
-      }
-      setUser(currentUser)
-      setViewingUserId(viewUserId)
-    } else {
-      setUser(currentUser)
-      setViewingUserId(null)
-    }
-  }
+  }, [user, router])
 
   // Determine target user ID for data fetching
   const targetUserId = viewingUserId || user?.id
@@ -136,7 +119,7 @@ export default function DashboardPage() {
   // Memoize all data transformations to prevent recalculation on every render
   const recoveryData = useMemo(() =>
     trends?.series?.recovery?.slice(-30).map((item: any) => ({
-      date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }),
+      date: formatShortDate(item.date),
       recovery: item.value
     })) || [],
     [trends?.series?.recovery]
@@ -144,7 +127,7 @@ export default function DashboardPage() {
 
   const last7Recovery = useMemo(() =>
     trends?.series?.recovery?.slice(-7).map(d => ({
-      date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      date: formatWeekday(d.date),
       value: d.value
     })) || [],
     [trends?.series?.recovery]
@@ -152,11 +135,8 @@ export default function DashboardPage() {
 
   const last30Strain = useMemo(() =>
     trends?.series?.strain?.slice(-30).map((item: any) => {
-      const date = new Date(item.date)
-      const day = date.getDate()
-      const weekday = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
       return {
-        date: isMobile ? `${day}` : `${day}/ ${weekday}`,
+        date: formatDayWeekday(item.date, isMobile),
         value: item.value
       }
     }) || [],
@@ -165,11 +145,8 @@ export default function DashboardPage() {
 
   const last30Sleep = useMemo(() =>
     trends?.series?.sleep?.slice(-30).map(d => {
-      const date = new Date(d.date)
-      const day = date.getDate()
-      const weekday = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
       return {
-        date: isMobile ? `${day}` : `${day}/ ${weekday}`,
+        date: formatDayWeekday(d.date, isMobile),
         value: d.value || 0
       }
     }) || [],
@@ -178,7 +155,7 @@ export default function DashboardPage() {
 
   const last7Strain = useMemo(() =>
     trends?.series?.strain?.slice(-7).map((item: any) => ({
-      date: new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      date: formatWeekday(item.date),
       value: item.value
     })) || [],
     [trends?.series?.strain]
@@ -186,7 +163,7 @@ export default function DashboardPage() {
 
   const last7Sleep = useMemo(() =>
     trends?.series?.sleep?.slice(-7).map(d => ({
-      date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+      date: formatWeekday(d.date),
       value: d.value || 0
     })) || [],
     [trends?.series?.sleep]
@@ -304,22 +281,7 @@ export default function DashboardPage() {
               stickyPosition="left"
               stickyContent={
                 <div className="space-y-3 md:space-y-4 w-full">
-                  <NeonCard className="p-6 border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0A0A0A] h-full flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-white/50">AI Coach</p>
-                        <p className="text-3xl font-semibold text-blue-600 dark:text-neon-primary mt-1">
-                          {summary?.recommendation?.focus || "General Wellness"}
-                        </p>
-                      </div>
-                      <div className="text-[10px] uppercase tracking-wider text-gray-600 dark:text-white/60 bg-gray-100 dark:bg-white/5 px-2 py-1 rounded border border-gray-200 dark:border-white/5">
-                        FOCUS
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-white/60 leading-relaxed">
-                      Your personalized daily briefing. We analyze your recovery, sleep, and strain to recommend the perfect plan for today.
-                    </p>
-                  </NeonCard>
+                  {summary && <MorningBriefing summary={summary} />}
                 </div>
               }
             >
@@ -425,12 +387,7 @@ export default function DashboardPage() {
                           <div className="space-y-4">
                             {insight.data.examples.map((example: any, exIdx: number) => {
                               const isGood = example.type === 'good'
-                              const dateObj = new Date(example.date)
-                              const formattedDate = dateObj.toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: dateObj.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                              })
+                              const formattedDate = formatFullDate(example.date)
 
                               return (
                                 <div
@@ -569,12 +526,7 @@ export default function DashboardPage() {
                               </div>
                               <div className="space-y-3">
                                 {insight.data.examples.map((example: any, exIdx: number) => {
-                                  const dateObj = new Date(example.date)
-                                  const formattedDate = dateObj.toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: dateObj.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                                  })
+                                  const formattedDate = formatFullDate(example.date)
 
                                   return (
                                     <div

@@ -4,6 +4,8 @@ WORKDIR /app/frontend
 
 # Install dependencies
 COPY package*.json ./
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
 RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Copy source and build
