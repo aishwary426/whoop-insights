@@ -82,17 +82,17 @@ function HelloTypewriter({ className = '' }: HelloTypewriterProps) {
   }, [])
 
   return (
-    <div className={`inline-flex items-center ${className}`}>
-      {/* Constant "hello, " text on the left */}
+    <div className={`flex flex-col md:flex-row items-center md:items-center text-center md:text-left ${className}`}>
+      {/* Constant "hello, " text - above on mobile, left on desktop */}
       <span className="text-black dark:text-white font-mono font-semibold tracking-tight">
         hello,
       </span>
       
-      {/* Spacing */}
-      <span className="w-2" />
+      {/* Spacing - only on desktop */}
+      <span className="hidden md:inline-block w-2" />
       
-      {/* Typewriter area */}
-      <span className="relative inline-block min-w-[120px]">
+      {/* Typewriter area - centered on mobile, left on desktop */}
+      <span className="relative inline-block min-w-[120px] text-center md:text-left">
         {/* Typed text - blue in light mode, green in dark mode */}
         <span className="text-blue-600 dark:text-green-400 font-mono font-semibold tracking-tight">
           {displayText}
