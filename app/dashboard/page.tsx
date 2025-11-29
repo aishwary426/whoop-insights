@@ -20,7 +20,7 @@ import { getCurrentUser } from '../../lib/auth'
 import { useDashboardSummary, useTrends, usePersonalizationInsights } from '../../lib/hooks/useDashboardData'
 import { useIsMobile } from '../../lib/hooks/useIsMobile'
 import { useUser } from '../../lib/contexts/UserContext'
-import { formatShortDate, formatWeekday, formatDayWeekday, formatFullDate } from '../../lib/formatters'
+import { formatShortDate, formatWeekday, formatDayWeekday, formatFullDate, getRelativeDateLabel } from '../../lib/formatters'
 
 import TypewriterText from '../../components/ui/TypewriterText'
 import MorningBriefing from '../../components/dashboard/MorningBriefing'
@@ -177,12 +177,15 @@ export default function DashboardPage() {
     [trends?.series?.strain]
   )
 
-  const statsData = useMemo(() => [
+  const statsData = useMemo(() => {
+    const todayLabel = summary?.today?.date ? getRelativeDateLabel(summary.today.date) : 'Today'
+    
+    return [
     {
       icon: Heart,
       label: 'Recovery',
       value: summary?.today?.recovery_score ? `${Math.round(summary.today.recovery_score)}%` : '--',
-      subtitle: 'Today',
+      subtitle: todayLabel,
       color: 'from-blue-600/20 dark:from-green-500/20 to-blue-500/20 dark:to-emerald-500/20'
     },
     {
@@ -196,7 +199,7 @@ export default function DashboardPage() {
       icon: Zap,
       label: 'HRV',
       value: summary?.today?.hrv ? `${Math.round(summary.today.hrv)} ms` : '--',
-      subtitle: 'Today',
+      subtitle: todayLabel,
       color: 'from-amber-500/20 to-orange-500/20'
     },
     {
@@ -231,10 +234,10 @@ export default function DashboardPage() {
       icon: Flame,
       label: 'Calories',
       value: summary?.today?.calories ? `${Math.round(summary.today.calories)}` : '--',
-      subtitle: 'Yesterday',
+      subtitle: todayLabel === 'Today' ? 'Today' : todayLabel,
       color: 'from-purple-500/20 to-indigo-500/20'
     }
-  ], [summary, yesterdayStrain])
+  ]}, [summary, yesterdayStrain])
 
   if (loading) {
     return (
@@ -322,6 +325,7 @@ export default function DashboardPage() {
                     optimalTime={summary?.recommendation?.optimal_time || "Anytime"}
                     tomorrowForecast={Math.round(summary?.tomorrow?.recovery_forecast || 50)}
                     calories={summary?.recommendation?.calories}
+                    title={summary?.today?.date ? `${getRelativeDateLabel(summary.today.date)}'s Recommendation` : "Today's AI Recommendation"}
                   />
                 </div>
                 <div className="h-full">

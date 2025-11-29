@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Square, Volume2, VolumeX } from 'lucide-react'
 import { DashboardSummary } from '../../lib/api'
+import { getRelativeDateLabel, formatFullDate } from '../../lib/formatters'
 import NeonCard from '../ui/NeonCard'
 
 interface MorningBriefingProps {
@@ -59,6 +60,11 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
     // Intro
     const greetings = ["Good morning.", "Rise and shine.", "Hello there."]
     sentences.push(greetings[Math.floor(Math.random() * greetings.length)])
+
+    const dateLabel = getRelativeDateLabel(today.date)
+    if (dateLabel !== 'Today') {
+        sentences.push(`Reviewing your data from ${dateLabel === 'Yesterday' ? 'yesterday' : formatFullDate(today.date)}.`)
+    }
     
     // Sleep
     const hours = Math.floor(sleepHours)

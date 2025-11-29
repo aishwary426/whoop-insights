@@ -12,6 +12,7 @@ interface TodayRecommendationProps {
   optimalTime: string
   tomorrowForecast: number
   calories?: number
+  title?: string
 }
 
 function TodayRecommendationCard({
@@ -20,7 +21,8 @@ function TodayRecommendationCard({
   workoutType,
   optimalTime,
   tomorrowForecast,
-  calories
+  calories,
+  title = "Today's AI Recommendation"
 }: TodayRecommendationProps) {
   const getRecoveryColor = (rec: number) => {
     if (rec >= 67) return 'text-blue-600 dark:text-green-400'
@@ -41,7 +43,7 @@ function TodayRecommendationCard({
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-white/50 mb-2">
-            Today's AI Recommendation
+            {title}
           </div>
           <div className="flex items-center gap-3 mb-2">
             <div className={`text-6xl font-bold ${getRecoveryColor(recovery)}`}>{recovery}%</div>
