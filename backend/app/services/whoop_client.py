@@ -22,11 +22,39 @@ class WhoopClient:
         self.client_secret = os.getenv("WHOOP_CLIENT_SECRET")
         self.redirect_uri = os.getenv("WHOOP_REDIRECT_URI")
         logger.info(f"DEBUG: Initialized WhoopClient with redirect_uri: {self.redirect_uri}")
+    
+    def get_redirect_uri(self, request=None):
+        """
+        Get redirect URI, with fallback to auto-detect from request if not set in env.
+        """
+        if self.redirect_uri:
+            return self.redirect_uri
+        
+        # Fallback: try to auto-detect from request
+        if request:
+            try:
+                # Build callback URL from request
+                base_url = str(request.base_url).rstrip('/')
+                callback_path = "/api/v1/whoop/callback"
+                detected_uri = f"{base_url}{callback_path}"
+                logger.info(f"DEBUG: Auto-detected redirect_uri from request: {detected_uri}")
+                return detected_uri
+            except Exception as e:
+                logger.warning(f"Failed to auto-detect redirect_uri: {e}")
+        
+        # Last resort: log error
+        logger.error("WHOOP_REDIRECT_URI not set and could not auto-detect from request")
+        raise ValueError(
+            "WHOOP_REDIRECT_URI environment variable is not set. "
+            "Please set it to your backend URL + /api/v1/whoop/callback (e.g., "
+            "https://your-app.up.railway.app/api/v1/whoop/callback)"
+        )
 
-    def get_authorization_url(self, state: str = "random_state_string") -> str:
+    def get_authorization_url(self, state: str = "random_state_string", request=None) -> str:
+        redirect_uri = self.get_redirect_uri(request)
         params = {
             "client_id": self.client_id,
-            "redirect_uri": self.redirect_uri,
+            "redirect_uri": redirect_uri,
             "response_type": "code",
             "scope": "offline read:profile read:recovery read:cycles read:sleep read:workout",
             "state": state
@@ -35,16 +63,17 @@ class WhoopClient:
         logger.info(f"DEBUG: Generated Whoop Auth URL: {url}")
         return url
 
-    async def get_access_token(self, code: str) -> Dict[str, Any]:
+    async def get_access_token(self, code: str, request=None) -> Dict[str, Any]:
+        redirect_uri = self.get_redirect_uri(request)
         async with httpx.AsyncClient() as client:
             data = {
                 "grant_type": "authorization_code",
                 "code": code,
                 "client_id": self.client_id,
                 "client_secret": self.client_secret,
-                "redirect_uri": self.redirect_uri,
+                "redirect_uri": redirect_uri,
             }
-            logger.info(f"DEBUG: Exchanging code for token. Client ID: {self.client_id}, Redirect URI: {self.redirect_uri}")
+            logger.info(f"DEBUG: Exchanging code for token. Client ID: {self.client_id}, Redirect URI: {redirect_uri}")
             response = await client.post(self.TOKEN_URL, data=data)
             logger.info(f"DEBUG: Token exchange response status: {response.status_code}")
             if response.status_code != 200:

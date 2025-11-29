@@ -16,18 +16,22 @@ async def authorize_whoop(user_id: str, request: Request):
     Redirects the user to Whoop's OAuth authorization page.
     """
     logger.info(f"DEBUG: Authorize endpoint called for user_id: {user_id}")
+    logger.info(f"DEBUG: Request URL: {request.url}")
+    logger.info(f"DEBUG: Request base URL: {request.base_url}")
     # Pass user_id as state to ensure we know who to sync data for in the callback
-    auth_url = whoop_client.get_authorization_url(state=user_id)
+    # Pass request to allow auto-detection of redirect URI if env var not set
+    auth_url = whoop_client.get_authorization_url(state=user_id, request=request)
     logger.info(f"DEBUG: Generated Auth URL: {auth_url}")
     return {"url": auth_url}
 
 @router.get("/callback")
-async def whoop_callback(code: str, state: str, user_id: str = None, db: Session = Depends(get_db)):
+async def whoop_callback(code: str, state: str, user_id: str = None, request: Request = None, db: Session = Depends(get_db)):
     """
     Handles the callback from Whoop, exchanges code for token, and syncs data.
     """
     try:
         logger.info(f"DEBUG: Callback received for user_id: {user_id}")
+        logger.info(f"DEBUG: Callback request URL: {request.url if request else 'N/A'}")
         
         # If user_id is not provided in query, try to get it from the state or assume single user mode for now
         # In this app, the frontend sends user_id as a query param to this endpoint
@@ -40,7 +44,8 @@ async def whoop_callback(code: str, state: str, user_id: str = None, db: Session
             logger.info("DEBUG: No user_id provided and no state, using default_user")
             user_id = "default_user" 
 
-        token_data = await whoop_client.get_access_token(code)
+        # Pass request to allow auto-detection of redirect URI if env var not set
+        token_data = await whoop_client.get_access_token(code, request=request)
         access_token = token_data["access_token"]
         refresh_token = token_data["refresh_token"]
         
@@ -63,29 +68,66 @@ async def whoop_callback(code: str, state: str, user_id: str = None, db: Session
             name=f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip(),
         )
 
-        # Fetch Data (All history starting from 2015)
+        # Fetch Data - Use a reasonable date range (last 2 years)
+        # Whoop API may have limits on date range, so we'll fetch in chunks if needed
         end_date = datetime.utcnow()
-        start_date = datetime(2015, 1, 1)
+        # Start from 2 years ago, or account creation date if available
+        # Most users won't have data older than 2 years anyway
+        start_date = end_date - timedelta(days=730)  # ~2 years
         start_str = start_date.isoformat() + "Z"
         end_str = end_date.isoformat() + "Z"
 
         logger.info(f"DEBUG: Fetching data from {start_str} to {end_str}")
 
         # 1. Fetch Cycles (Recovery, Strain)
-        cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
-        logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles")
+        # Try 2 years first, fall back to 1 year if API rejects it
+        try:
+            cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
+            logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles")
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"DEBUG: Error fetching cycles: {error_msg}")
+            # If date range is too large, try a smaller range (last 1 year)
+            if "400" in error_msg or "Bad Request" in error_msg:
+                logger.info("DEBUG: Date range too large, trying last 1 year instead")
+                start_date = end_date - timedelta(days=365)
+                start_str = start_date.isoformat() + "Z"
+                try:
+                    cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
+                    logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 1-year range")
+                except Exception as e2:
+                    logger.error(f"DEBUG: Still failed with 1-year range: {e2}")
+                    # Last resort: try last 90 days
+                    start_date = end_date - timedelta(days=90)
+                    start_str = start_date.isoformat() + "Z"
+                    cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
+                    logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 90-day range")
+            else:
+                raise
         
         # 2. Fetch Sleep
-        sleep_data = await whoop_client.get_sleep_data(access_token, start_str, end_str)
-        logger.info(f"DEBUG: Fetched {len(sleep_data)} sleep records")
+        try:
+            sleep_data = await whoop_client.get_sleep_data(access_token, start_str, end_str)
+            logger.info(f"DEBUG: Fetched {len(sleep_data)} sleep records")
+        except Exception as e:
+            logger.warning(f"DEBUG: Error fetching sleep data: {e}, continuing with empty list")
+            sleep_data = []
         
         # 3. Fetch Recovery (New for V2)
-        recovery_data = await whoop_client.get_recovery_data(access_token, start_str, end_str)
-        logger.info(f"DEBUG: Fetched {len(recovery_data)} recovery records")
+        try:
+            recovery_data = await whoop_client.get_recovery_data(access_token, start_str, end_str)
+            logger.info(f"DEBUG: Fetched {len(recovery_data)} recovery records")
+        except Exception as e:
+            logger.warning(f"DEBUG: Error fetching recovery data: {e}, continuing with empty list")
+            recovery_data = []
         
         # 4. Fetch Workouts
-        workout_data = await whoop_client.get_workout_data(access_token, start_str, end_str)
-        logger.info(f"DEBUG: Fetched {len(workout_data)} workouts")
+        try:
+            workout_data = await whoop_client.get_workout_data(access_token, start_str, end_str)
+            logger.info(f"DEBUG: Fetched {len(workout_data)} workouts")
+        except Exception as e:
+            logger.warning(f"DEBUG: Error fetching workout data: {e}, continuing with empty list")
+            workout_data = []
 
         # Transform Data for Ingestion
         metrics_list = []
