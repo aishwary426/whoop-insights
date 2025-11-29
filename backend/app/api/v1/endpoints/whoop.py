@@ -71,7 +71,9 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
 
         # Fetch Data - Use a reasonable date range (last 2 years)
         # Whoop API may have limits on date range, so we'll fetch in chunks if needed
-        end_date = datetime.utcnow() - timedelta(minutes=5)
+        # Use current time (with 1 minute buffer to avoid requesting data being written)
+        # This ensures we get today's latest recovery data
+        end_date = datetime.utcnow() - timedelta(minutes=1)
         # Start from 2 years ago, or account creation date if available
         # Most users won't have data older than 2 years anyway
         start_date = end_date - timedelta(days=730)  # ~2 years
