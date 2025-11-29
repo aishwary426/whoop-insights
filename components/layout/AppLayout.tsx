@@ -220,7 +220,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
       <main>
         {children}
       </main>
-      <Footer />
+      {pathname !== '/zenith' && <Footer />}
     </div>
   )
 }
