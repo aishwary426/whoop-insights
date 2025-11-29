@@ -71,9 +71,10 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
 
         # Fetch Data - Use a reasonable date range (last 2 years)
         # Whoop API may have limits on date range, so we'll fetch in chunks if needed
-        # Use current time (with 1 minute buffer to avoid requesting data being written)
-        # This ensures we get today's latest recovery data
-        end_date = datetime.utcnow() - timedelta(minutes=1)
+        
+        # Try to fetch up to the very current second first to get the latest data
+        end_date = datetime.utcnow()
+        
         # Start from 2 years ago, or account creation date if available
         # Most users won't have data older than 2 years anyway
         start_date = end_date - timedelta(days=730)  # ~2 years
@@ -94,23 +95,38 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         except Exception as e:
             error_msg = str(e)
             logger.error(f"DEBUG: Error fetching cycles: {error_msg}")
-            # If date range is too large, try a smaller range (last 1 year)
+            
+            # Check if it's a 400 error, potentially due to future timestamp (clock skew)
             if "400" in error_msg or "Bad Request" in error_msg:
-                logger.info("DEBUG: Date range too large, trying last 1 year instead")
-                start_date = end_date - timedelta(days=365)
-                start_date = start_date.replace(microsecond=0)
-                start_str = start_date.isoformat() + "Z"
+                logger.info("DEBUG: 400 Error, trying with 5-minute buffer for end_date")
+                # Apply 5 minute buffer and retry
+                end_date = datetime.utcnow() - timedelta(minutes=5)
+                end_date = end_date.replace(microsecond=0)
+                end_str = end_date.isoformat() + "Z"
+                
+                # Also reduce range if needed, but first try just the buffer with full range
                 try:
                     cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
-                    logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 1-year range")
+                    logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 5-min buffer")
                 except Exception as e2:
-                    logger.error(f"DEBUG: Still failed with 1-year range: {e2}")
-                    # Last resort: try last 90 days
-                    start_date = end_date - timedelta(days=90)
+                    logger.error(f"DEBUG: Still failed with buffer: {e2}")
+                    
+                    # Now try reducing range AND keeping buffer
+                    logger.info("DEBUG: Date range too large, trying last 1 year instead")
+                    start_date = end_date - timedelta(days=365)
                     start_date = start_date.replace(microsecond=0)
                     start_str = start_date.isoformat() + "Z"
-                    cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
-                    logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 90-day range")
+                    try:
+                        cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
+                        logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 1-year range")
+                    except Exception as e3:
+                        logger.error(f"DEBUG: Still failed with 1-year range: {e3}")
+                        # Last resort: try last 90 days
+                        start_date = end_date - timedelta(days=90)
+                        start_date = start_date.replace(microsecond=0)
+                        start_str = start_date.isoformat() + "Z"
+                        cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
+                        logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 90-day range")
             else:
                 raise
         
@@ -149,6 +165,17 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         recoveries_by_cycle = {r.get("cycle_id"): r for r in recovery_data}
         sleeps_by_cycle = {s.get("cycle_id"): s for s in sleep_data}
         
+        # Infer global timezone offset from any cycle that has it
+        # This helps if the latest cycle is missing it but others have it
+        global_timezone_offset = None
+        for cycle in cycles_data:
+            if cycle.get("timezone_offset"):
+                global_timezone_offset = cycle.get("timezone_offset")
+                break
+        
+        if global_timezone_offset:
+            logger.info(f"DEBUG: Inferred global timezone offset: {global_timezone_offset}")
+        
         # Process Cycles
         for cycle in cycles_data:
             cycle_id = cycle.get("id")
@@ -169,7 +196,8 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
             end_dt = datetime.fromisoformat(cycle_end.replace("Z", "+00:00"))
             
             # Apply timezone offset if available
-            timezone_offset = cycle.get("timezone_offset")
+            timezone_offset = cycle.get("timezone_offset") or global_timezone_offset
+            
             if timezone_offset:
                 try:
                     # timezone_offset format is usually "+HH:MM" or "-HH:MM"
@@ -182,7 +210,7 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
                     # Adjust to local time
                     local_dt = end_dt + offset
                     date_val = local_dt.date()
-                    logger.info(f"DEBUG: Adjusted cycle {cycle_id} date from {end_dt.date()} (UTC) to {date_val} (Local) using offset {timezone_offset}")
+                    # logger.info(f"DEBUG: Adjusted cycle {cycle_id} date from {end_dt.date()} (UTC) to {date_val} (Local) using offset {timezone_offset}")
                 except Exception as e:
                     logger.warning(f"Failed to parse timezone offset {timezone_offset}: {e}")
                     date_val = end_dt.date()
