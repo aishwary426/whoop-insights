@@ -26,8 +26,22 @@ export default function ComparativeStats({ data, metrics, period }: ComparativeS
         const previousPeriodData = data.slice(0, midPoint)
 
         return metrics.map(metric => {
-            const currentAvg = currentPeriodData.reduce((sum, d) => sum + (Number(d[metric]) || 0), 0) / (currentPeriodData.length || 1)
-            const previousAvg = previousPeriodData.reduce((sum, d) => sum + (Number(d[metric]) || 0), 0) / (previousPeriodData.length || 1)
+            // Filter out null/undefined/NaN values and calculate average only from valid data points
+            const currentValidValues = currentPeriodData
+                .map(d => Number(d[metric]))
+                .filter(val => !isNaN(val) && val !== null && val !== undefined)
+            
+            const previousValidValues = previousPeriodData
+                .map(d => Number(d[metric]))
+                .filter(val => !isNaN(val) && val !== null && val !== undefined)
+            
+            const currentAvg = currentValidValues.length > 0
+                ? currentValidValues.reduce((sum, val) => sum + val, 0) / currentValidValues.length
+                : 0
+            
+            const previousAvg = previousValidValues.length > 0
+                ? previousValidValues.reduce((sum, val) => sum + val, 0) / previousValidValues.length
+                : 0
 
             const diff = currentAvg - previousAvg
             const percentChange = previousAvg !== 0 ? (diff / previousAvg) * 100 : 0
