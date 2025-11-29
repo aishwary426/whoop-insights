@@ -21,6 +21,7 @@ class WhoopClient:
         self.client_id = os.getenv("WHOOP_CLIENT_ID")
         self.client_secret = os.getenv("WHOOP_CLIENT_SECRET")
         self.redirect_uri = os.getenv("WHOOP_REDIRECT_URI")
+        logger.info(f"DEBUG: Initialized WhoopClient with redirect_uri: {self.redirect_uri}")
 
     def get_authorization_url(self, state: str = "random_state_string") -> str:
         params = {

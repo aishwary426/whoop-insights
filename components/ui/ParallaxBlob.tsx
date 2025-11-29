@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTe
 import { useState, useLayoutEffect, useEffect } from 'react'
 import clsx from 'clsx'
 import { useTheme } from 'next-themes'
+import { useIsMobile } from '../../lib/hooks/useIsMobile'
 
 interface ParallaxBlobProps {
   size?: number
@@ -30,6 +31,7 @@ export function ParallaxBlob({
 }: ParallaxBlobProps) {
   const { theme } = useTheme()
   const { scrollY } = useScroll()
+  const isMobile = useIsMobile()
   const [maxScroll, setMaxScroll] = useState(800)
   const effectiveColor = color || (theme === 'dark' ? 'rgba(0,255,143,0.4)' : 'rgba(0,102,255,0.4)')
 
@@ -98,7 +100,7 @@ export function ParallaxBlob({
         'pointer-events-none absolute rounded-full blur-3xl mix-blend-screen will-change-transform',
         className
       )}
-      animate={{
+      animate={isMobile ? undefined : {
         x: [0, oscillate * 0.6, -oscillate * 0.6, 0],
         y: [0, oscillate * 0.25, -oscillate * 0.25, 0],
         opacity: [opacity, opacity * 0.8, opacity],
@@ -126,7 +128,10 @@ export function ParallaxBlob({
 function FloatingParticles({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
   const particleCount = 25
   const { theme } = useTheme()
+  const isMobile = useIsMobile()
   const isLight = theme === 'light'
+
+  if (isMobile) return null
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -285,6 +290,8 @@ export function ParallaxBackground({ children }: ParallaxBackgroundProps) {
 
 function NeonStructure({ mouseX, mouseY }: { mouseX: any, mouseY: any }) {
   const { theme } = useTheme()
+  const isMobile = useIsMobile()
+  if (isMobile) return null
   const rotateX = useTransform(mouseY, [0, 1], [5, -5])
   const rotateY = useTransform(mouseX, [0, 1], [-5, 5])
 

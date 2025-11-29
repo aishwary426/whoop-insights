@@ -7,12 +7,14 @@ interface ParticleBackgroundProps {
     particleCount?: number
     accentColor?: string
     variant?: 'magnetic' | 'swirl'
+    isMobile?: boolean
 }
 
 export default function ParticleBackground({
     particleCount = 2000,
     accentColor,
     variant = 'magnetic',
+    isMobile = false,
 }: ParticleBackgroundProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 })
@@ -193,7 +195,8 @@ export default function ParticleBackground({
             height = window.innerHeight
 
             // Handle Pixel Ratio for crisp rendering
-            const dpr = window.devicePixelRatio || 1
+            // Cap at 1 for mobile to improve performance
+            const dpr = isMobile ? 1 : (window.devicePixelRatio || 1)
             canvas.width = width * dpr
             canvas.height = height * dpr
             ctx.scale(dpr, dpr)
@@ -296,7 +299,7 @@ export default function ParticleBackground({
             // Optimization: Only connect a subset of particles to avoid O(N^2) on all 1000
             // We'll connect the first 100 particles to any other close particles
             // This gives the effect of a network without the cost
-            const CONNECT_LIMIT = 100
+            const CONNECT_LIMIT = isMobile ? 30 : 100
 
             for (let i = 0; i < Math.min(particles.length, CONNECT_LIMIT); i++) {
                 const p1 = particles[i]
@@ -387,7 +390,7 @@ export default function ParticleBackground({
             window.removeEventListener('scroll', handleScroll)
             cancelAnimationFrame(animationFrameId)
         }
-    }, [particleCount, effectiveAccentColor, variant, theme])
+    }, [particleCount, effectiveAccentColor, variant, theme, isMobile])
 
     return (
         <canvas

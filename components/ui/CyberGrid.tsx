@@ -3,10 +3,12 @@
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '../../lib/hooks/useIsMobile'
 
 export default function CyberGrid() {
     const { scrollY } = useScroll()
     const { theme } = useTheme()
+    const isMobile = useIsMobile()
     const [mounted, setMounted] = useState(false)
 
     useEffect(() => {
@@ -38,7 +40,7 @@ export default function CyberGrid() {
                     `,
                     maskImage: "linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)"
                 }}
-                animate={{
+                animate={isMobile ? undefined : {
                     backgroundPosition: ["0px 0px", "0px 60px"]
                 }}
                 transition={{

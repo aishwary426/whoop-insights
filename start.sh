@@ -66,6 +66,30 @@ cd ..
 echo -e "${GREEN}✅ Dependencies ready${NC}"
 echo ""
 
+# Check for critical environment variables
+echo -e "${BLUE}🔍 Checking configuration...${NC}"
+if [ -z "$WHOOP_REDIRECT_URI" ]; then
+    # Try to load from .env if not in shell env
+    if [ -f ".env" ]; then
+        export $(grep -v '^#' .env | xargs)
+    fi
+fi
+
+if [ -z "$WHOOP_REDIRECT_URI" ]; then
+    echo -e "${YELLOW}⚠️  WHOOP_REDIRECT_URI is not set. OAuth may fail.${NC}"
+    echo -e "${YELLOW}   Please set it in your .env file (e.g., http://localhost:8000/api/v1/whoop/callback)${NC}"
+else
+    echo -e "${GREEN}✅ WHOOP_REDIRECT_URI is set: $WHOOP_REDIRECT_URI${NC}"
+fi
+
+if [ -z "$GROQ_API_KEY" ] && [ -z "$HUGGINGFACE_API_KEY" ]; then
+    echo -e "${YELLOW}⚠️  No AI API key found (GROQ_API_KEY or HUGGINGFACE_API_KEY).${NC}"
+    echo -e "${YELLOW}   Zenith AI features will not work.${NC}"
+else
+    echo -e "${GREEN}✅ AI API key configured${NC}"
+fi
+echo ""
+
 
 # Start backend
 echo -e "${BLUE}🚀 Starting backend server...${NC}"
