@@ -75,6 +75,10 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         # Start from 2 years ago, or account creation date if available
         # Most users won't have data older than 2 years anyway
         start_date = end_date - timedelta(days=730)  # ~2 years
+        # Strip microseconds to avoid 400 Bad Request from Whoop API
+        start_date = start_date.replace(microsecond=0)
+        end_date = end_date.replace(microsecond=0)
+        
         start_str = start_date.isoformat() + "Z"
         end_str = end_date.isoformat() + "Z"
 
@@ -92,6 +96,7 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
             if "400" in error_msg or "Bad Request" in error_msg:
                 logger.info("DEBUG: Date range too large, trying last 1 year instead")
                 start_date = end_date - timedelta(days=365)
+                start_date = start_date.replace(microsecond=0)
                 start_str = start_date.isoformat() + "Z"
                 try:
                     cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
@@ -100,6 +105,7 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
                     logger.error(f"DEBUG: Still failed with 1-year range: {e2}")
                     # Last resort: try last 90 days
                     start_date = end_date - timedelta(days=90)
+                    start_date = start_date.replace(microsecond=0)
                     start_str = start_date.isoformat() + "Z"
                     cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
                     logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 90-day range")

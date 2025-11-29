@@ -12,6 +12,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
 
 
+# Remove heavy dev dependencies not needed for production build
+RUN node -e "const pkg=require('./package.json'); delete pkg.devDependencies.puppeteer; delete pkg.devDependencies.playwright; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));"
+
 # Optimized npm ci - REMOVED node_modules cache mount that was causing issues
 RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-npm-cache,target=/root/.npm \
     npm ci --prefer-offline --no-audit --progress=false --loglevel=error
