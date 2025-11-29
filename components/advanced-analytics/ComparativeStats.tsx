@@ -28,30 +28,35 @@ export default function ComparativeStats({ data, metrics, period }: ComparativeS
         return metrics.map(metric => {
             // Filter out null/undefined/NaN values and calculate average only from valid data points
             const currentValidValues = currentPeriodData
-                .map(d => Number(d[metric]))
-                .filter(val => !isNaN(val) && val !== null && val !== undefined)
+                .map(d => d[metric] != null ? Number(d[metric]) : null)
+                .filter(val => val !== null && !isNaN(val) && val !== undefined)
             
             const previousValidValues = previousPeriodData
-                .map(d => Number(d[metric]))
-                .filter(val => !isNaN(val) && val !== null && val !== undefined)
+                .map(d => d[metric] != null ? Number(d[metric]) : null)
+                .filter(val => val !== null && !isNaN(val) && val !== undefined)
             
-            const currentAvg = currentValidValues.length > 0
+            const hasCurrentData = currentValidValues.length > 0
+            const hasPreviousData = previousValidValues.length > 0
+            
+            const currentAvg = hasCurrentData
                 ? currentValidValues.reduce((sum, val) => sum + val, 0) / currentValidValues.length
-                : 0
+                : null
             
-            const previousAvg = previousValidValues.length > 0
+            const previousAvg = hasPreviousData
                 ? previousValidValues.reduce((sum, val) => sum + val, 0) / previousValidValues.length
-                : 0
+                : null
 
-            const diff = currentAvg - previousAvg
-            const percentChange = previousAvg !== 0 ? (diff / previousAvg) * 100 : 0
+            const diff = currentAvg != null && previousAvg != null ? currentAvg - previousAvg : null
+            const percentChange = previousAvg != null && previousAvg !== 0 && diff != null ? (diff / previousAvg) * 100 : null
 
             return {
                 metric,
                 currentAvg,
                 previousAvg,
                 diff,
-                percentChange
+                percentChange,
+                hasCurrentData,
+                hasPreviousData
             }
         })
     }, [data, metrics, period])
@@ -69,27 +74,37 @@ export default function ComparativeStats({ data, metrics, period }: ComparativeS
                     <div className="flex items-end justify-between">
                         <div>
                             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                                {stat.currentAvg.toFixed(1)}
-                                <span className="text-base font-semibold text-gray-600 dark:text-white/70 ml-1">
-                                    {getMetricUnit(stat.metric)}
-                                </span>
+                                {stat.currentAvg != null ? (
+                                    <>
+                                        {stat.currentAvg.toFixed(1)}
+                                        <span className="text-base font-semibold text-gray-600 dark:text-white/70 ml-1">
+                                            {getMetricUnit(stat.metric)}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span className="text-base font-semibold text-gray-500 dark:text-white/50">
+                                        --
+                                    </span>
+                                )}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-white/70 font-medium">
-                                vs {stat.previousAvg.toFixed(1)} {periodLabel}
+                                vs {stat.previousAvg != null ? `${stat.previousAvg.toFixed(1)}` : '--'} {periodLabel}
                             </p>
                         </div>
 
-                        <div className={`flex items-center gap-1 text-base font-bold ${stat.percentChange > 0 ? 'text-emerald-500' : stat.percentChange < 0 ? 'text-rose-500' : 'text-gray-600 dark:text-gray-400'
-                            }`}>
-                            {stat.percentChange > 0 ? (
-                                <ArrowUp className="w-5 h-5" />
-                            ) : stat.percentChange < 0 ? (
-                                <ArrowDown className="w-5 h-5" />
-                            ) : (
-                                <Minus className="w-5 h-5" />
-                            )}
-                            {Math.abs(stat.percentChange).toFixed(1)}%
-                        </div>
+                        {stat.percentChange != null && (
+                            <div className={`flex items-center gap-1 text-base font-bold ${stat.percentChange > 0 ? 'text-emerald-500' : stat.percentChange < 0 ? 'text-rose-500' : 'text-gray-600 dark:text-gray-400'
+                                }`}>
+                                {stat.percentChange > 0 ? (
+                                    <ArrowUp className="w-5 h-5" />
+                                ) : stat.percentChange < 0 ? (
+                                    <ArrowDown className="w-5 h-5" />
+                                ) : (
+                                    <Minus className="w-5 h-5" />
+                                )}
+                                {Math.abs(stat.percentChange).toFixed(1)}%
+                            </div>
+                        )}
                     </div>
                 </NeonCard>
             ))}

@@ -100,6 +100,9 @@ def _to_today_metrics(dm: DailyMetrics) -> TodayMetrics:
         sleep_perf = get_float(['sleep_performance_%', 'sleep_performance', 'sleep_performance_percentage'])
         respiratory_rate = get_float(['respiratory_rate', 'respiratory_rate_(rpm)'])
         spo2 = get_float(['spo2_percentage', 'blood_oxygen_%', 'blood_oxygen'])
+        # Filter out invalid SpO2 values (normal range is 95-100%, filter out values below 50%)
+        if spo2 is not None and spo2 < 50.0:
+            spo2 = None
         skin_temp = get_float(['skin_temp_celsius', 'skin_temp_c', 'skin_temperature'])
         avg_hr = get_float(['average_heart_rate', 'avg_hr', 'avg_heart_rate'])
         max_hr = get_float(['max_heart_rate', 'max_hr', 'max_heart_rate'])
@@ -330,13 +333,27 @@ def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
 
 @cached(cache=analytics_cache, key=_user_cache_key)
 def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end_date: Optional[date] = None) -> TrendsResponse:
+    # Check if user has WHOOP API data (limited to 25 records)
+    from app.models.database import Upload
+    has_whoop_api_data = db.query(Upload).filter(
+        Upload.user_id == user_id,
+        Upload.data_source == "whoop_api"
+    ).first() is not None
+    
     query = db.query(DailyMetrics).filter(DailyMetrics.user_id == user_id)
     if start_date:
         query = query.filter(DailyMetrics.date >= start_date)
     if end_date:
         query = query.filter(DailyMetrics.date <= end_date)
 
-    rows = query.order_by(DailyMetrics.date.asc()).all()
+    # Limit to 25 records if data came from WHOOP API
+    if has_whoop_api_data:
+        rows = query.order_by(DailyMetrics.date.desc()).limit(25).all()
+        # Reverse to get ascending order
+        rows = list(reversed(rows))
+        logger.info(f"Limited to 25 records for WHOOP API user {user_id}")
+    else:
+        rows = query.order_by(DailyMetrics.date.asc()).all()
 
     # Fetch calorie data from workouts
     workout_query = (
@@ -385,20 +402,29 @@ def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end
             points.append(TrendPoint(date=row.date, value=int(val)))
         return points
 
-    def _extra_series(values: List[DailyMetrics], key_part: str) -> List[TrendPoint]:
+    def _extra_series(values: List[DailyMetrics], key_part: str, alternative_keys: List[str] = None, min_valid_value: float = None) -> List[TrendPoint]:
         points = []
         for row in values:
             val = None
             if row.extra:
-                # Find key containing key_part (e.g. "blood_oxygen" in "blood_oxygen_%")
+                # Build list of keys to search for
+                keys_to_search = [key_part]
+                if alternative_keys:
+                    keys_to_search.extend(alternative_keys)
+                
+                # Find key containing any of the key parts
                 for k, v in row.extra.items():
-                    if key_part in k:
+                    if any(search_key in k for search_key in keys_to_search):
                         try:
                             val_str = str(v).replace(",", "").strip()
                             val = float(val_str)
+                            # Filter out invalid values (e.g., 0 for SpO2 which should be 95-100%)
+                            if min_valid_value is not None and val < min_valid_value:
+                                val = None
                         except (ValueError, TypeError):
                             pass
-                        break
+                        if val is not None:
+                            break
             points.append(TrendPoint(date=row.date, value=val))
         return points
 
@@ -410,11 +436,12 @@ def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end
             sleep=_series(rows, "sleep_hours"),
             hrv=_series(rows, "hrv"),
             calories=_calorie_series(rows),
-            spo2=_extra_series(rows, "blood_oxygen"),
+            spo2=_extra_series(rows, "blood_oxygen", alternative_keys=["spo2_percentage", "spo2"], min_valid_value=50.0),
             skin_temp=_extra_series(rows, "skin_temp"),
             resting_hr=_series(rows, "resting_hr"),
             respiratory_rate=_extra_series(rows, "respiratory"),
         ),
+        is_whoop_api_limited=has_whoop_api_data,
     )
 
 
