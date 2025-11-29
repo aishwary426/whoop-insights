@@ -17,16 +17,36 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
   const [progress, setProgress] = useState(0)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null)
+  const [isSupported, setIsSupported] = useState(true)
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const isPlayingRef = useRef(false)
+  const currentVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Check if speech synthesis is supported
+      if (!('speechSynthesis' in window)) {
+        console.error('Speech synthesis not supported in this browser')
+        setIsSupported(false)
+        return
+      }
+      
+      setIsSupported(true)
+      
       synthRef.current = window.speechSynthesis
       
       const loadVoices = () => {
-        const availableVoices = synthRef.current?.getVoices() || []
+        if (!synthRef.current) return
+        
+        const availableVoices = synthRef.current.getVoices() || []
+        console.log('Available voices:', availableVoices.length)
         setVoices(availableVoices)
+        
+        if (availableVoices.length === 0) {
+          console.warn('No voices available')
+          return
+        }
         
         // Prioritize "Enhanced" or "Premium" voices (macOS/Chrome high quality)
         const preferred = availableVoices.find(v => 
@@ -34,16 +54,26 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
         ) || availableVoices.find(v => 
             v.name.includes('Google US English') || 
             v.name.includes('Samantha')
-        )
+        ) || availableVoices.find(v => v.lang.startsWith('en'))
         
-        if (preferred) setSelectedVoice(preferred)
-        else setSelectedVoice(availableVoices[0])
+        const voiceToUse = preferred || availableVoices[0]
+        if (voiceToUse) {
+          console.log('Selected voice:', voiceToUse.name)
+          setSelectedVoice(voiceToUse)
+          currentVoiceRef.current = voiceToUse
+        }
       }
 
+      // Load voices immediately
       loadVoices()
+      
+      // Some browsers load voices asynchronously
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
         window.speechSynthesis.onvoiceschanged = loadVoices
       }
+      
+      // Fallback: try loading voices again after a short delay
+      setTimeout(loadVoices, 500)
     }
   }, [])
 
@@ -128,38 +158,114 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
   }
 
   const handlePlay = async () => {
-    if (!synthRef.current) return
+    if (!synthRef.current) {
+      console.error('Speech synthesis not available')
+      return
+    }
 
-    if (isPlaying) {
+    // Cancel any ongoing speech
+    if (isPlayingRef.current) {
       synthRef.current.cancel()
+      isPlayingRef.current = false
       setIsPlaying(false)
       setProgress(0)
       return
     }
 
+    // Ensure we have a voice selected
+    const voiceToUse = currentVoiceRef.current || selectedVoice || (voices.length > 0 ? voices[0] : null)
+    if (!voiceToUse) {
+      console.error('No voice available')
+      // Try to reload voices
+      const availableVoices = synthRef.current.getVoices()
+      if (availableVoices.length > 0) {
+        currentVoiceRef.current = availableVoices[0]
+        setSelectedVoice(availableVoices[0])
+      } else {
+        alert('No speech voices available. Please check your browser settings.')
+        return
+      }
+    }
+
+    // Cancel any existing speech before starting
+    synthRef.current.cancel()
+    
+    // Small delay to ensure cancellation is processed
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    isPlayingRef.current = true
     setIsPlaying(true)
+    setProgress(0)
     const sentences = generateScript()
+    
+    if (sentences.length === 0) {
+      console.error('No sentences to speak')
+      isPlayingRef.current = false
+      setIsPlaying(false)
+      return
+    }
     
     // Sequential playback with pauses
     for (let i = 0; i < sentences.length; i++) {
-        if (!synthRef.current.speaking && !isPlaying) break // Stop if cancelled
+        // Check if cancelled using ref (state might be stale)
+        if (!isPlayingRef.current) break
         
         const text = sentences[i]
+        if (!text || text.trim() === '') continue
+        
         const utterance = new SpeechSynthesisUtterance(text)
         utteranceRef.current = utterance
-        if (selectedVoice) utterance.voice = selectedVoice
+        
+        // Use the voice from ref
+        const voice = currentVoiceRef.current || selectedVoice
+        if (voice) {
+          utterance.voice = voice
+        }
         utterance.rate = 0.95
+        utterance.pitch = 1.0
         utterance.volume = isMuted ? 0 : 1
+        utterance.lang = 'en-US'
         
         // Wrap in promise to await completion
         await new Promise<void>(resolve => {
+            let resolved = false
+            const cleanup = () => {
+              if (!resolved) {
+                resolved = true
+                resolve()
+              }
+            }
+            
             utterance.onend = () => {
                 setProgress(((i + 1) / sentences.length) * 100)
-                resolve()
+                cleanup()
             }
-            utterance.onerror = () => resolve() // Continue even on error
-            synthRef.current?.speak(utterance)
+            utterance.onerror = (e) => {
+                console.error('Speech synthesis error:', e, 'for text:', text)
+                cleanup()
+            }
+            utterance.onstart = () => {
+              console.log('Started speaking:', text.substring(0, 50))
+            }
+            
+            // Start speaking
+            try {
+              synthRef.current?.speak(utterance)
+              // Fallback timeout in case onend/onerror don't fire
+              setTimeout(() => {
+                if (!resolved) {
+                  console.warn('Speech timeout for:', text.substring(0, 50))
+                  cleanup()
+                }
+              }, 15000) // 15 second timeout per sentence
+            } catch (error) {
+              console.error('Error starting speech:', error)
+              cleanup()
+            }
         })
+
+        // Check again if cancelled before pause
+        if (!isPlayingRef.current) break
 
         // Add natural pause
         if (i < sentences.length - 1) {
@@ -167,7 +273,9 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
         }
     }
     
+    isPlayingRef.current = false
     setIsPlaying(false)
+    setProgress(100)
   }
 
   const toggleMute = () => {
@@ -191,7 +299,10 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
                     value={selectedVoice?.name || ''}
                     onChange={(e) => {
                         const v = voices.find(voice => voice.name === e.target.value)
-                        if (v) setSelectedVoice(v)
+                        if (v) {
+                          setSelectedVoice(v)
+                          currentVoiceRef.current = v
+                        }
                     }}
                 >
                     {voices.map(v => (
@@ -227,7 +338,8 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
             {/* Play Button */}
             <button
                 onClick={handlePlay}
-                className="z-10 w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg hover:shadow-cyan-500/50 transition-all active:scale-95"
+                disabled={!isSupported || voices.length === 0}
+                className="z-10 w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg hover:shadow-cyan-500/50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {isPlaying ? <Square size={24} fill="white" /> : <Play size={28} fill="white" className="ml-1" />}
             </button>
@@ -244,7 +356,13 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
         </div>
 
         <p className="text-sm text-gray-400 text-center italic">
-            {isPlaying ? "Generating insights..." : "Ready for your daily update"}
+            {!isSupported 
+              ? "Speech synthesis not supported in this browser" 
+              : voices.length === 0 
+                ? "Loading voices..." 
+                : isPlaying 
+                  ? "Generating insights..." 
+                  : "Ready for your daily update"}
         </p>
       </div>
     </NeonCard>

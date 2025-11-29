@@ -95,15 +95,18 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         logger.info(f"DEBUG: This should include data up to approximately {end_date.date()} (UTC date)")
 
         # 1. Fetch Cycles (Recovery, Strain)
-        # Try 2 years first, fall back to 1 year if API rejects it
+        # Try 2 years first, fall back to smaller ranges if API rejects it
+        # Note: We'll update start_str/end_str so all subsequent API calls use the same range
+        cycles_fetched = False
         try:
             cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
-            logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles")
+            logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 2-year range")
+            cycles_fetched = True
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"DEBUG: Error fetching cycles: {error_msg}")
+            logger.error(f"DEBUG: Error fetching cycles with 2-year range: {error_msg}")
             
-            # Check if it's a 400 error, potentially due to future timestamp (clock skew)
+            # Check if it's a 400 error, potentially due to future timestamp (clock skew) or date range too large
             if "400" in error_msg or "Bad Request" in error_msg:
                 logger.info("DEBUG: 400 Error, trying with 5-minute buffer for end_date")
                 # Apply 5 minute buffer and retry
@@ -114,7 +117,8 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
                 # Also reduce range if needed, but first try just the buffer with full range
                 try:
                     cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
-                    logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 5-min buffer")
+                    logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 5-min buffer and 2-year range")
+                    cycles_fetched = True
                 except Exception as e2:
                     logger.error(f"DEBUG: Still failed with buffer: {e2}")
                     
@@ -126,16 +130,36 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
                     try:
                         cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
                         logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 1-year range")
+                        cycles_fetched = True
                     except Exception as e3:
                         logger.error(f"DEBUG: Still failed with 1-year range: {e3}")
                         # Last resort: try last 90 days
+                        logger.info("DEBUG: Trying last 90 days as fallback")
                         start_date = end_date - timedelta(days=90)
                         start_date = start_date.replace(microsecond=0)
                         start_str = start_date.isoformat() + "Z"
-                        cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
-                        logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 90-day range")
+                        try:
+                            cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
+                            logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 90-day range")
+                            cycles_fetched = True
+                        except Exception as e4:
+                            logger.error(f"DEBUG: Failed even with 90-day range: {e4}")
+                            # Try 180 days as a middle ground
+                            logger.info("DEBUG: Trying last 180 days as fallback")
+                            start_date = end_date - timedelta(days=180)
+                            start_date = start_date.replace(microsecond=0)
+                            start_str = start_date.isoformat() + "Z"
+                            cycles_data = await whoop_client.get_cycle_data(access_token, start_str, end_str)
+                            logger.info(f"DEBUG: Fetched {len(cycles_data)} cycles with 180-day range")
+                            cycles_fetched = True
             else:
                 raise
+        
+        if not cycles_fetched:
+            cycles_data = []
+        
+        # Log the final date range being used for all subsequent API calls
+        logger.info(f"DEBUG: Using date range for all API calls: {start_str} to {end_str}")
         
         # 2. Fetch Sleep
         # Add small delay between endpoint calls to spread out requests

@@ -117,8 +117,9 @@ export default function DashboardPage() {
   }, [summary, trends])
 
   // Memoize all data transformations to prevent recalculation on every render
+  // Show all data, not just last 30 days
   const recoveryData = useMemo(() =>
-    trends?.series?.recovery?.slice(-30).map((item: any) => ({
+    trends?.series?.recovery?.map((item: any) => ({
       date: formatShortDate(item.date),
       recovery: item.value
     })) || [],
@@ -134,7 +135,7 @@ export default function DashboardPage() {
   )
 
   const last30Strain = useMemo(() =>
-    trends?.series?.strain?.slice(-30).map((item: any) => {
+    trends?.series?.strain?.map((item: any) => {
       return {
         date: formatDayWeekday(item.date, isMobile),
         value: item.value
@@ -144,7 +145,7 @@ export default function DashboardPage() {
   )
 
   const last30Sleep = useMemo(() =>
-    trends?.series?.sleep?.slice(-30).map(d => {
+    trends?.series?.sleep?.map(d => {
       return {
         date: formatDayWeekday(d.date, isMobile),
         value: d.value || 0
@@ -345,7 +346,7 @@ export default function DashboardPage() {
                 <div className="space-y-2 md:space-y-4 text-left md:text-right">
                   <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Recovery Trends</h2>
                   <p className="text-sm md:text-base lg:text-lg text-gray-600 dark:text-white/60 leading-relaxed hidden md:block">
-                    Visualizing your recovery baseline over the last 30 days. Spot patterns and adjust your lifestyle.
+                    Visualizing your recovery baseline over time. Spot patterns and adjust your lifestyle.
                   </p>
                 </div>
               }
