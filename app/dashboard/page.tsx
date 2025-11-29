@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Heart, Dumbbell, Zap, Moon, ArrowDown, Thermometer, Flame } from 'lucide-react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { Heart, Dumbbell, Zap, Moon, Thermometer, Flame, RefreshCw } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import TodayRecommendationCard from '../../components/dashboard/TodayRecommendationCard'
 import StatsRow from '../../components/dashboard/StatsRow'
@@ -21,8 +20,7 @@ import { useIsMobile } from '../../lib/hooks/useIsMobile'
 import { usePerformanceMode } from '../../lib/hooks/usePerformanceMode'
 import { useUser } from '../../lib/contexts/UserContext'
 import { formatShortDate, formatWeekday, formatDayWeekday, formatFullDate, getRelativeDateLabel } from '../../lib/formatters'
-
-import TypewriterText from '../../components/ui/TypewriterText'
+import HelloTypewriter from '../../components/ui/HelloTypewriter'
 
 // Lazy load heavy components
 const PerformanceSection = lazy(() => import('../../components/dashboard/PerformanceSection'))
@@ -34,10 +32,9 @@ export default function DashboardPage() {
   const uploaded = searchParams.get('uploaded')
   const { user, isLoading: userLoading } = useUser()
   const [viewingUserId, setViewingUserId] = useState<string | null>(null)
-  const { scrollY } = useScroll()
-  const scrollOpacity = useTransform(scrollY, [0, 100], [1, 0])
-  const isMobile = useIsMobile()
+  // Disable scroll animations for better performance
   const { reduceAnimations } = usePerformanceMode()
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -104,10 +101,31 @@ export default function DashboardPage() {
   // Determine target user ID for data fetching
   const targetUserId = viewingUserId || user?.id
 
-  // SWR Hooks
-  const { summary, isLoading: summaryLoading } = useDashboardSummary(targetUserId, uploaded)
-  const { trends, isLoading: trendsLoading } = useTrends(undefined, undefined, targetUserId, uploaded)
-  const { insights: personalizationInsights, isLoading: personalizationLoading } = usePersonalizationInsights(targetUserId)
+  // SWR Hooks - memoize targetUserId to prevent unnecessary refetches
+  const memoizedTargetUserId = useMemo(() => targetUserId, [targetUserId])
+  const { summary, isLoading: summaryLoading, mutate: mutateSummary } = useDashboardSummary(memoizedTargetUserId, uploaded)
+  const { trends, isLoading: trendsLoading } = useTrends(undefined, undefined, memoizedTargetUserId, uploaded)
+  const { insights: personalizationInsights, isLoading: personalizationLoading } = usePersonalizationInsights(memoizedTargetUserId)
+  
+  // Manual refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      // Trigger backend sync
+      await api.syncWhoopDataNow()
+      // Refresh frontend data
+      await mutateSummary()
+      // Force revalidation of trends
+      router.replace(`/dashboard?refresh=${Date.now()}`)
+    } catch (error) {
+      console.error('Failed to refresh data:', error)
+      alert('Failed to refresh data. Please try again.')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   const loading = summaryLoading || trendsLoading
   const loadingPersonalization = personalizationLoading
@@ -122,13 +140,15 @@ export default function DashboardPage() {
 
   // Memoize all data transformations to prevent recalculation on every render
   // Show all data, not just last 30 days
-  const recoveryData = useMemo(() =>
-    trends?.series?.recovery?.map((item: any) => ({
+  const recoveryData = useMemo(() => {
+    if (!trends?.series?.recovery) return []
+    // Use requestIdleCallback for large datasets to avoid blocking
+    const data = trends.series.recovery
+    return data.map((item: any) => ({
       date: formatShortDate(item.date),
       recovery: item.value
-    })) || [],
-    [trends?.series?.recovery]
-  )
+    }))
+  }, [trends?.series?.recovery])
 
   const last7Recovery = useMemo(() =>
     trends?.series?.recovery?.slice(-7).map(d => ({
@@ -255,19 +275,8 @@ export default function DashboardPage() {
   return (
     <AppLayout user={user}>
 
-      {/* Scroll Indicator */}
-      {!reduceAnimations && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ opacity: scrollOpacity }}
-          transition={{ delay: 2, duration: 1 }}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none text-gray-400 dark:text-white/20 animate-bounce"
-          layout={false}
-        >
-          <ArrowDown className="w-6 h-6" />
-        </motion.div>
-      )}
+
+      {/* Scroll Indicator - Disabled for performance */}
 
       <div className="relative z-10 w-full px-4 md:px-6 lg:px-8 pt-16 md:pt-20 lg:pt-24">
 
@@ -277,17 +286,25 @@ export default function DashboardPage() {
           stickyContent={
             <div className="w-full pb-4 md:pb-8">
               <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-4 md:space-y-6">
-                <div className="text-xs md:text-sm uppercase tracking-[0.2em] text-blue-600 dark:text-neon-primary font-medium">
-                  WELCOME BACK,
+                {/* Hello Typewriter Animation */}
+                <div className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold">
+                  <HelloTypewriter />
                 </div>
-                <div className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-gray-900 dark:text-white leading-none min-h-[1.2em]">
-                  <TypewriterText
-                    words={[
-                      (user?.user_metadata?.name?.split(' ')[0] || 'ATHLETE').toUpperCase(),
-                      'SUPERHUMAN',
-                      'UNSTOPPABLE'
-                    ]}
-                  />
+                
+                <div className="flex items-center justify-between w-full">
+                  <div></div>
+                  <button
+                    onClick={handleManualRefresh}
+                    disabled={isRefreshing}
+                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-neon-light dark:bg-neon text-white dark:text-black font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:opacity-60"
+                  >
+                    <span>{isRefreshing ? 'Syncing...' : 'Sync Now'}</span>
+                    <RefreshCw 
+                      size={18} 
+                      className={`text-white dark:text-black ${isRefreshing ? 'animate-spin' : ''}`}
+                      strokeWidth={2.5}
+                    />
+                  </button>
                 </div>
               </div>
             </div>
