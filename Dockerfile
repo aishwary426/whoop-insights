@@ -12,8 +12,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
 ENV NODE_ENV=production
 
-# Optimized npm ci with aggressive settings
-RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-npm-cache,target=/root/.npm \
+# Optimized npm ci - REMOVED node_modules cache mount that was causing issues
+RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
     npm ci --prefer-offline --no-audit --progress=false --loglevel=error
 
 # Copy source files (order matters for layer caching)
@@ -36,7 +36,7 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build with cache mount and memory optimization
-RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-nextjs-cache,target=/app/frontend/.next/cache \
+RUN --mount=type=cache,id=nextjs-cache,target=/app/frontend/.next/cache \
     NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Stage 2: Runtime
@@ -49,7 +49,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # Install Python dependencies with uv cache
 COPY requirements.txt .
-RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-uv-cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=uv-cache,target=/root/.cache/uv \
     uv pip install --system -r requirements.txt
 
 # Copy backend code
