@@ -150,7 +150,7 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         # Process Cycles
         for cycle in cycles_data:
             cycle_id = cycle.get("id")
-            cycle_score = cycle.get("score", {})
+            cycle_score = cycle.get("score") or {}
             
             # Date mapping: Whoop cycles have a start_time and end_time.
             # We use end_time (wake up time) to determine the date, as it consistently falls on the correct "Whoop Day"
@@ -192,10 +192,10 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
             
             # Get associated recovery and sleep
             recovery = recoveries_by_cycle.get(cycle_id, {})
-            recovery_score_data = recovery.get("score", {})
+            recovery_score_data = recovery.get("score") or {}
             
             sleep = sleeps_by_cycle.get(cycle_id, {})
-            sleep_score_data = sleep.get("score", {})
+            sleep_score_data = sleep.get("score") or {}
             sleep_stage_summary = sleep_score_data.get("stage_summary", {})
             sleep_needed = sleep_score_data.get("sleep_needed", {})
             
@@ -254,7 +254,7 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         # Process Workouts
         workouts_list = []
         for workout in workout_data:
-            score = workout.get("score", {})
+            score = workout.get("score") or {}
             start = workout.get("start")
             end = workout.get("end")
             if not start or not end:
