@@ -10,7 +10,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV CI=true
-ENV NODE_ENV=production
+
 
 # Optimized npm ci - REMOVED node_modules cache mount that was causing issues
 RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-npm-cache,target=/root/.npm \
@@ -37,7 +37,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build with cache mount and memory optimization
 RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-nextjs-cache,target=/app/frontend/.next/cache \
-    NODE_OPTIONS="--max-old-space-size=4096" npm run build
+    NODE_ENV=production NODE_OPTIONS="--max-old-space-size=4096" npm run build
 
 # Stage 2: Runtime
 FROM python:3.11-slim
