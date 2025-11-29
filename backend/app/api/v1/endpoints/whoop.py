@@ -295,11 +295,8 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         summary_cache.clear()
         logger.info("DEBUG: Caches cleared")
 
-        return {
-            "status": "success", 
-            "message": "Whoop connected and data synced successfully", 
-            "user": profile,
-        }
+        # Redirect to frontend dashboard
+        return RedirectResponse(url="/dashboard?whoop_connected=true")
         
     except Exception as e:
         logger.error(f"Failed to connect Whoop: {str(e)}")
