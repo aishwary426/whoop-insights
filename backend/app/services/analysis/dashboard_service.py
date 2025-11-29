@@ -334,10 +334,19 @@ def get_dashboard_summary(db: Session, user_id: str) -> DashboardSummary:
 @cached(cache=analytics_cache, key=_user_cache_key)
 def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end_date: Optional[date] = None) -> TrendsResponse:
     # Check if user has WHOOP API data (limited to 25 records)
-    from app.models.database import Upload
+    # Check if user has WHOOP API data (limited to 25 records)
+    from app.models.database import Upload, UploadStatus
+    
     has_whoop_api_data = db.query(Upload).filter(
         Upload.user_id == user_id,
         Upload.data_source == "whoop_api"
+    ).first() is not None
+    
+    # Check if user has a completed ZIP upload (which contains full history)
+    has_zip_data = db.query(Upload).filter(
+        Upload.user_id == user_id,
+        Upload.data_source == "zip",
+        Upload.status == UploadStatus.COMPLETED
     ).first() is not None
     
     query = db.query(DailyMetrics).filter(DailyMetrics.user_id == user_id)
@@ -346,12 +355,13 @@ def get_trends(db: Session, user_id: str, start_date: Optional[date] = None, end
     if end_date:
         query = query.filter(DailyMetrics.date <= end_date)
 
-    # Limit to 25 records if data came from WHOOP API
-    if has_whoop_api_data:
+    # Limit to 25 records ONLY if data came from WHOOP API and NO zip file was uploaded
+    # If they have a zip file, we want to show full history even if they also connected API
+    if has_whoop_api_data and not has_zip_data:
         rows = query.order_by(DailyMetrics.date.desc()).limit(25).all()
         # Reverse to get ascending order
         rows = list(reversed(rows))
-        logger.info(f"Limited to 25 records for WHOOP API user {user_id}")
+        logger.info(f"Limited to 25 records for WHOOP API user {user_id} (no zip upload found)")
     else:
         rows = query.order_by(DailyMetrics.date.asc()).all()
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Heart, Dumbbell, Zap, Moon, Thermometer, Flame, RefreshCw } from 'lucide-react'
+import { Heart, Dumbbell, Zap, Moon, Thermometer, Flame, RefreshCw, Share2 } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import TodayRecommendationCard from '../../components/dashboard/TodayRecommendationCard'
 import StatsRow from '../../components/dashboard/StatsRow'
@@ -21,6 +21,7 @@ import { usePerformanceMode } from '../../lib/hooks/usePerformanceMode'
 import { useUser } from '../../lib/contexts/UserContext'
 import { formatShortDate, formatWeekday, formatDayWeekday, formatFullDate, getRelativeDateLabel } from '../../lib/formatters'
 import HelloTypewriter from '../../components/ui/HelloTypewriter'
+import SocialShareCard from '../../components/SocialShareCard'
 
 // Lazy load heavy components
 const PerformanceSection = lazy(() => import('../../components/dashboard/PerformanceSection'))
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   // Disable scroll animations for better performance
   const { reduceAnimations } = usePerformanceMode()
   const isMobile = useIsMobile()
+  const [showShareCard, setShowShareCard] = useState(false)
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -327,18 +329,27 @@ export default function DashboardPage() {
                 
                 <div className="flex items-center justify-between w-full">
                   <div></div>
-                  <button
-                    onClick={handleManualRefresh}
-                    disabled={isRefreshing}
-                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-neon-light dark:bg-neon text-white dark:text-black font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:opacity-60"
-                  >
-                    <span>{isRefreshing ? 'Syncing...' : 'Sync Now'}</span>
-                    <RefreshCw 
-                      size={18} 
-                      className={`text-white dark:text-black ${isRefreshing ? 'animate-spin' : ''}`}
-                      strokeWidth={2.5}
-                    />
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowShareCard(true)}
+                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white/10 text-white font-semibold text-sm shadow-md hover:bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                    >
+                      <Share2 size={18} />
+                      <span className="hidden sm:inline">Share</span>
+                    </button>
+                    <button
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing}
+                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-neon-light dark:bg-neon text-white dark:text-black font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:opacity-60"
+                    >
+                      <span>{isRefreshing ? 'Syncing...' : 'Sync Now'}</span>
+                      <RefreshCw 
+                        size={18} 
+                        className={`text-white dark:text-black ${isRefreshing ? 'animate-spin' : ''}`}
+                        strokeWidth={2.5}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -701,6 +712,17 @@ export default function DashboardPage() {
           </>
         )}
       </div>
+      
+      {showShareCard && summary?.today && (
+        <SocialShareCard
+          recovery={summary.today.recovery_score || 0}
+          strain={yesterdayStrain || 0}
+          sleep={summary.today.sleep_hours || 0}
+          hrv={summary.today.hrv || 0}
+          date={formatFullDate(summary.today.date)}
+          onClose={() => setShowShareCard(false)}
+        />
+      )}
     </AppLayout>
   )
 }
