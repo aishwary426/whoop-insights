@@ -193,7 +193,7 @@ class WhoopClient:
         
         # Ensure we request max limit to minimize calls
         if "limit" not in params:
-            params["limit"] = 100
+            params["limit"] = 25
 
         page_count = 0
         while True:
