@@ -42,7 +42,7 @@ export default function DashboardPage() {
     }
   }, [user, userLoading, router])
 
-  // Handle Whoop OAuth callback
+  // Handle Whoop OAuth callback (frontend-initiated flow)
   const callbackProcessed = useRef(false)
 
   useEffect(() => {
@@ -69,6 +69,22 @@ export default function DashboardPage() {
         }
       }
       syncData()
+    }
+  }, [searchParams, router])
+
+  // Handle backend OAuth callback redirect (whoop_connected=true)
+  // Backend already processed the OAuth and ingested data, we just need to refresh
+  const whoopConnectedProcessed = useRef(false)
+  
+  useEffect(() => {
+    const whoopConnected = searchParams.get('whoop_connected')
+    
+    if (whoopConnected === 'true' && !whoopConnectedProcessed.current) {
+      whoopConnectedProcessed.current = true
+      
+      // Convert to uploaded parameter to trigger data refresh
+      // The backend already ingested the data, we just need to refresh the frontend
+      router.replace('/dashboard?uploaded=' + Date.now())
     }
   }, [searchParams, router])
 
@@ -104,11 +120,29 @@ export default function DashboardPage() {
   // SWR Hooks - memoize targetUserId to prevent unnecessary refetches
   const memoizedTargetUserId = useMemo(() => targetUserId, [targetUserId])
   const { summary, isLoading: summaryLoading, mutate: mutateSummary } = useDashboardSummary(memoizedTargetUserId, uploaded)
-  const { trends, isLoading: trendsLoading } = useTrends(undefined, undefined, memoizedTargetUserId, uploaded)
+  const { trends, isLoading: trendsLoading, mutate: mutateTrends } = useTrends(undefined, undefined, memoizedTargetUserId, uploaded)
   const { insights: personalizationInsights, isLoading: personalizationLoading } = usePersonalizationInsights(memoizedTargetUserId)
   
   // Manual refresh state
   const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  // Handle uploaded parameter - force refresh when coming from upload page
+  const uploadedProcessed = useRef<string | null>(null)
+  
+  useEffect(() => {
+    if (uploaded && uploaded !== uploadedProcessed.current && targetUserId && mutateTrends) {
+      uploadedProcessed.current = uploaded
+      // Manually trigger refetch to ensure fresh data after upload
+      // Add a small delay to ensure backend has finished committing data
+      const timeoutId = setTimeout(() => {
+        console.log('Upload detected, triggering data refresh...')
+        mutateSummary()
+        mutateTrends()
+      }, 500) // Small delay to ensure database commit propagation
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [uploaded, targetUserId, mutateSummary, mutateTrends])
   
   const handleManualRefresh = async () => {
     setIsRefreshing(true)
@@ -314,7 +348,15 @@ export default function DashboardPage() {
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold leading-tight text-gray-900 dark:text-white">
               Today's Overview
             </h1>
-            {hasData ? (
+            {loading && !hasData ? (
+              <NeonCard className="p-12 text-center border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0A0A0A]">
+                <div className="w-14 h-14 border-4 border-blue-600/15 dark:border-neon-primary/15 border-t-blue-600 dark:border-t-neon-primary rounded-full animate-spin mx-auto mb-6" />
+                <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Loading your data...</h3>
+                <p className="text-gray-600 dark:text-white/60 mb-8 max-w-md mx-auto">
+                  Please wait while we fetch your data
+                </p>
+              </NeonCard>
+            ) : hasData ? (
               <StatsRow stats={statsData} />
             ) : (
               <NeonCard className="p-12 text-center border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#0A0A0A]">

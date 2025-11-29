@@ -17,9 +17,10 @@ export function useDashboardSummary(userId?: string, refreshKey?: string | numbe
         userId ? [`/dashboard/summary?user_id=${userId}`, refreshKey] : null,
         () => api.getDashboardSummary(userId),
         {
-            refreshInterval: 300000, // 5 minutes
-            revalidateOnFocus: true,
+            refreshInterval: 60000, // Refresh every 60 seconds for live updates
+            revalidateOnFocus: true, // Revalidate when window regains focus
             keepPreviousData: true,
+            dedupingInterval: 30000, // Dedupe requests within 30 seconds
         }
     )
 
@@ -36,12 +37,12 @@ export function useTrends(startDate?: string, endDate?: string, userId?: string,
     // Create a stable key that changes when params change
     const key = userId ? ['/dashboard/trends', userId, startDate, endDate, refreshKey] : null
 
-    const { data, error, isLoading } = useSWR<TrendsResponse>(
+    const { data, error, isLoading, mutate } = useSWR<TrendsResponse>(
         key,
         () => api.getTrends(startDate, endDate, userId),
         {
-            refreshInterval: 0, // Don't auto-refresh trends often
-            revalidateOnFocus: false,
+            refreshInterval: 120000, // Refresh every 2 minutes (trends change less frequently)
+            revalidateOnFocus: true,
             keepPreviousData: true,
         }
     )
@@ -50,6 +51,7 @@ export function useTrends(startDate?: string, endDate?: string, userId?: string,
         trends: data,
         isLoading,
         isError: error,
+        mutate,
     }
 }
 
