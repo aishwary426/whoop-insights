@@ -85,6 +85,48 @@ export const filterDataByRange = (data: any[], range: string) => {
     return data.filter(d => new Date(d.date) >= cutoff)
 }
 
+export const fillMissingDates = (data: any[], range: string) => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const startDate = new Date(now)
+
+    switch (range) {
+        case '1W': startDate.setDate(now.getDate() - 7); break;
+        case '1M': startDate.setMonth(now.getMonth() - 1); break;
+        case '3M': startDate.setMonth(now.getMonth() - 3); break;
+        case '6M': startDate.setMonth(now.getMonth() - 6); break;
+        case '1Y': startDate.setFullYear(now.getFullYear() - 1); break;
+        case 'ALL': 
+            // For ALL, we don't enforce a start date, just return the data
+            return data || [];
+        default: return data || [];
+    }
+
+    const dataMap = new Map()
+    if (data) {
+        data.forEach(d => {
+            const dDate = new Date(d.date).toISOString().split('T')[0]
+            dataMap.set(dDate, d)
+        })
+    }
+
+    const filledData = []
+    const current = new Date(startDate)
+    
+    // Iterate until today
+    while (current <= now) {
+        const dateStr = current.toISOString().split('T')[0]
+        if (dataMap.has(dateStr)) {
+            filledData.push(dataMap.get(dateStr))
+        } else {
+            filledData.push({ date: dateStr })
+        }
+        current.setDate(current.getDate() + 1)
+    }
+    
+    return filledData
+}
+
 export const getMetricLabel = (key: string) => {
     const labels: Record<string, string> = {
         recovery: 'Recovery',

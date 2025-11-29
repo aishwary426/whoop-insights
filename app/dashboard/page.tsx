@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Heart, Dumbbell, Zap, Moon, ArrowDown } from 'lucide-react'
+import { Heart, Dumbbell, Zap, Moon, ArrowDown, Thermometer, Flame } from 'lucide-react'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import AppLayout from '../../components/layout/AppLayout'
 import TodayRecommendationCard from '../../components/dashboard/TodayRecommendationCard'
@@ -205,6 +205,34 @@ export default function DashboardPage() {
       value: summary?.today?.sleep_hours ? `${summary.today.sleep_hours.toFixed(1)}h` : '--',
       subtitle: 'Last night',
       color: 'from-blue-500/20 to-cyan-500/20'
+    },
+    {
+      icon: Zap,
+      label: 'Respiratory Rate',
+      value: summary?.today?.respiratory_rate ? `${summary.today.respiratory_rate.toFixed(1)} rpm` : '--',
+      subtitle: 'Last night',
+      color: 'from-green-500/20 to-emerald-500/20'
+    },
+    {
+      icon: Heart,
+      label: 'SpO2',
+      value: summary?.today?.spo2_percentage ? `${summary.today.spo2_percentage.toFixed(1)}%` : '--',
+      subtitle: 'Last night',
+      color: 'from-red-500/20 to-pink-500/20'
+    },
+    {
+      icon: Thermometer,
+      label: 'Skin Temp',
+      value: summary?.today?.skin_temp_celsius ? `${summary.today.skin_temp_celsius.toFixed(1)}°C` : '--',
+      subtitle: 'Last night',
+      color: 'from-orange-500/20 to-yellow-500/20'
+    },
+    {
+      icon: Flame,
+      label: 'Calories',
+      value: summary?.today?.calories ? `${Math.round(summary.today.calories)}` : '--',
+      subtitle: 'Yesterday',
+      color: 'from-purple-500/20 to-indigo-500/20'
     }
   ], [summary, yesterdayStrain])
 

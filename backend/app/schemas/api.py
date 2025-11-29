@@ -38,7 +38,16 @@ class TodayMetrics(APIBase):
     workouts_count: int = 0
     rem_sleep_min: Optional[float] = None
     deep_sleep_min: Optional[float] = None
+    light_sleep_min: Optional[float] = None
+    awake_time_min: Optional[float] = None
     sleep_efficiency: Optional[float] = None
+    sleep_performance_percentage: Optional[float] = None
+    respiratory_rate: Optional[float] = None
+    spo2_percentage: Optional[float] = None
+    skin_temp_celsius: Optional[float] = None
+    avg_heart_rate: Optional[float] = None
+    max_heart_rate: Optional[float] = None
+    calories: Optional[float] = None
 
 
 class TodayRecommendation(APIBase):

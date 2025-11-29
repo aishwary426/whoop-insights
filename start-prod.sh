@@ -7,7 +7,7 @@ set +e
 # Set default PORT if not provided
 export PORT=${PORT:-3000}
 
-echo "Starting Production deployment..."
+echo "[$(date)] Starting Production deployment..."
 echo "PORT=${PORT}"
 
 # Check if server.js exists (Next.js standalone build)
@@ -40,7 +40,7 @@ if [ ! -f "/app/backend/app/main.py" ]; then
 fi
 
 # Run database migrations
-echo "Running database migrations..."
+echo "[$(date)] Running database migrations..."
 if [ -d "/app/backend" ]; then
     cd /app/backend
     # Add backend directory to PYTHONPATH for migrations
@@ -106,8 +106,8 @@ EOF
     fi
 } > /app/supervisord.conf
 
-echo "Supervisord config created"
-echo "Starting services..."
+echo "[$(date)] Supervisord config created"
+echo "[$(date)] Starting services..."
 
 # Start supervisord in foreground (nodaemon=true keeps it running)
 # This is the main process that Render will monitor

@@ -68,38 +68,42 @@ def _latest_daily_metrics(db: Session, user_id: str) -> Optional[DailyMetrics]:
 
 
 def _to_today_metrics(dm: DailyMetrics) -> TodayMetrics:
-    rem_sleep = None
-    deep_sleep = None
-    sleep_efficiency = None
+    light_sleep = None
+    awake_time = None
+    respiratory_rate = None
+    spo2 = None
+    skin_temp = None
+    sleep_perf = None
+    avg_hr = None
+    max_hr = None
+    calories = None
 
     if dm.extra:
-        # Try to find REM sleep
-        for k in ['rem_sleep_duration_(min)', 'rem_sleep_duration', 'rem_minutes']:
-            if k in dm.extra:
-                try:
-                    rem_sleep = float(dm.extra[k])
-                    break
-                except (ValueError, TypeError):
-                    pass
-        
-        # Try to find Deep sleep
-        for k in ['deep_sleep_duration_(min)', 'deep_sleep_duration', 'deep_sleep_minutes', 'sws_duration_(min)']:
-            if k in dm.extra:
-                try:
-                    deep_sleep = float(dm.extra[k])
-                    break
-                except (ValueError, TypeError):
-                    pass
+        # Helper to safely get float
+        def get_float(keys):
+            for k in keys:
+                if k in dm.extra:
+                    try:
+                        val = dm.extra[k]
+                        if isinstance(val, str):
+                            val = val.replace('%', '').replace(',', '').strip()
+                        return float(val)
+                    except (ValueError, TypeError):
+                        pass
+            return None
 
-        # Try to find Sleep Efficiency
-        for k in ['sleep_efficiency_%', 'sleep_efficiency', 'sleep_performance_%']:
-            if k in dm.extra:
-                try:
-                    val_str = str(dm.extra[k]).replace('%', '').replace(',', '').strip()
-                    sleep_efficiency = float(val_str)
-                    break
-                except (ValueError, TypeError):
-                    pass
+        rem_sleep = get_float(['rem_sleep_min', 'rem_sleep_duration_(min)', 'rem_sleep_duration', 'rem_minutes'])
+        deep_sleep = get_float(['deep_sleep_min', 'deep_sleep_duration_(min)', 'deep_sleep_duration', 'deep_sleep_minutes', 'sws_duration_(min)'])
+        light_sleep = get_float(['light_sleep_min', 'light_sleep_duration_(min)', 'light_sleep_duration'])
+        awake_time = get_float(['awake_time_min', 'awake_duration_(min)', 'awake_duration'])
+        sleep_efficiency = get_float(['sleep_efficiency_%', 'sleep_efficiency', 'sleep_efficiency_percentage'])
+        sleep_perf = get_float(['sleep_performance_%', 'sleep_performance', 'sleep_performance_percentage'])
+        respiratory_rate = get_float(['respiratory_rate', 'respiratory_rate_(rpm)'])
+        spo2 = get_float(['spo2_percentage', 'blood_oxygen_%', 'blood_oxygen'])
+        skin_temp = get_float(['skin_temp_celsius', 'skin_temp_c', 'skin_temperature'])
+        avg_hr = get_float(['average_heart_rate', 'avg_hr', 'avg_heart_rate'])
+        max_hr = get_float(['max_heart_rate', 'max_hr', 'max_heart_rate'])
+        calories = get_float(['calories', 'energy_burned_(cal)', 'energy_burned'])
 
     return TodayMetrics(
         date=dm.date,
@@ -111,7 +115,16 @@ def _to_today_metrics(dm: DailyMetrics) -> TodayMetrics:
         workouts_count=dm.workouts_count or 0,
         rem_sleep_min=rem_sleep,
         deep_sleep_min=deep_sleep,
+        light_sleep_min=light_sleep,
+        awake_time_min=awake_time,
         sleep_efficiency=sleep_efficiency,
+        sleep_performance_percentage=sleep_perf,
+        respiratory_rate=respiratory_rate,
+        spo2_percentage=spo2,
+        skin_temp_celsius=skin_temp,
+        avg_heart_rate=avg_hr,
+        max_heart_rate=max_hr,
+        calories=calories,
     )
 
 

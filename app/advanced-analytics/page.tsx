@@ -12,7 +12,7 @@ import HabitImpactVisualization from '../../components/advanced-analytics/HabitI
 import { api, type TrendsResponse } from '../../lib/api'
 import { getCurrentUser } from '../../lib/auth'
 import { useTrends, useJournalInsights } from '../../lib/hooks/useDashboardData'
-import { filterDataByRange } from '../../lib/analytics-utils'
+import { filterDataByRange, fillMissingDates } from '../../lib/analytics-utils'
 import { motion } from 'framer-motion'
 import ScrollReveal from '../../components/ui/ScrollReveal'
 
@@ -96,7 +96,7 @@ export default function AdvancedAnalyticsPage() {
         const mergedData = Object.values(dateMap).sort((a, b) =>
             new Date(a.date).getTime() - new Date(b.date).getTime()
         )
-        return filterDataByRange(mergedData, dateRange)
+        return fillMissingDates(mergedData, dateRange)
     }, [trends, dateRange])
 
     if (loading) {

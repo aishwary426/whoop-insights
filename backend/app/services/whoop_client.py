@@ -94,25 +94,34 @@ class WhoopClient:
         
         # Ensure we request max limit to minimize calls
         if "limit" not in params:
-            params["limit"] = 25
+            params["limit"] = 100
 
+        page_count = 0
         while True:
+            page_count += 1
             current_params = params.copy()
             if next_token:
                 current_params["nextToken"] = next_token
             
+            logger.info(f"DEBUG: Fetching page {page_count} for {endpoint} with params: {current_params}")
             response_data = await self._get(access_token, endpoint, current_params)
             
             # Handle case where endpoint might return list directly (unlikely for V2 collections but good safety)
             if isinstance(response_data, list):
+                logger.info(f"DEBUG: Page {page_count} returned list of {len(response_data)} records")
                 all_records.extend(response_data)
                 break
             
             records = response_data.get("records", [])
+            logger.info(f"DEBUG: Page {page_count} returned {len(records)} records")
             all_records.extend(records)
             
-            next_token = response_data.get("next_token")
+            # Try both camelCase (API standard) and snake_case (just in case)
+            next_token = response_data.get("nextToken") or response_data.get("next_token")
+            logger.info(f"DEBUG: Next token: {next_token}")
+            
             if not next_token:
+                logger.info(f"DEBUG: No next token, stopping pagination after {page_count} pages. Total records: {len(all_records)}")
                 break
                 
         return all_records

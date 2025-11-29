@@ -63,9 +63,9 @@ async def whoop_callback(code: str, state: str, user_id: str = None, db: Session
             name=f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip(),
         )
 
-        # Fetch Data (Last 90 days to be safe)
+        # Fetch Data (All history starting from 2015)
         end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=90)
+        start_date = datetime(2015, 1, 1)
         start_str = start_date.isoformat() + "Z"
         end_str = end_date.isoformat() + "Z"
 
@@ -99,11 +99,43 @@ async def whoop_callback(code: str, state: str, user_id: str = None, db: Session
             cycle_id = cycle.get("id")
             cycle_score = cycle.get("score", {})
             
-            # Date mapping: Whoop cycles have a start_time. We use that date.
-            cycle_start = cycle.get("start")
-            if not cycle_start:
+            # Date mapping: Whoop cycles have a start_time and end_time.
+            # We use end_time (wake up time) to determine the date, as it consistently falls on the correct "Whoop Day"
+            # (even if sleep started before midnight).
+            cycle_end = cycle.get("end")
+            if not cycle_end:
+                # Fallback to start if end is missing (unlikely)
+                cycle_end = cycle.get("start")
+            
+            if not cycle_end:
                 continue
-            date_val = datetime.fromisoformat(cycle_start.replace("Z", "+00:00")).date()
+            
+            # Parse time
+            end_dt = datetime.fromisoformat(cycle_end.replace("Z", "+00:00"))
+            
+            # Apply timezone offset if available
+            timezone_offset = cycle.get("timezone_offset")
+            if timezone_offset:
+                try:
+                    # timezone_offset format is usually "+HH:MM" or "-HH:MM"
+                    sign = 1 if timezone_offset.startswith("+") else -1
+                    parts = timezone_offset[1:].split(":")
+                    hours = int(parts[0])
+                    minutes = int(parts[1])
+                    offset = timedelta(hours=hours, minutes=minutes) * sign
+                    
+                    # Adjust to local time
+                    local_dt = end_dt + offset
+                    date_val = local_dt.date()
+                    logger.info(f"DEBUG: Adjusted cycle {cycle_id} date from {end_dt.date()} (UTC) to {date_val} (Local) using offset {timezone_offset}")
+                except Exception as e:
+                    logger.warning(f"Failed to parse timezone offset {timezone_offset}: {e}")
+                    date_val = end_dt.date()
+            else:
+                # If no timezone offset, use UTC end time.
+                # This is a better heuristic than UTC start time because wake up time (e.g. 7 AM IST = 1:30 AM UTC)
+                # is usually on the correct day in UTC as well, whereas start time (11 PM IST = 5:30 PM UTC) is often previous day.
+                date_val = end_dt.date()
             
             # Get associated recovery and sleep
             recovery = recoveries_by_cycle.get(cycle_id, {})
@@ -130,7 +162,21 @@ async def whoop_callback(code: str, state: str, user_id: str = None, db: Session
                 "strain_score": cycle_score.get("strain"), # Direct float in V2
                 "sleep_hours": sleep_hours,
                 "sleep_debt": sleep_debt,
-                "consistency_score": sleep_score_data.get("sleep_consistency_percentage")
+                "consistency_score": sleep_score_data.get("sleep_consistency_percentage"),
+                "extra": {
+                    "spo2_percentage": recovery_score_data.get("spo2_percentage"),
+                    "skin_temp_celsius": recovery_score_data.get("skin_temp_celsius"),
+                    "respiratory_rate": sleep_score_data.get("respiratory_rate"),
+                    "sleep_efficiency_percentage": sleep_score_data.get("sleep_efficiency_percentage"),
+                    "sleep_performance_percentage": sleep_score_data.get("sleep_performance_percentage"),
+                    "rem_sleep_min": sleep_stage_summary.get("total_rem_sleep_time_milli", 0) / (1000 * 60),
+                    "deep_sleep_min": sleep_stage_summary.get("total_slow_wave_sleep_time_milli", 0) / (1000 * 60),
+                    "light_sleep_min": sleep_stage_summary.get("total_light_sleep_time_milli", 0) / (1000 * 60),
+                    "awake_time_min": sleep_stage_summary.get("total_awake_time_milli", 0) / (1000 * 60),
+                    "calories": cycle_score.get("kilojoule", 0) * 0.239006,
+                    "average_heart_rate": cycle_score.get("average_heart_rate"),
+                    "max_heart_rate": cycle_score.get("max_heart_rate"),
+                }
             }
             metrics_list.append(metrics)
             
@@ -144,8 +190,9 @@ async def whoop_callback(code: str, state: str, user_id: str = None, db: Session
         logger.info(f"DEBUG: Prepared {len(metrics_df)} rows for ingestion")
         
         # Clear existing data to avoid duplicates/conflicts
-        clear_existing_data(db, user_id)
-        logger.info("DEBUG: Cleared existing data")
+        # REMOVED: This is dangerous if fetch is partial. Upsert handles updates fine.
+        # clear_existing_data(db, user_id)
+        # logger.info("DEBUG: Cleared existing data")
         
         # Ingest Metrics
         upserted = upsert_daily_metrics(db, user_id, metrics_df)

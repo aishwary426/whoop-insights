@@ -197,7 +197,42 @@ def parse_physiological_cycles(paths: List[str]) -> pd.DataFrame:
             logger.warning(f"No 'cycle_start' column found in {path}")
             continue
             
-        df["date"] = pd.to_datetime(df[date_col]).dt.date
+        # Timezone handling
+        tz_col = next((c for c in df.columns if "timezone_offset" in c), None)
+        
+        def _get_local_date(row):
+            try:
+                # Parse start time
+                start_str = str(row[date_col])
+                if not start_str or pd.isna(start_str):
+                    return pd.NA
+                
+                # Handle ISO format with Z
+                start_dt = pd.to_datetime(start_str).to_pydatetime()
+                if start_dt.tzinfo is None:
+                    # Assume UTC if no tz info
+                    import pytz
+                    start_dt = start_dt.replace(tzinfo=pytz.UTC)
+                
+                # Apply offset if available
+                if tz_col and pd.notna(row.get(tz_col)):
+                    offset_str = str(row[tz_col])
+                    # Parse offset like "+05:30" or "-04:00"
+                    sign = 1 if offset_str.startswith("+") else -1
+                    parts = offset_str[1:].split(":")
+                    if len(parts) >= 2:
+                        hours = int(parts[0])
+                        minutes = int(parts[1])
+                        from datetime import timedelta
+                        offset = timedelta(hours=hours, minutes=minutes) * sign
+                        start_dt = start_dt + offset
+                
+                return start_dt.date()
+            except Exception as e:
+                # Fallback
+                return pd.to_datetime(row[date_col]).date()
+
+        df["date"] = df.apply(_get_local_date, axis=1)
         
         # Recovery
         rec_col = next((c for c in df.columns if "recovery_score" in c), None)

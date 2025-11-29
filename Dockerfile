@@ -52,6 +52,12 @@ COPY requirements.txt .
 RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-uv-cache,target=/root/.cache/uv \
     uv pip install --system -r requirements.txt
 
+# Install Node.js 20 (required for frontend)
+RUN apt-get update && apt-get install -y curl gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy backend code
 COPY backend ./backend
 COPY api ./api

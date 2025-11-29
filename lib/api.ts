@@ -48,7 +48,16 @@ export interface TodayMetrics {
     workouts_count: number
     rem_sleep_min?: number | null
     deep_sleep_min?: number | null
+    light_sleep_min?: number | null
+    awake_time_min?: number | null
     sleep_efficiency?: number | null
+    sleep_performance_percentage?: number | null
+    respiratory_rate?: number | null
+    spo2_percentage?: number | null
+    skin_temp_celsius?: number | null
+    avg_heart_rate?: number | null
+    max_heart_rate?: number | null
+    calories?: number | null
 }
 
 export interface TodayRecommendation {
