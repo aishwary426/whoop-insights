@@ -91,7 +91,7 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`text-sm font-medium transition-colors ${pathname === item.href ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white'
+                      className={`text-sm font-medium transition-colors uppercase ${pathname === item.href ? 'text-neon-light dark:text-neon' : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white'
                         }`}
                     >
                       {item.label}
@@ -202,8 +202,8 @@ export default function AppLayout({ children, user }: AppLayoutProps) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${pathname === item.href
-                      ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-white/10'
+                    className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors uppercase ${pathname === item.href
+                      ? 'text-neon-light dark:text-neon bg-gray-100 dark:bg-white/10'
                       : 'text-gray-700 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5'
                       }`}
                   >

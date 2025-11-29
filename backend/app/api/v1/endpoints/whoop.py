@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 import logging
 import asyncio
+import uuid
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -51,6 +53,10 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         access_token = token_data["access_token"]
         refresh_token = token_data["refresh_token"]
         
+        # Calculate token expiration (typically 1 hour, but use expires_in if provided)
+        expires_in = token_data.get("expires_in", 3600)  # Default to 1 hour
+        expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+        
         # Fetch Profile
         profile = await whoop_client.get_profile(access_token)
         logger.info(f"DEBUG: Fetched profile for: {profile.get('email')}")
@@ -59,8 +65,8 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         from app.services.ingestion.whoop_ingestion import ensure_user, clear_existing_data, upsert_daily_metrics, persist_workouts
         from app.ml.feature_engineering.daily_features import recompute_daily_features
         from app.ml.models.trainer import train_user_models
+        from app.models.database import WhoopToken
         import pandas as pd
-        from datetime import datetime, timedelta
 
         # Map profile data - ensure user exists before inserting any data
         user = ensure_user(
@@ -72,6 +78,26 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         # Explicitly commit to ensure user exists before foreign key constraints
         db.commit()
         logger.info(f"DEBUG: Ensured user exists: {user_id} (email: {user.email})")
+        
+        # Store or update tokens
+        existing_token = db.query(WhoopToken).filter(WhoopToken.user_id == user_id).first()
+        if existing_token:
+            existing_token.access_token = access_token
+            existing_token.refresh_token = refresh_token
+            existing_token.expires_at = expires_at
+            existing_token.token_type = token_data.get("token_type", "Bearer")
+            existing_token.updated_at = datetime.utcnow()
+        else:
+            whoop_token = WhoopToken(
+                user_id=user_id,
+                access_token=access_token,
+                refresh_token=refresh_token,
+                expires_at=expires_at,
+                token_type=token_data.get("token_type", "Bearer"),
+            )
+            db.add(whoop_token)
+        db.commit()
+        logger.info(f"DEBUG: Stored tokens for user: {user_id}")
 
         # Fetch Data - Use a reasonable date range (last 2 years)
         # Whoop API may have limits on date range, so we'll fetch in chunks if needed
@@ -347,6 +373,21 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
         # REMOVED: This is dangerous if fetch is partial. Upsert handles updates fine.
         # clear_existing_data(db, user_id)
         # logger.info("DEBUG: Cleared existing data")
+        
+        # Create Upload record to track data source
+        from app.models.database import Upload, UploadStatus
+        upload = Upload(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            file_path=None,  # No file for API data
+            status=UploadStatus.COMPLETED,
+            data_source="whoop_api",
+            created_at=datetime.utcnow(),
+            completed_at=datetime.utcnow(),
+        )
+        db.add(upload)
+        db.commit()
+        logger.info(f"DEBUG: Created Upload record {upload.id} for WHOOP API data")
         
         # Ingest Metrics
         upserted = upsert_daily_metrics(db, user_id, metrics_df)
@@ -632,17 +673,66 @@ async def sync_whoop_data(user_id: str, db: Session = Depends(get_db)):
     """
     Manually sync Whoop data for an already-connected user.
     This endpoint fetches the last 30 days of data to get the latest recovery.
-    
-    Note: Currently requires the user to have a valid access token stored.
-    In the future, this will use refresh tokens for automatic syncing.
+    Uses stored refresh tokens to get a new access token if needed.
     """
     try:
-        # For now, this endpoint requires re-authentication
-        # TODO: Store refresh tokens and use them here for automatic syncing
-        raise HTTPException(
-            status_code=501,
-            detail="Manual sync requires re-authentication. Please reconnect your Whoop account to refresh data."
+        from app.models.database import WhoopToken
+        from datetime import datetime, timedelta
+        
+        # Get stored tokens
+        whoop_token = db.query(WhoopToken).filter(WhoopToken.user_id == user_id).first()
+        if not whoop_token:
+            raise HTTPException(
+                status_code=404,
+                detail="No Whoop connection found. Please connect your Whoop account first."
+            )
+        
+        # Check if access token is expired or about to expire (within 5 minutes)
+        access_token = whoop_token.access_token
+        if whoop_token.expires_at and whoop_token.expires_at <= datetime.utcnow() + timedelta(minutes=5):
+            logger.info(f"DEBUG: Access token expired or expiring soon, refreshing...")
+            try:
+                # Refresh the access token
+                token_data = await whoop_client.refresh_access_token(whoop_token.refresh_token)
+                access_token = token_data["access_token"]
+                
+                # Update stored tokens
+                expires_in = token_data.get("expires_in", 3600)
+                expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+                whoop_token.access_token = access_token
+                whoop_token.refresh_token = token_data.get("refresh_token", whoop_token.refresh_token)  # New refresh token if provided
+                whoop_token.expires_at = expires_at
+                whoop_token.updated_at = datetime.utcnow()
+                db.commit()
+                logger.info(f"DEBUG: Refreshed access token for user: {user_id}")
+            except Exception as e:
+                logger.error(f"DEBUG: Failed to refresh token: {e}")
+                raise HTTPException(
+                    status_code=401,
+                    detail="Failed to refresh access token. Please reconnect your Whoop account."
+                )
+        
+        # Fetch and ingest latest data (last 30 days)
+        sync_result = await _fetch_and_ingest_whoop_data(
+            access_token=access_token,
+            user_id=user_id,
+            db=db,
+            days_back=30
         )
+        
+        # Update last_sync_at
+        whoop_token.last_sync_at = datetime.utcnow()
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Data synced successfully",
+            "metrics_upserted": sync_result.get("metrics_upserted", 0),
+            "workouts_created": sync_result.get("workouts_created", 0),
+            "latest_recovery": sync_result.get("latest_recovery"),
+            "date_range": sync_result.get("date_range"),
+        }
+        
     except HTTPException:
         raise
     except Exception as e:

@@ -17,6 +17,11 @@
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Optimize rendering performance */
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    /* Prevent layout shifts */
+    overflow-x: hidden;
   }
 
   h1,
@@ -40,11 +45,18 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-[rgb(0, 102, 255)] dark:bg-[rgb(0, 255, 143)] text-white dark:text-black shadow-neon-soft-light dark:shadow-neon-soft hover:shadow-neon-soft-light dark:hover:shadow-neon-soft hover:scale-[1.03] active:scale-95;
+    @apply relative inline-flex items-center justify-center px-3 py-1.5 md:px-5 md:py-2.5 rounded-full font-semibold transition-transform duration-150 ease-apple bg-[rgb(0, 102, 255)] dark:bg-[rgb(0, 255, 143)] text-white dark:text-black shadow-neon-soft-light dark:shadow-neon-soft overflow-hidden group;
+    @apply before:absolute before:-inset-[2px] before:rounded-full before:bg-gradient-to-r before:from-blue-400/0 before:via-blue-400/80 before:to-blue-400/0 dark:before:from-neon/0 dark:before:via-neon/80 dark:before:to-neon/0 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-150 before:animate-border-glow before:-z-10 active:scale-95;
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-full font-semibold transition-all duration-200 ease-apple bg-transparent border border-gray-300 dark:border-white/15 text-gray-900 dark:text-white hover:border-blue-600 dark:hover:border-neon-primary/60 hover:scale-[1.03] active:scale-95;
+    @apply relative inline-flex items-center justify-center px-3 py-1.5 md:px-5 md:py-2.5 rounded-full font-semibold transition-transform duration-150 ease-apple bg-transparent border border-gray-300 dark:border-white/15 text-gray-900 dark:text-white overflow-hidden group;
+    @apply before:absolute before:-inset-[2px] before:rounded-full before:bg-gradient-to-r before:from-blue-400/0 before:via-blue-400/70 before:to-blue-400/0 dark:before:from-neon/0 dark:before:via-neon/70 dark:before:to-neon/0 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-150 before:animate-border-glow before:-z-10 active:scale-95;
+    @apply hover:border-blue-600 dark:hover:border-neon-primary/60;
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .input-field {
@@ -52,7 +64,9 @@
   }
 
   .stat-card {
-    @apply glass-card p-6 transition-all duration-200 ease-apple hover:scale-[1.02] hover:border-blue-600/40 dark:hover:border-neon-primary/40;
+    @apply glass-card p-6 transition-transform duration-150 ease-apple hover:scale-[1.01] hover:border-blue-600/40 dark:hover:border-neon-primary/40;
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .gradient-blob {
@@ -144,14 +158,34 @@
   }
   
   /* Optimize scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
   body {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* Prevent text selection during scroll for smoother performance */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Re-enable text selection for interactive elements */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
   }
   
   /* Reduce layout shifts */
   img, video {
     content-visibility: auto;
+  }
+  
+  /* Reduce backdrop blur on mobile for better performance */
+  .backdrop-blur-md,
+  .backdrop-blur-xl {
+    backdrop-filter: blur(4px) !important;
   }
 }
 
@@ -167,13 +201,116 @@
   }
 }
 
-/* Performance hints */
+/* Performance hints - GPU acceleration */
 .performance-optimized {
   will-change: transform;
   contain: layout style paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .chart-container {
   contain: layout style paint;
   transform: translateZ(0); /* Force GPU acceleration */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Smooth scrolling and GPU acceleration for cards */
+.neon-card,
+.glass-card,
+.stat-card {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+/* Optimize transitions - use only GPU-accelerated properties */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce backdrop blur on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    backdrop-filter: none !important;
+  }
+}
+
+/* Optimize hover transitions - use only GPU-accelerated properties */
+button, a, .interactive {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Prevent layout shifts */
+img, video, svg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* Optimize all interactive elements */
+[role="button"], button, a, input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth font rendering */
+* {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce paint complexity */
+section, div, article {
+  contain: layout style;
+}
+
+/* Optimize scroll containers */
+.overflow-auto, .overflow-scroll, .overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* GPU acceleration for transforms */
+.transform, [class*="translate"], [class*="scale"], [class*="rotate"] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Animated glowing border effect */
+@keyframes border-glow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-border-glow {
+  background-size: 400% 100%;
+  animation: border-glow 2.5s ease-in-out infinite;
+  filter: blur(0.5px);
 }

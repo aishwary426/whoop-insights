@@ -632,6 +632,7 @@ def ingest_whoop_zip(
         user_id=user_id,
         file_path=zip_path,
         status=UploadStatus.PROCESSING,
+        data_source="zip",
         created_at=datetime.utcnow(),
     )
     db.add(upload)

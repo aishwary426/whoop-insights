@@ -122,6 +122,7 @@ export interface TrendsSeries {
 export interface TrendsResponse {
     user_id: string
     series: TrendsSeries
+    is_whoop_api_limited?: boolean  // True if data is limited to 25 records due to WHOOP API
 }
 
 export interface InsightItem {
@@ -702,5 +703,28 @@ export const api = {
 
     syncWhoopData: async (code: string, state: string) => {
         return fetchWithAuth('/whoop/callback', { code, state })
+    },
+
+    syncWhoopDataNow: async () => {
+        const user = await getCurrentUser()
+        if (!user) {
+            throw new Error('User not authenticated')
+        }
+        const url = new URL(`${API_BASE_URL}/whoop/sync`, typeof window !== 'undefined' ? window.location.origin : undefined)
+        url.searchParams.append('user_id', user.id)
+
+        const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: response.statusText }))
+            throw new Error(errorData.detail || `Failed to sync data: ${response.statusText}`)
+        }
+
+        return response.json()
     },
 }

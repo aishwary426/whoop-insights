@@ -48,6 +48,7 @@ class Upload(Base):
     user_id = Column(String, ForeignKey("users.id"))
     file_path = Column(String)
     status = Column(Enum(UploadStatus))
+    data_source = Column(String, default="zip")  # "zip" or "whoop_api"
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime)
     error_message = Column(Text)
@@ -230,4 +231,21 @@ class AdminEmail(Base):
     
     __table_args__ = (
         Index('idx_admin_email', 'email'),
+    )
+
+class WhoopToken(Base):
+    __tablename__ = "whoop_tokens"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)
+    access_token = Column(Text, nullable=False)  # Encrypted in production
+    refresh_token = Column(Text, nullable=False)  # Encrypted in production
+    expires_at = Column(DateTime, nullable=True)  # When access token expires
+    token_type = Column(String, default="Bearer")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_sync_at = Column(DateTime, nullable=True)  # Last successful data sync
+    
+    __table_args__ = (
+        Index('idx_whoop_token_user', 'user_id'),
     )

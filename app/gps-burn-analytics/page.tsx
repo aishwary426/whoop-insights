@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Flame, Target, TrendingUp, Activity, BarChart3, Users, Zap } from 'lucide-react'
+import { Flame, TrendingUp, Activity, BarChart3, Users, Zap } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
@@ -284,11 +284,6 @@ export default function CalorieBurnAnalyticsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center space-y-3"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 dark:border-neon-primary/30 bg-blue-500/10 dark:bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">
-              <Target className="w-4 h-4 text-blue-500 dark:text-neon-primary" />
-              ML-powered optimizer
-            </div>
-
             <h1 className="text-[clamp(2.4rem,6vw,3.6rem)] font-semibold leading-tight text-gray-900 dark:text-white">
               Calorie Burn Analytics
             </h1>

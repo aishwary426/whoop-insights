@@ -129,11 +129,12 @@ export default function ZenithPage() {
   const saveChatToHistory = () => {
     if (!currentChatId || messages.length === 0) return
 
+    // Only save to history if there's at least one user message
+    const firstUserMessage = messages.find(m => m.role === 'user')
+    if (!firstUserMessage) return
+
     try {
-      const firstUserMessage = messages.find(m => m.role === 'user')
-      const title = firstUserMessage 
-        ? firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
-        : 'New Chat'
+      const title = firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
 
       const chatSession: ChatSession = {
         id: currentChatId,

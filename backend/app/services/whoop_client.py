@@ -191,16 +191,30 @@ class WhoopClient:
         all_records = []
         next_token = None
         
+        # WHOOP API limit: Maximum 25 records per single call
+        MAX_RECORDS = 25
+        
         # Ensure we request max limit to minimize calls
         if "limit" not in params:
             params["limit"] = 25
 
         page_count = 0
         while True:
+            # Stop if we've reached the maximum records limit
+            if len(all_records) >= MAX_RECORDS:
+                logger.info(f"DEBUG: Reached maximum records limit ({MAX_RECORDS}). Stopping pagination.")
+                # Return only the first 25 records
+                return all_records[:MAX_RECORDS]
+            
             page_count += 1
             current_params = params.copy()
             if next_token:
                 current_params["nextToken"] = next_token
+            
+            # Adjust limit for this page to not exceed MAX_RECORDS total
+            remaining = MAX_RECORDS - len(all_records)
+            if remaining < current_params.get("limit", 25):
+                current_params["limit"] = remaining
             
             logger.info(f"DEBUG: Fetching page {page_count} for {endpoint} with params: {current_params}")
             
@@ -213,11 +227,20 @@ class WhoopClient:
             if isinstance(response_data, list):
                 logger.info(f"DEBUG: Page {page_count} returned list of {len(response_data)} records")
                 all_records.extend(response_data)
+                # Limit to MAX_RECORDS
+                if len(all_records) > MAX_RECORDS:
+                    all_records = all_records[:MAX_RECORDS]
                 break
             
             records = response_data.get("records", [])
             logger.info(f"DEBUG: Page {page_count} returned {len(records)} records")
             all_records.extend(records)
+            
+            # Limit to MAX_RECORDS if we exceeded it
+            if len(all_records) > MAX_RECORDS:
+                logger.info(f"DEBUG: Limiting records to {MAX_RECORDS} (had {len(all_records)})")
+                all_records = all_records[:MAX_RECORDS]
+                break
             
             # Try both camelCase (API standard) and snake_case (just in case)
             next_token = response_data.get("nextToken") or response_data.get("next_token")

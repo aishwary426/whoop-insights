@@ -164,8 +164,14 @@ function RecoveryBaselinePanel({ data = defaultData }: RecoveryBaselinePanelProp
                           onMouseLeave={() => !isMobile && setHoveredBarId(null)}
                         >
                           <div
-                            className={`w-full max-w-[40px] rounded-t-sm bg-gradient-to-b ${gradient} ${glow} transition-all duration-300`}
-                            style={{ height: '100%', filter: isHovered ? 'brightness(1.2)' : 'brightness(1)' }}
+                            className={`w-full max-w-[40px] rounded-t-sm bg-gradient-to-b ${gradient} ${glow} transition-transform duration-150`}
+                            style={{ 
+                              height: '100%', 
+                              filter: isHovered ? 'brightness(1.15)' : 'brightness(1)',
+                              transform: 'translateZ(0)',
+                              willChange: 'transform, filter',
+                              backfaceVisibility: 'hidden'
+                            }}
                           />
                           <span className={`text-[10px] tracking-widest ${isHovered ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/40'} -rotate-45 origin-top-left translate-y-6 whitespace-nowrap`}>
                             {point.date}
@@ -199,11 +205,17 @@ function RecoveryBaselinePanel({ data = defaultData }: RecoveryBaselinePanelProp
                         onMouseLeave={() => setHoveredBarId(null)}
                       >
                         <motion.div
-                          className={`w-full max-w-[40px] rounded-t-sm bg-gradient-to-b ${gradient} ${glow} transition-all duration-300`}
-                          style={{ height: '100%' }}
-                          animate={{
-                            filter: isHovered ? 'brightness(1.2)' : 'brightness(1)',
+                          className={`w-full max-w-[40px] rounded-t-sm bg-gradient-to-b ${gradient} ${glow}`}
+                          style={{ 
+                            height: '100%',
+                            transform: 'translateZ(0)',
+                            willChange: 'filter',
+                            backfaceVisibility: 'hidden'
                           }}
+                          animate={{
+                            filter: isHovered ? 'brightness(1.15)' : 'brightness(1)',
+                          }}
+                          transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
                         />
                         <span className={`text-[10px] tracking-widest ${isHovered ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/40'} -rotate-45 origin-top-left translate-y-6 whitespace-nowrap`}>
                           {point.date}

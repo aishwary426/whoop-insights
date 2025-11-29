@@ -29,6 +29,22 @@ module.exports = {
       },
       animation: {
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'border-glow': 'border-glow 3s ease-in-out infinite',
+      },
+      keyframes: {
+        'border-glow': {
+          '0%': { 
+            backgroundPosition: '0% 50%',
+            transform: 'rotate(0deg)',
+          },
+          '50%': { 
+            backgroundPosition: '100% 50%',
+          },
+          '100%': { 
+            backgroundPosition: '0% 50%',
+            transform: 'rotate(360deg)',
+          },
+        },
       },
     },
   },

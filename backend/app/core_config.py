@@ -33,23 +33,25 @@ def _get_default_database_url():
     db_url = os.getenv("DATABASE_URL", "")
 
     if db_url:
-        logger.info(f"DATABASE_URL is set, using: {db_url[:20]}...")
         # If PostgreSQL, verify psycopg2 is available
         if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
             try:
                 import psycopg2  # noqa: F401
-                logger.info("PostgreSQL driver (psycopg2) is available")
+                logger.info("✅ PostgreSQL driver (psycopg2) is available")
+                logger.info(f"Using configured DATABASE_URL: {db_url.split('@')[-1]}") # Log only host/db part for security
                 return db_url
             except ImportError:
-                logger.error("PostgreSQL URL set but psycopg2 not installed - falling back to SQLite")
+                logger.error("❌ PostgreSQL URL set but psycopg2 not installed - falling back to SQLite")
                 # Use absolute path for local SQLite
                 backend_dir = Path(__file__).parent.parent
                 db_path = backend_dir / "whoop.db"
                 return f"sqlite:///{str(db_path.absolute())}"
+        
+        logger.info(f"Using configured DATABASE_URL: {db_url}")
         return db_url
 
     # Default to SQLite for local development - use absolute path to avoid confusion
-    logger.info("No DATABASE_URL set, using local SQLite")
+    logger.warning("⚠️  No DATABASE_URL set, using local SQLite. Data will NOT persist on Railway/Render!")
     # Get the backend directory (parent of app directory)
     backend_dir = Path(__file__).parent.parent
     db_path = backend_dir / "whoop.db"

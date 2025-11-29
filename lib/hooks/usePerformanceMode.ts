@@ -85,10 +85,11 @@ export function usePerformanceMode(): PerformanceMode {
     }
   }, [])
 
+  // More aggressive performance mode - reduce animations by default for better performance
   return useMemo(() => ({
     isLowEnd,
     isMobile,
-    reduceAnimations: isLowEnd || isMobile,
+    reduceAnimations: true, // Disable heavy animations by default for better performance
     reduceCharts: isLowEnd,
     reduceDataPoints: isLowEnd || isMobile,
   }), [isLowEnd, isMobile])

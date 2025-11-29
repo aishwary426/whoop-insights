@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Upload, X, FileText, ShieldCheck } from 'lucide-react'
+import { Upload, X, FileText } from 'lucide-react'
 import AppLayout from '../../components/layout/AppLayout'
 import NeonCard from '../../components/ui/NeonCard'
 import NeonButton from '../../components/ui/NeonButton'
@@ -146,10 +146,6 @@ export default function UploadPage() {
     <AppLayout user={user}>
       <div className="relative z-10 w-full px-6 md:px-8 pt-28 pb-16 text-gray-900 dark:text-white">
         <div className="relative text-center space-y-3 mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-600/30 dark:border-neon-primary/30 bg-blue-600/10 dark:bg-neon-primary/10 text-xs font-semibold text-gray-700 dark:text-white/80">
-            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-neon-primary" />
-            Private upload · local parsing
-          </div>
           <h1 className="text-[clamp(2.2rem,5vw,3.2rem)] font-semibold leading-tight text-gray-900 dark:text-white">Upload your WHOOP export</h1>
           <p className="text-gray-600 dark:text-white/60 max-w-2xl mx-auto text-[15px]">
             Drop your ZIP. We unpack, parse, and sync with your dashboard instantly.
@@ -281,6 +277,22 @@ export default function UploadPage() {
               <div className="flex-grow border-t border-gray-200 dark:border-white/10"></div>
             </div>
             <p className="mb-4 text-gray-600 dark:text-white/60">Connect directly to fetch your data automatically</p>
+            
+            <div className="mb-4 p-4 rounded-xl bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 dark:border-amber-500/30 text-left max-w-md mx-auto">
+              <div className="flex items-start gap-3">
+                <span className="text-lg">ℹ️</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-1">
+                    Data Limitation Notice
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-500/80 leading-relaxed">
+                    Connecting through Whoop API will display approximately <strong>25 days</strong> of recent data. 
+                    For complete historical data, please <strong>upload a ZIP file</strong> instead.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
             <ConnectWhoopButton />
           </div>
         </NeonCard>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import NeonCard from '../ui/NeonCard'
@@ -134,19 +134,36 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
     }, [hoveredIndex, isMobile, dotFill])
 
     // Debounce hover updates - disable on mobile
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const handleMouseMove = useCallback((e: any) => {
         if (isMobile) return
         if (e && e.activeTooltipIndex !== undefined) {
-            requestAnimationFrame(() => {
+            // Debounce hover updates to reduce re-renders
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current)
+            }
+            hoverTimeoutRef.current = setTimeout(() => {
                 setHoveredIndex(e.activeTooltipIndex)
-            })
+            }, 16) // ~60fps
         }
     }, [isMobile])
 
     const handleMouseLeave = useCallback(() => {
         if (isMobile) return
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current)
+        }
         setHoveredIndex(null)
     }, [isMobile])
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current)
+            }
+        }
+    }, [])
 
     return (
         <section className="relative min-h-screen flex flex-col justify-center py-12 md:py-20 overflow-hidden">

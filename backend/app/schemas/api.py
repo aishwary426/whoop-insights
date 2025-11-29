@@ -100,6 +100,7 @@ class TrendsSeries(BaseModel):
 class TrendsResponse(BaseModel):
     user_id: str
     series: TrendsSeries
+    is_whoop_api_limited: bool = False  # True if data is limited to 25 records due to WHOOP API
 
 
 class InsightItem(BaseModel):

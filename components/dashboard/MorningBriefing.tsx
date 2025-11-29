@@ -25,64 +25,66 @@ function MorningBriefing({ summary }: MorningBriefingProps) {
   const currentVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
   const { reduceAnimations } = usePerformanceMode()
 
+  // Lazy load speech synthesis only when user clicks play
+  const [voicesLoaded, setVoicesLoaded] = useState(false)
+  
+  const loadVoicesRef = useRef<() => void>()
+  
+  loadVoicesRef.current = () => {
+    if (voicesLoaded || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return
+    }
+    
+    if (!synthRef.current) {
+      synthRef.current = window.speechSynthesis
+    }
+    
+    const availableVoices = synthRef.current.getVoices() || []
+    if (availableVoices.length === 0) {
+      // Try again after a delay if voices aren't loaded yet
+      setTimeout(() => loadVoicesRef.current?.(), 200)
+      return
+    }
+    
+    setVoices(availableVoices)
+    setVoicesLoaded(true)
+    
+    // Prioritize high-quality natural voices
+    const preferred = availableVoices.find(v => 
+        (v.name.includes('Neural') || v.name.includes('neural')) && v.lang.startsWith('en')
+    ) || availableVoices.find(v => 
+        (v.name.includes('Enhanced') || v.name.includes('Premium')) && v.lang.startsWith('en')
+    ) || availableVoices.find(v => 
+        v.name.includes('Samantha') || 
+        v.name.includes('Alex') ||
+        v.name.includes('Victoria') ||
+        v.name.includes('Daniel')
+    ) || availableVoices.find(v => 
+        (v.name.includes('Google US English') || v.name.includes('Microsoft')) && v.lang.startsWith('en')
+    ) || availableVoices.find(v => v.lang.startsWith('en'))
+    
+    const voiceToUse = preferred || availableVoices[0]
+    if (voiceToUse) {
+      setSelectedVoice(voiceToUse)
+      currentVoiceRef.current = voiceToUse
+    }
+  }
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Check if speech synthesis is supported
       if (!('speechSynthesis' in window)) {
-        console.error('Speech synthesis not supported in this browser')
         setIsSupported(false)
         return
       }
       
       setIsSupported(true)
-      
       synthRef.current = window.speechSynthesis
       
-      const loadVoices = () => {
-        if (!synthRef.current) return
-        
-        const availableVoices = synthRef.current.getVoices() || []
-        console.log('Available voices:', availableVoices.length)
-        setVoices(availableVoices)
-        
-        if (availableVoices.length === 0) {
-          console.warn('No voices available')
-          return
-        }
-        
-        // Prioritize high-quality natural voices (Neural, Enhanced, Premium)
-        // These voices sound much more human-like
-        const preferred = availableVoices.find(v => 
-            (v.name.includes('Neural') || v.name.includes('neural')) && v.lang.startsWith('en')
-        ) || availableVoices.find(v => 
-            (v.name.includes('Enhanced') || v.name.includes('Premium')) && v.lang.startsWith('en')
-        ) || availableVoices.find(v => 
-            v.name.includes('Samantha') || 
-            v.name.includes('Alex') ||
-            v.name.includes('Victoria') ||
-            v.name.includes('Daniel')
-        ) || availableVoices.find(v => 
-            (v.name.includes('Google US English') || v.name.includes('Microsoft')) && v.lang.startsWith('en')
-        ) || availableVoices.find(v => v.lang.startsWith('en'))
-        
-        const voiceToUse = preferred || availableVoices[0]
-        if (voiceToUse) {
-          console.log('Selected voice:', voiceToUse.name)
-          setSelectedVoice(voiceToUse)
-          currentVoiceRef.current = voiceToUse
-        }
-      }
-
-      // Load voices immediately
-      loadVoices()
-      
-      // Some browsers load voices asynchronously
+      // Only set up voice loading listener, don't load immediately
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = loadVoices
+        window.speechSynthesis.onvoiceschanged = () => loadVoicesRef.current?.()
       }
-      
-      // Fallback: try loading voices again after a short delay
-      setTimeout(loadVoices, 500)
     }
   }, [])
 
@@ -181,15 +183,23 @@ function MorningBriefing({ summary }: MorningBriefingProps) {
       return
     }
 
+    // Lazy load voices when user clicks play
+    if (!voicesLoaded) {
+      loadVoicesRef.current?.()
+      // Wait a bit for voices to load
+      await new Promise(resolve => setTimeout(resolve, 300))
+    }
+
     // Ensure we have a voice selected
     const voiceToUse = currentVoiceRef.current || selectedVoice || (voices.length > 0 ? voices[0] : null)
     if (!voiceToUse) {
-      console.error('No voice available')
-      // Try to reload voices
+      // Try to reload voices one more time
       const availableVoices = synthRef.current.getVoices()
       if (availableVoices.length > 0) {
         currentVoiceRef.current = availableVoices[0]
         setSelectedVoice(availableVoices[0])
+        setVoices(availableVoices)
+        setVoicesLoaded(true)
       } else {
         alert('No speech voices available. Please check your browser settings.')
         return
@@ -263,7 +273,7 @@ function MorningBriefing({ summary }: MorningBriefingProps) {
                 cleanup()
             }
             utterance.onstart = () => {
-              console.log('Started speaking:', text.substring(0, 50))
+              // Speech started
             }
             
             // Start speaking
@@ -272,7 +282,6 @@ function MorningBriefing({ summary }: MorningBriefingProps) {
               // Fallback timeout in case onend/onerror don't fire
               setTimeout(() => {
                 if (!resolved) {
-                  console.warn('Speech timeout for:', text.substring(0, 50))
                   cleanup()
                 }
               }, 15000) // 15 second timeout per sentence
@@ -364,9 +373,11 @@ function MorningBriefing({ summary }: MorningBriefingProps) {
             <button
                 onClick={handlePlay}
                 disabled={!isSupported || voices.length === 0}
-                className="z-10 w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg hover:shadow-cyan-500/50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative z-10 w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg transition-all overflow-hidden group active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed before:absolute before:-inset-[2px] before:rounded-full before:bg-gradient-to-r before:from-cyan-400/0 before:via-cyan-400/80 before:to-blue-400/0 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300 before:animate-border-glow before:-z-10"
             >
-                {isPlaying ? <Square size={24} fill="white" /> : <Play size={28} fill="white" className="ml-1" />}
+                <span className="relative z-10">
+                    {isPlaying ? <Square size={20} fill="white" /> : <Play size={24} fill="white" className="ml-1" />}
+                </span>
             </button>
         </div>
 
