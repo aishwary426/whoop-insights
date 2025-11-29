@@ -38,6 +38,10 @@ const nextConfig = {
         source: '/healthz',
         destination: `${apiUrl}/healthz`,
       },
+      {
+        source: '/health',
+        destination: `${apiUrl}/health`,
+      },
     ]
   },
 }
