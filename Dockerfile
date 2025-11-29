@@ -6,7 +6,7 @@ WORKDIR /app/frontend
 COPY package*.json ./
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=true
-RUN npm ci
+RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-npm,target=/root/.npm npm ci
 
 # Copy source and build
 COPY next.config.js tailwind.config.js postcss.config.js tsconfig.json jsconfig.json next-env.d.ts ./
@@ -27,7 +27,7 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Mount .next/cache for faster subsequent builds
-RUN npm run build
+RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-nextjs,target=/app/frontend/.next/cache npm run build
 
 # Stage 2: Build Backend & Final Image
 FROM python:3.11-slim
@@ -40,7 +40,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 # Install Python dependencies needed for the backend and API
 COPY requirements.txt .
 # Use uv to install dependencies (much faster than pip)
-RUN uv pip install --system -r requirements.txt
+RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-uv,target=/root/.cache/uv \
+    uv pip install --system -r requirements.txt
 
 # Copy Backend Code
 COPY backend ./backend
