@@ -46,6 +46,9 @@ if [ -d "/app/backend" ]; then
     # Add backend directory to PYTHONPATH for migrations
     export PYTHONPATH=$PYTHONPATH:/app/backend
     
+    echo "Initializing database..."
+    python3 init_db.py || echo "Warning: init_db.py failed"
+    
     echo "Running migrate_add_age_nationality.py..."
     python3 migrate_add_age_nationality.py || echo "Warning: migrate_add_age_nationality.py failed"
     
