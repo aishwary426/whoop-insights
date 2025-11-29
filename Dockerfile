@@ -70,9 +70,10 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Copy and prepare startup script
-COPY start-prod.sh /app/start-prod.sh
-RUN chmod +x /app/start-prod.sh
+# Copy and prepare startup script
+COPY start-railway.sh /app/start-railway.sh
+RUN chmod +x /app/start-railway.sh
 
 EXPOSE 3000
 
-CMD ["/app/start-prod.sh"]
+CMD ["/app/start-railway.sh"]
