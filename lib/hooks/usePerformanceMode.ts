@@ -22,12 +22,17 @@ export function usePerformanceMode(): PerformanceMode {
   const [isMobile, setIsMobile] = useState(false)
   const [isLowEnd, setIsLowEnd] = useState(false)
   const [hardwareInfo, setHardwareInfo] = useState({
-    cores: navigator.hardwareConcurrency || 4,
-    memory: (navigator as any).deviceMemory || 4,
-    connection: (navigator as any).connection?.effectiveType || '4g',
+    cores: 4,
+    memory: 4,
+    connection: '4g',
   })
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return
+    }
+
     // Check mobile
     const checkMobile = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
