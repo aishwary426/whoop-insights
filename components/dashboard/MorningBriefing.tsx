@@ -48,12 +48,19 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
           return
         }
         
-        // Prioritize "Enhanced" or "Premium" voices (macOS/Chrome high quality)
+        // Prioritize high-quality natural voices (Neural, Enhanced, Premium)
+        // These voices sound much more human-like
         const preferred = availableVoices.find(v => 
-            (v.name.includes('Enhanced') || v.name.includes('Premium') || v.name.includes('Neural')) && v.lang.startsWith('en')
+            (v.name.includes('Neural') || v.name.includes('neural')) && v.lang.startsWith('en')
         ) || availableVoices.find(v => 
-            v.name.includes('Google US English') || 
-            v.name.includes('Samantha')
+            (v.name.includes('Enhanced') || v.name.includes('Premium')) && v.lang.startsWith('en')
+        ) || availableVoices.find(v => 
+            v.name.includes('Samantha') || 
+            v.name.includes('Alex') ||
+            v.name.includes('Victoria') ||
+            v.name.includes('Daniel')
+        ) || availableVoices.find(v => 
+            (v.name.includes('Google US English') || v.name.includes('Microsoft')) && v.lang.startsWith('en')
         ) || availableVoices.find(v => v.lang.startsWith('en'))
         
         const voiceToUse = preferred || availableVoices[0]
@@ -115,7 +122,7 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
     // Recovery
     sentences.push(`Your recovery score is sitting at ${Math.round(recovery)}%.`)
     if (recovery > 66) {
-        sentences.push(`Honestly? You are primed to crush it today.`)
+        sentences.push(`Honestly? You're primed to crush it today.`)
     } else if (recovery < 33) {
         sentences.push(`Listen to your body today. It's asking for rest.`)
     } else {
@@ -221,8 +228,17 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
         if (voice) {
           utterance.voice = voice
         }
-        utterance.rate = 0.95
-        utterance.pitch = 1.0
+        
+        // More human-like speech parameters
+        // Slower rate (0.85-0.9) sounds more natural and less rushed
+        utterance.rate = 0.88
+        
+        // Slight pitch variation between sentences (0.95-1.05) adds naturalness
+        // Vary pitch slightly: lower for statements, slightly higher for questions/excitement
+        const isQuestion = text.includes('?')
+        const isExcited = text.includes('!') || text.toLowerCase().includes('crush') || text.toLowerCase().includes('primed')
+        utterance.pitch = isQuestion ? 1.05 : isExcited ? 1.02 : 0.98
+        
         utterance.volume = isMuted ? 0 : 1
         utterance.lang = 'en-US'
         
@@ -267,9 +283,13 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
         // Check again if cancelled before pause
         if (!isPlayingRef.current) break
 
-        // Add natural pause
+        // Add natural pause between sentences (longer pauses feel more human)
+        // Vary pause length slightly for more natural rhythm
         if (i < sentences.length - 1) {
-            await new Promise(r => setTimeout(r, 400))
+            // Longer pause after questions or longer sentences
+            const isLongSentence = text.length > 80
+            const pauseLength = isQuestion ? 700 : isLongSentence ? 600 : 500
+            await new Promise(r => setTimeout(r, pauseLength))
         }
     }
     

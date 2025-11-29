@@ -38,8 +38,8 @@ export default function AdvancedAnalyticsPage() {
 
     const loading = trendsLoading || insightsLoading
 
-    // Filter State
-    const [dateRange, setDateRange] = useState('1M')
+    // Filter State - Default to 'ALL' to show all historical data
+    const [dateRange, setDateRange] = useState('ALL')
     const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['recovery', 'strain'])
     const [comparisonPeriod, setComparisonPeriod] = useState<'week' | 'month' | 'year'>('week')
 
@@ -96,7 +96,9 @@ export default function AdvancedAnalyticsPage() {
         const mergedData = Object.values(dateMap).sort((a, b) =>
             new Date(a.date).getTime() - new Date(b.date).getTime()
         )
-        return fillMissingDates(mergedData, dateRange)
+        // First filter by date range, then fill missing dates
+        const filtered = filterDataByRange(mergedData, dateRange)
+        return fillMissingDates(filtered, dateRange)
     }, [trends, dateRange])
 
     if (loading) {

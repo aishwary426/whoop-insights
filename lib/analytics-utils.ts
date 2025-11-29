@@ -86,6 +86,8 @@ export const filterDataByRange = (data: any[], range: string) => {
 }
 
 export const fillMissingDates = (data: any[], range: string) => {
+    if (!data || data.length === 0) return []
+    
     const now = new Date()
     now.setHours(0, 0, 0, 0)
     const startDate = new Date(now)
@@ -97,8 +99,34 @@ export const fillMissingDates = (data: any[], range: string) => {
         case '6M': startDate.setMonth(now.getMonth() - 6); break;
         case '1Y': startDate.setFullYear(now.getFullYear() - 1); break;
         case 'ALL': 
-            // For ALL, we don't enforce a start date, just return the data
-            return data || [];
+            // For ALL, find the earliest date in the data and fill from there to today
+            if (data.length === 0) return []
+            const dates = data.map(d => new Date(d.date).getTime()).filter(t => !isNaN(t))
+            if (dates.length === 0) return data
+            const earliestDate = new Date(Math.min(...dates))
+            earliestDate.setHours(0, 0, 0, 0)
+            
+            const dataMap = new Map()
+            data.forEach(d => {
+                const dDate = new Date(d.date).toISOString().split('T')[0]
+                dataMap.set(dDate, d)
+            })
+
+            const filledData = []
+            const current = new Date(earliestDate)
+            
+            // Iterate from earliest date to today
+            while (current <= now) {
+                const dateStr = current.toISOString().split('T')[0]
+                if (dataMap.has(dateStr)) {
+                    filledData.push(dataMap.get(dateStr))
+                } else {
+                    filledData.push({ date: dateStr })
+                }
+                current.setDate(current.getDate() + 1)
+            }
+            
+            return filledData
         default: return data || [];
     }
 
