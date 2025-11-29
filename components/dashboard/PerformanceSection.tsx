@@ -7,6 +7,26 @@ import NeonCard from '../ui/NeonCard'
 import { Clock } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useIsMobile } from '../../lib/hooks/useIsMobile'
+import { usePerformanceMode } from '../../lib/hooks/usePerformanceMode'
+
+// Reduce data points for mobile/low-end devices
+function reduceDataPoints<T extends { date: string; value?: number }>(data: T[], maxPoints: number): T[] {
+  if (data.length <= maxPoints) return data
+  
+  const step = Math.ceil(data.length / maxPoints)
+  const reduced: T[] = []
+  
+  for (let i = 0; i < data.length; i += step) {
+    reduced.push(data[i])
+  }
+  
+  // Always include the last point
+  if (reduced[reduced.length - 1] !== data[data.length - 1]) {
+    reduced.push(data[data.length - 1])
+  }
+  
+  return reduced
+}
 
 interface PerformanceSectionProps {
     strainData: any[]
@@ -21,10 +41,26 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
     const { theme } = useTheme()
     const isMobile = useIsMobile()
+    const { reduceDataPoints: shouldReduce, reduceAnimations } = usePerformanceMode()
 
     // Filter data based on timeWindow, excluding today (T-1)
-    const filteredStrain = useMemo(() => strainData.slice(-timeWindow - 1, -1), [strainData, timeWindow])
-    const filteredSleep = useMemo(() => sleepData.slice(-timeWindow - 1, -1), [sleepData, timeWindow])
+    const filteredStrain = useMemo(() => {
+        const data = strainData.slice(-timeWindow - 1, -1)
+        // Reduce data points on mobile/low-end devices
+        if (shouldReduce && data.length > 30) {
+            return reduceDataPoints(data, isMobile ? 20 : 30)
+        }
+        return data
+    }, [strainData, timeWindow, shouldReduce, isMobile])
+    
+    const filteredSleep = useMemo(() => {
+        const data = sleepData.slice(-timeWindow - 1, -1)
+        // Reduce data points on mobile/low-end devices
+        if (shouldReduce && data.length > 30) {
+            return reduceDataPoints(data, isMobile ? 20 : 30)
+        }
+        return data
+    }, [sleepData, timeWindow, shouldReduce, isMobile])
 
     // Combine for compare view
     const chartData = useMemo(() => {
@@ -97,27 +133,41 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
         )
     }, [hoveredIndex, isMobile, dotFill])
 
-    // Debounce hover updates
+    // Debounce hover updates - disable on mobile
     const handleMouseMove = useCallback((e: any) => {
+        if (isMobile) return
         if (e && e.activeTooltipIndex !== undefined) {
             requestAnimationFrame(() => {
                 setHoveredIndex(e.activeTooltipIndex)
             })
         }
-    }, [])
+    }, [isMobile])
 
     const handleMouseLeave = useCallback(() => {
+        if (isMobile) return
         setHoveredIndex(null)
-    }, [])
+    }, [isMobile])
 
     return (
         <section className="relative min-h-screen flex flex-col justify-center py-12 md:py-20 overflow-hidden">
             <div className="container mx-auto px-4 md:px-6 relative z-10">
                 {/* Header */}
                 <div className="text-center mb-8 md:mb-12 space-y-3 md:space-y-4">
+                    {reduceAnimations ? (
+                        <>
+                            <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-600 to-gray-500 dark:from-white dark:via-blue-100 dark:to-white/50">
+                                Performance
+                            </h2>
+                            <p className="text-base md:text-xl text-blue-600/60 dark:text-blue-200/60 max-w-2xl mx-auto font-light tracking-wide px-4">
+                                Balancing <span className="text-cyan-600 dark:text-cyan-400 font-medium">Strain</span> and <span className="text-purple-600 dark:text-purple-400 font-medium">Sleep</span> is key to long-term progress.
+                            </p>
+                        </>
+                    ) : (
+                        <>
                     <motion.h2
                         initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
                         whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                viewport={{ once: true }}
                         transition={{ duration: 0.6, ease: "easeOut" }}
                         className="text-3xl md:text-4xl lg:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-600 to-gray-500 dark:from-white dark:via-blue-100 dark:to-white/50"
                     >
@@ -126,11 +176,14 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
                         transition={{ delay: 0.1, duration: 0.6 }}
                         className="text-base md:text-xl text-blue-600/60 dark:text-blue-200/60 max-w-2xl mx-auto font-light tracking-wide px-4"
                     >
                         Balancing <span className="text-cyan-600 dark:text-cyan-400 font-medium">Strain</span> and <span className="text-purple-600 dark:text-purple-400 font-medium">Sleep</span> is key to long-term progress.
                     </motion.p>
+                        </>
+                    )}
                 </div>
 
                 {/* Controls Row */}
@@ -203,9 +256,92 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                 </div>
                             </div>
 
-                            <div className="flex-1 w-full min-h-0">
+                            <div className="flex-1 w-full min-h-0 chart-container">
+                                {reduceAnimations ? (
+                                    <div key={`${view}-${timeWindow}`} className="w-full h-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart
+                                                data={chartData}
+                                                margin={{ top: 5, right: 10, bottom: 10, left: 5 }}
+                                                onMouseMove={handleMouseMove}
+                                                onMouseLeave={handleMouseLeave}
+                                            >
+                                                <defs>
+                                                    <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
+                                                        <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+                                                    </linearGradient>
+                                                    <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#a855f7" stopOpacity={0.3} />
+                                                        <stop offset="100%" stopColor="#a855f7" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                                                <XAxis
+                                                    dataKey="date"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={isMobile ? false : { fill: tickColor, fontSize: 10, fontFamily: 'Montserrat, sans-serif' }}
+                                                    dy={0}
+                                                    interval={isMobile ? 'preserveStartEnd' : (timeWindow > 14 ? 2 : 0)}
+                                                    height={isMobile ? 10 : 35}
+                                                    tickMargin={isMobile ? 0 : 3}
+                                                    padding={{ left: 0, right: 5 }}
+                                                    angle={isMobile ? 0 : 0}
+                                                    textAnchor={isMobile ? 'middle' : 'middle'}
+                                                    hide={isMobile}
+                                                />
+                                                <YAxis
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: tickColor, fontSize: isMobile ? 10 : 12, fontFamily: 'Montserrat, sans-serif' }}
+                                                    domain={yAxisDomain}
+                                                    width={isMobile ? 35 : 45}
+                                                    tickFormatter={(value) => {
+                                                        if (value > 1000) return value.toFixed(0)
+                                                        if (view === 'strain') {
+                                                            return value.toFixed(1)
+                                                        } else if (view === 'sleep') {
+                                                            return value.toFixed(1)
+                                                        }
+                                                        return value.toFixed(1)
+                                                    }}
+                                                />
+                                                <Tooltip content={<CustomTooltip />} cursor={{ stroke: cursorColor, strokeWidth: 2 }} isAnimationActive={false} />
+
+                                                {(view === 'strain' || view === 'compare') && (
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey={view === 'compare' ? 'strain' : 'value'}
+                                                        name="Strain"
+                                                        stroke="#22d3ee"
+                                                        strokeWidth={3}
+                                                        fill="url(#cyanGradient)"
+                                                        animationDuration={0}
+                                                        dot={(props) => renderDot(props, '#22d3ee')}
+                                                        activeDot={{ r: 6, fill: isMobile ? 'transparent' : dotFill, stroke: '#22d3ee', strokeWidth: 3 }}
+                                                    />
+                                                )}
+
+                                                {(view === 'sleep' || view === 'compare') && (
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey={view === 'compare' ? 'sleep' : 'value'}
+                                                        name="Sleep"
+                                                        stroke="#a855f7"
+                                                        strokeWidth={3}
+                                                        fill="url(#purpleGradient)"
+                                                        animationDuration={0}
+                                                        dot={(props) => renderDot(props, '#a855f7')}
+                                                        activeDot={{ r: 6, fill: isMobile ? 'transparent' : dotFill, stroke: '#a855f7', strokeWidth: 3 }}
+                                                    />
+                                                )}
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                ) : (
                                 <motion.div
-                                    key={`${view}-${timeWindow}`} // Re-trigger animation on view/time change
+                                        key={`${view}-${timeWindow}`}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.8, ease: "easeOut" }}
@@ -269,7 +405,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                                     stroke="#22d3ee"
                                                     strokeWidth={3}
                                                     fill="url(#cyanGradient)"
-                                                    animationDuration={0} // Disable internal animation for fade-in effect
+                                                        animationDuration={0}
                                                     dot={(props) => renderDot(props, '#22d3ee')}
                                                     activeDot={{ r: 6, fill: isMobile ? 'transparent' : dotFill, stroke: '#22d3ee', strokeWidth: 3 }}
                                                 />
@@ -283,7 +419,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                                     stroke="#a855f7"
                                                     strokeWidth={3}
                                                     fill="url(#purpleGradient)"
-                                                    animationDuration={0} // Disable internal animation for fade-in effect
+                                                        animationDuration={0}
                                                     dot={(props) => renderDot(props, '#a855f7')}
                                                     activeDot={{ r: 6, fill: isMobile ? 'transparent' : dotFill, stroke: '#a855f7', strokeWidth: 3 }}
                                                 />
@@ -291,6 +427,7 @@ export default function PerformanceSection({ strainData, sleepData }: Performanc
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 </motion.div>
+                                )}
                             </div>
                         </div>
                     </NeonCard>

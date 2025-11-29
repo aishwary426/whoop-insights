@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, MoveUpRight, MoveDownLeft, Clock } from 'lucide-react'
 import NeonCard from '../ui/NeonCard'
+import { usePerformanceMode } from '../../lib/hooks/usePerformanceMode'
 
 type RecoveryPoint = {
   date: string
@@ -34,9 +35,10 @@ const defaultData: RecoveryPoint[] = [
 const DEFAULT_WINDOW = 7
 const WINDOW_OPTIONS = [7, 14, 21, 28]
 
-export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBaselinePanelProps) {
+function RecoveryBaselinePanel({ data = defaultData }: RecoveryBaselinePanelProps) {
   const [hoveredBarId, setHoveredBarId] = useState<number | null>(null)
   const [timeWindow, setTimeWindow] = useState(DEFAULT_WINDOW)
+  const { reduceAnimations, isMobile } = usePerformanceMode()
 
   const dataLength = data.length
 
@@ -150,6 +152,41 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
 
                     const isHovered = hoveredBarId === point.id
 
+                    if (reduceAnimations || isMobile) {
+                      return (
+                        <div
+                          key={point.id}
+                          className="flex flex-col items-center gap-2 relative group"
+                          style={{ height, opacity: 1 }}
+                          onTouchStart={() => setHoveredBarId(point.id)}
+                          onTouchEnd={() => setHoveredBarId(null)}
+                          onMouseEnter={() => !isMobile && setHoveredBarId(point.id)}
+                          onMouseLeave={() => !isMobile && setHoveredBarId(null)}
+                        >
+                          <div
+                            className={`w-full max-w-[40px] rounded-t-sm bg-gradient-to-b ${gradient} ${glow} transition-all duration-300`}
+                            style={{ height: '100%', filter: isHovered ? 'brightness(1.2)' : 'brightness(1)' }}
+                          />
+                          <span className={`text-[10px] tracking-widest ${isHovered ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/40'} -rotate-45 origin-top-left translate-y-6 whitespace-nowrap`}>
+                            {point.date}
+                          </span>
+                          {isHovered && (
+                            <div className="absolute -top-20 left-1/2 -translate-x-1/2 z-20">
+                              <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/90 dark:bg-black/90 px-4 py-3 text-center shadow-2xl">
+                                <p className="text-[11px] uppercase tracking-[0.35em] text-gray-500 dark:text-white/45">{point.date}</p>
+                                <p className={`text-2xl font-semibold ${point.aboveBaseline ? 'text-neon-primary' : 'text-rose-400'}`}>
+                                  {point.recovery}%
+                                </p>
+                                <p className="text-[11px] text-gray-500 dark:text-white/50">
+                                  {point.delta > 0 ? '+' : ''}{point.delta.toFixed(0)}% vs baseline
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+                    
                     return (
                       <motion.div
                         key={point.id}
@@ -262,3 +299,5 @@ export default function RecoveryBaselinePanel({ data = defaultData }: RecoveryBa
     </NeonCard>
   )
 }
+
+export default memo(RecoveryBaselinePanel)

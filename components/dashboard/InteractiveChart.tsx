@@ -5,6 +5,7 @@ import { XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'rec
 import NeonCard from '../ui/NeonCard'
 import { useTheme } from 'next-themes'
 import { useIsMobile } from '../../lib/hooks/useIsMobile'
+import { usePerformanceMode } from '../../lib/hooks/usePerformanceMode'
 
 interface InteractiveChartProps {
   title: string
@@ -14,6 +15,25 @@ interface InteractiveChartProps {
   unit?: string
   height?: number | string
   className?: string
+}
+
+// Reduce data points for mobile/low-end devices
+function reduceDataPoints(data: { date: string; value: number }[], maxPoints: number) {
+  if (data.length <= maxPoints) return data
+  
+  const step = Math.ceil(data.length / maxPoints)
+  const reduced: { date: string; value: number }[] = []
+  
+  for (let i = 0; i < data.length; i += step) {
+    reduced.push(data[i])
+  }
+  
+  // Always include the last point
+  if (reduced[reduced.length - 1] !== data[data.length - 1]) {
+    reduced.push(data[data.length - 1])
+  }
+  
+  return reduced
 }
 
 function InteractiveChart({
@@ -28,18 +48,27 @@ function InteractiveChart({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const { theme } = useTheme()
   const isMobile = useIsMobile()
+  const { reduceDataPoints: shouldReduce } = usePerformanceMode()
+
+  // Reduce data points on mobile/low-end devices for better performance
+  const optimizedData = useMemo(() => {
+    if (shouldReduce && data.length > 30) {
+      return reduceDataPoints(data, isMobile ? 20 : 30)
+    }
+    return data
+  }, [data, shouldReduce, isMobile])
 
   const chartData = useMemo(() =>
-    data.map((item, idx) => ({
+    optimizedData.map((item, idx) => ({
       ...item,
       index: idx,
     })),
-    [data]
+    [optimizedData]
   )
 
   const hasData = useMemo(() => {
-    return data.length > 0 && data.some(item => item.value !== null && item.value !== undefined)
-  }, [data])
+    return optimizedData.length > 0 && optimizedData.some(item => item.value !== null && item.value !== undefined)
+  }, [optimizedData])
 
   const CustomTooltip = useCallback(({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -79,14 +108,14 @@ function InteractiveChart({
         <p className="text-[10px] md:text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-white/50">{title}</p>
         {subtitle && <p className="text-xs md:text-sm text-gray-600 dark:text-white/60 mt-1">{subtitle}</p>}
       </div>
-      <div className="relative flex-1 min-h-[140px] md:min-h-[160px]" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
+      <div className="relative flex-1 min-h-[140px] md:min-h-[160px] chart-container" style={{ height: typeof height === 'number' ? `${height}px` : height }}>
         {hasData ? (
-          <ResponsiveContainer width="100%" height="100%" key={`chart-${title}-${data.length}`}>
+          <ResponsiveContainer width="100%" height="100%" key={`chart-${title}-${optimizedData.length}`}>
             <AreaChart
               data={chartData}
               margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
+              onMouseMove={isMobile ? undefined : handleMouseMove}
+              onMouseLeave={isMobile ? undefined : handleMouseLeave}
             >
               <defs>
                 <linearGradient id={`gradient-${title.toLowerCase().replace(/\s+/g, '-')}-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">

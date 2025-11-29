@@ -1,10 +1,12 @@
 import './globals.css'
 import { Montserrat } from 'next/font/google'
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import ThemeProvider from '../components/providers/ThemeProvider'
-import TranscendentalBackground from '../components/ui/TranscendentalBackground'
 import { SubscriptionProvider } from '../lib/hooks/useSubscription'
 import { UserProvider } from '../lib/contexts/UserContext'
+
+// Lazy load background component for better initial load
+const TranscendentalBackground = lazy(() => import('../components/ui/TranscendentalBackground'))
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -61,7 +63,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <UserProvider>
             <SubscriptionProvider>
               <div className="fixed inset-0 z-[-1]">
-                <TranscendentalBackground />
+                <Suspense fallback={<div className="w-full h-full bg-white dark:bg-black" />}>
+                  <TranscendentalBackground />
+                </Suspense>
               </div>
               <div className="relative z-10">
                 {children}

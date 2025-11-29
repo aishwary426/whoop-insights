@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Heart, Dumbbell, Zap, Moon, ArrowDown, Thermometer, Flame } from 'lucide-react'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import AppLayout from '../../components/layout/AppLayout'
 import TodayRecommendationCard from '../../components/dashboard/TodayRecommendationCard'
 import StatsRow from '../../components/dashboard/StatsRow'
@@ -12,18 +12,21 @@ import ForecastCard from '../../components/dashboard/ForecastCard'
 import NeonButton from '../../components/ui/NeonButton'
 import NeonCard from '../../components/ui/NeonCard'
 import ParallaxSection from '../../components/ui/ParallaxSection'
-import PerformanceSection from '../../components/dashboard/PerformanceSection'
 import ScrollReveal from '../../components/ui/ScrollReveal'
 import DashboardSkeleton, { PersonalizationInsightsSkeleton } from '../../components/dashboard/DashboardSkeleton'
 import { api, type DashboardSummary, type TrendsResponse } from '../../lib/api'
 import { getCurrentUser } from '../../lib/auth'
 import { useDashboardSummary, useTrends, usePersonalizationInsights } from '../../lib/hooks/useDashboardData'
 import { useIsMobile } from '../../lib/hooks/useIsMobile'
+import { usePerformanceMode } from '../../lib/hooks/usePerformanceMode'
 import { useUser } from '../../lib/contexts/UserContext'
 import { formatShortDate, formatWeekday, formatDayWeekday, formatFullDate, getRelativeDateLabel } from '../../lib/formatters'
 
 import TypewriterText from '../../components/ui/TypewriterText'
-import MorningBriefing from '../../components/dashboard/MorningBriefing'
+
+// Lazy load heavy components
+const PerformanceSection = lazy(() => import('../../components/dashboard/PerformanceSection'))
+const MorningBriefing = lazy(() => import('../../components/dashboard/MorningBriefing'))
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -34,6 +37,7 @@ export default function DashboardPage() {
   const { scrollY } = useScroll()
   const scrollOpacity = useTransform(scrollY, [0, 100], [1, 0])
   const isMobile = useIsMobile()
+  const { reduceAnimations } = usePerformanceMode()
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -252,16 +256,18 @@ export default function DashboardPage() {
     <AppLayout user={user}>
 
       {/* Scroll Indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        style={{ opacity: scrollOpacity }}
-        transition={{ delay: 2, duration: 1 }}
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none text-gray-400 dark:text-white/20 animate-bounce"
-        layout={false}
-      >
-        <ArrowDown className="w-6 h-6" />
-      </motion.div>
+      {!reduceAnimations && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ opacity: scrollOpacity }}
+          transition={{ delay: 2, duration: 1 }}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none text-gray-400 dark:text-white/20 animate-bounce"
+          layout={false}
+        >
+          <ArrowDown className="w-6 h-6" />
+        </motion.div>
+      )}
 
       <div className="relative z-10 w-full px-4 md:px-6 lg:px-8 pt-16 md:pt-20 lg:pt-24">
 
@@ -313,7 +319,11 @@ export default function DashboardPage() {
               stickyPosition="left"
               stickyContent={
                 <div className="space-y-3 md:space-y-4 w-full">
-                  {summary && <MorningBriefing summary={summary} />}
+                  {summary && (
+                    <Suspense fallback={<div className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />}>
+                      <MorningBriefing summary={summary} />
+                    </Suspense>
+                  )}
                 </div>
               }
             >
@@ -348,6 +358,13 @@ export default function DashboardPage() {
                   <p className="text-sm md:text-base lg:text-lg text-gray-600 dark:text-white/60 leading-relaxed hidden md:block">
                     Visualizing your recovery baseline over time. Spot patterns and adjust your lifestyle.
                   </p>
+                  {trends?.is_whoop_api_limited && (
+                    <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                      <p className="text-xs md:text-sm text-amber-600 dark:text-amber-400">
+                        <strong>Note:</strong> Connected via WHOOP API - showing latest 25 records. Upload a ZIP file to see your complete history.
+                      </p>
+                    </div>
+                  )}
                 </div>
               }
             >
@@ -359,7 +376,9 @@ export default function DashboardPage() {
             {/* Section 4: Performance Metrics (Immersive) */}
             <ScrollReveal>
               <div className="relative z-20" data-chart="performance-section">
-                <PerformanceSection strainData={last30Strain} sleepData={last30Sleep} />
+                <Suspense fallback={<div className="h-[400px] md:h-[500px] bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />}>
+                  <PerformanceSection strainData={last30Strain} sleepData={last30Sleep} />
+                </Suspense>
               </div>
             </ScrollReveal>
 

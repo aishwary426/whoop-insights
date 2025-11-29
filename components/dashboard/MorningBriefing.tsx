@@ -1,17 +1,18 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Square, Volume2, VolumeX } from 'lucide-react'
 import { DashboardSummary } from '../../lib/api'
 import { getRelativeDateLabel, formatFullDate } from '../../lib/formatters'
 import NeonCard from '../ui/NeonCard'
+import { usePerformanceMode } from '../../lib/hooks/usePerformanceMode'
 
 interface MorningBriefingProps {
   summary: DashboardSummary
 }
 
-export default function MorningBriefing({ summary }: MorningBriefingProps) {
+function MorningBriefing({ summary }: MorningBriefingProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -22,6 +23,7 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const isPlayingRef = useRef(false)
   const currentVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
+  const { reduceAnimations } = usePerformanceMode()
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -230,8 +232,8 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
         }
         
         // More human-like speech parameters
-        // Slower rate (0.85-0.9) sounds more natural and less rushed
-        utterance.rate = 0.88
+        // Slightly faster rate for more natural conversation pace
+        utterance.rate = 1
         
         // Slight pitch variation between sentences (0.95-1.05) adds naturalness
         // Vary pitch slightly: lower for statements, slightly higher for questions/excitement
@@ -340,7 +342,7 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
         {/* Visualizer Circle */}
         <div className="relative w-32 h-32 flex items-center justify-center">
             {/* Pulsing rings */}
-            {isPlaying && (
+            {isPlaying && !reduceAnimations && (
                 <>
                     <motion.div
                         animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
@@ -353,6 +355,9 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
                         className="absolute inset-0 rounded-full border border-blue-500/50"
                     />
                 </>
+            )}
+            {isPlaying && reduceAnimations && (
+                <div className="absolute inset-0 rounded-full border-2 border-cyan-500/50 animate-pulse" />
             )}
             
             {/* Play Button */}
@@ -367,12 +372,19 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
 
         {/* Progress Bar */}
         <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-            <motion.div 
-                className="h-full bg-gradient-to-r from-cyan-400 to-blue-500"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ type: 'tween', ease: 'linear' }}
-            />
+            {reduceAnimations ? (
+                <div 
+                    className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                />
+            ) : (
+                <motion.div 
+                    className="h-full bg-gradient-to-r from-cyan-400 to-blue-500"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ type: 'tween', ease: 'linear' }}
+                />
+            )}
         </div>
 
         <p className="text-sm text-gray-400 text-center italic">
@@ -388,3 +400,5 @@ export default function MorningBriefing({ summary }: MorningBriefingProps) {
     </NeonCard>
   )
 }
+
+export default memo(MorningBriefing)
