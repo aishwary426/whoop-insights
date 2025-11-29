@@ -20,8 +20,9 @@ export default function ConnectWhoopButton() {
       } else {
         console.error('Failed to get auth URL', response)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error connecting to Whoop:', error)
+      alert(`Failed to connect to Whoop: ${error.message || 'Unknown error'}. Please try again later.`)
     } finally {
       setLoading(false)
     }
