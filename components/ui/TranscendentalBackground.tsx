@@ -1,7 +1,6 @@
 'use client'
 
 import { motion, useScroll, useTransform, useSpring, useVelocity } from 'framer-motion'
-import ParticleBackground from './ParticleBackground'
 import CyberGrid from './CyberGrid'
 import { useIsMobile } from '../../lib/hooks/useIsMobile'
 
@@ -47,18 +46,14 @@ export default function TranscendentalBackground() {
     const smoothVelocity = useSpring(scrollVelocity, { stiffness: 50, damping: 20 })
 
     // Opacity transitions for different layers
-    // Particles visible from the start with rotating effect
-    const particleOpacity = useTransform(smoothScroll, [0, 0.8, 1], [1, 1, 0], { clamp: true })
     const cosmicOpacity = useTransform(smoothScroll, [0.6, 0.8, 1], [0, 1, 1], { clamp: true })
 
     // Warp effect based on velocity
     // When scrolling fast, scale up slightly and blur
     // Disable on mobile for performance
-    const warpScale = useTransform(smoothVelocity, [-1000, 0, 1000], isMobile ? [1, 1, 1] : [1.05, 1, 1.05], { clamp: true })
-    const warpBlur = useTransform(smoothVelocity, [-2000, 0, 2000], isMobile ? ["blur(0px)", "blur(0px)", "blur(0px)"] : ["blur(2px)", "blur(0px)", "blur(2px)"])
+    const warpScale = useTransform(smoothVelocity, [-1000, 0, 1000], isMobile ? [1, 1, 1] : [1.02, 1, 1.02], { clamp: true })
 
     // Parallax movement for the background layers with clamped values
-    const y2 = useTransform(smoothScroll, [0, 1], [0, 100], { clamp: true })
     const y3 = useTransform(smoothScroll, [0, 1], [0, 50], { clamp: true })
 
     return (
@@ -70,17 +65,6 @@ export default function TranscendentalBackground() {
             <div className="absolute inset-0 opacity-40 dark:opacity-60">
                 <CyberGrid />
             </div>
-
-            {/* Layer 1: Particle Network (Middle) */}
-            <motion.div
-                style={{ y: y2, opacity: particleOpacity, scale: warpScale, filter: warpBlur }}
-                className="absolute inset-0 will-change-transform"
-                initial={false}
-            >
-                <div className="absolute inset-0">
-                    <ParticleBackground particleCount={isMobile ? 300 : 1000} accentColor="#3B82F6" isMobile={isMobile} />
-                </div>
-            </motion.div>
 
             {/* Layer 2: Cosmic Void (Bottom) */}
             {!isMobile && (

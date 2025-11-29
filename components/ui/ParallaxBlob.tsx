@@ -253,7 +253,6 @@ export function ParallaxBackground({ children }: ParallaxBackgroundProps) {
     <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
       <div className="absolute inset-0 bg-gray-50 dark:bg-[#050505] transition-colors duration-300" />
       <DynamicGrid mouseX={mouseXPx} mouseY={mouseYPx} />
-      <FloatingParticles mouseX={mouseX} mouseY={mouseY} />
 
       <ParallaxBlob
         className="-left-12 top-12"
