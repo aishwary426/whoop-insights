@@ -244,7 +244,7 @@ export default function DashboardPage() {
     {
       icon: Heart,
       label: 'SpO2',
-      value: summary?.today?.spo2_percentage ? `${summary.today.spo2_percentage.toFixed(1)}%` : '--',
+      value: summary?.today?.spo2_percentage != null ? `${summary.today.spo2_percentage.toFixed(1)}%` : '--',
       subtitle: 'Last night',
       color: 'from-red-500/20 to-pink-500/20'
     },
