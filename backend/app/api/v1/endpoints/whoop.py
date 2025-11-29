@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 import logging
+import asyncio
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -106,6 +107,8 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
                 raise
         
         # 2. Fetch Sleep
+        # Add small delay between endpoint calls to spread out requests
+        await asyncio.sleep(0.5)
         try:
             sleep_data = await whoop_client.get_sleep_data(access_token, start_str, end_str)
             logger.info(f"DEBUG: Fetched {len(sleep_data)} sleep records")
@@ -114,6 +117,7 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
             sleep_data = []
         
         # 3. Fetch Recovery (New for V2)
+        await asyncio.sleep(0.5)
         try:
             recovery_data = await whoop_client.get_recovery_data(access_token, start_str, end_str)
             logger.info(f"DEBUG: Fetched {len(recovery_data)} recovery records")
@@ -122,6 +126,7 @@ async def whoop_callback(code: str, state: str, user_id: str = None, request: Re
             recovery_data = []
         
         # 4. Fetch Workouts
+        await asyncio.sleep(0.5)
         try:
             workout_data = await whoop_client.get_workout_data(access_token, start_str, end_str)
             logger.info(f"DEBUG: Fetched {len(workout_data)} workouts")
