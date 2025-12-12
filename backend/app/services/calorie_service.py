@@ -156,3 +156,4 @@ def get_daily_calorie_summaries(db: Session, user_id: str, start_date: date = No
     
     return query.order_by(DailyCalorieSummary.date.desc()).all()
 
+
