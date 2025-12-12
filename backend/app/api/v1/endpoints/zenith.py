@@ -144,7 +144,7 @@ def format_user_data_for_prompt(summary: Optional[dict] = None, trends: Optional
 
 
 def call_ai_api(prompt: str, user_data_str: str, question: str) -> str:
-    """Call free AI API (Groq or Hugging Face) to get AI response."""
+    """Call AI API (Groq) to get AI response."""
     
     system_prompt = """You are Zenith, an elite Performance Coach who is deeply invested in the user's success. You are not a robot; you are a partner in their fitness journey.
 
@@ -177,93 +177,47 @@ INSTRUCTIONS:
 
     full_system_prompt = system_prompt.format(user_whoop_data=user_data_str)
     
-    # Try Groq first (free, fast)
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if groq_api_key:
-        try:
-            from groq import Groq
-            client = Groq(api_key=groq_api_key)
+    try:
+        from groq import Groq
+        
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            return "Configuration Error: GROQ_API_KEY is missing. Please check your environment settings."
             
-            response = client.chat.completions.create(
-                model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),  # Free, fast model
-                messages=[
-                    {"role": "system", "content": full_system_prompt},
-                    {"role": "user", "content": question}
-                ],
-                temperature=0.7,
-                max_tokens=1000,
-            )
-            
-            # Safely extract content from response
-            if not response or not hasattr(response, 'choices') or not response.choices:
-                raise ValueError("Invalid response from Groq API: no choices found")
-            
-            if not response.choices[0] or not hasattr(response.choices[0], 'message'):
-                raise ValueError("Invalid response from Groq API: no message in choice")
-            
-            message = response.choices[0].message
-            if not hasattr(message, 'content') or not message.content:
-                raise ValueError("Invalid response from Groq API: no content in message")
-            
-            return message.content
-        except ImportError:
-            logger.warning("Groq library not installed. Install with: pip install groq")
-        except Exception as e:
-            logger.warning(f"Error calling Groq API: {e}, trying Hugging Face...")
-    
-    # Try Hugging Face Inference API (free tier)
-    hf_api_key = os.getenv("HUGGINGFACE_API_KEY")
-    if hf_api_key:
-        try:
-            import requests
-            
-            # Use a free model from Hugging Face
-            model = os.getenv("HF_MODEL", "mistralai/Mistral-7B-Instruct-v0.2")
-            api_url = f"https://api-inference.huggingface.co/models/{model}"
-            
-            headers = {"Authorization": f"Bearer {hf_api_key}"}
-            
-            # Format prompt for the model
-            formatted_prompt = f"{full_system_prompt}\n\nUser Question: {question}\n\nAssistant:"
-            
-            payload = {
-                "inputs": formatted_prompt,
-                "parameters": {
-                    "max_new_tokens": 1000,
-                    "temperature": 0.7,
-                    "return_full_text": False
+        client = Groq(api_key=api_key)
+        
+        # User requested specific configuration for Zenith
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[
+                {
+                    "role": "system",
+                    "content": full_system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": question
                 }
-            }
+            ],
+            temperature=1,
+            max_completion_tokens=8192,
+            top_p=1,
+            reasoning_effort="medium",
+            stream=True,
+            stop=None
+        )
+        
+        # Collect stream response
+        full_response = ""
+        for chunk in completion:
+            content = chunk.choices[0].delta.content or ""
+            full_response += content
             
-            response = requests.post(api_url, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
-            
-            result = response.json()
-            if isinstance(result, list) and len(result) > 0:
-                return result[0].get("generated_text", "").strip()
-            elif isinstance(result, dict) and "generated_text" in result:
-                return result["generated_text"].strip()
-            else:
-                return str(result).strip()
-                
-        except ImportError:
-            logger.warning("requests library not installed. Install with: pip install requests")
-        except Exception as e:
-            logger.warning(f"Error calling Hugging Face API: {e}")
-    
-    # Fallback: Return helpful message
-    if not groq_api_key and not hf_api_key:
-        logger.warning("No AI API key configured. Set GROQ_API_KEY or HUGGINGFACE_API_KEY environment variable.")
-        return """I apologize, but the AI service is not configured. 
+        return full_response
 
-To enable Zenith AI coaching, please set one of these environment variables:
-- GROQ_API_KEY (recommended - free, fast): Get your free API key at https://console.groq.com
-- HUGGINGFACE_API_KEY (alternative - free tier): Get your free API key at https://huggingface.co/settings/tokens
-
-Both services offer free tiers that should be sufficient for personal use."""
-    
-    # If we got here, both APIs failed
-    return "I encountered an error while processing your request. Please try again or contact support if the issue persists."
+    except Exception as e:
+        logger.error(f"Error calling Groq API: {e}", exc_info=True)
+        return "I encountered an error while processing your request. Please try again later."
 
 
 @router.post("/zenith/chat", response_model=ZenithChatResponse)

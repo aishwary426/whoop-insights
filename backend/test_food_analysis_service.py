@@ -11,7 +11,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 def test_service():
-    print("Initializing service...")
+    print("Initializing Food Analysis Service...")
     service = FoodAnalysisService()
     
     # Create a test image (red square)

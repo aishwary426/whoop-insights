@@ -3,7 +3,7 @@ import os
 import base64
 import io
 from typing import Dict, Any
-from groq import Groq
+import google.generativeai as genai
 from PIL import Image
 import logging
 import re
@@ -22,16 +22,16 @@ class FoodAnalysisService:
             self.client = None
         else:
             try:
+                from groq import Groq
                 self.client = Groq(api_key=self.api_key)
-                self.model = "meta-llama/llama-4-maverick-17b-128e-instruct"
-                logging.info(f"Groq configured successfully with {self.model}")
+                logging.info(f"Groq client configured successfully")
             except Exception as e:
                 logging.error(f"Failed to configure Groq: {e}")
                 self.client = None
 
     def analyze_food_image(self, image_bytes: bytes) -> Dict[str, Any]:
         """
-        Analyze a food image using Groq Llama 4 to estimate calories and macros.
+        Analyze a food image using Groq (Llama 4) to estimate calories and macros.
         """
         logging.info(f"Received image for analysis. Size: {len(image_bytes)} bytes")
         
@@ -46,20 +46,9 @@ class FoodAnalysisService:
             }
 
         try:
-            # Convert bytes to base64 data URL
-            # First ensure it's a valid image using PIL (and potentially resize if huge)
-            image = Image.open(io.BytesIO(image_bytes))
-            logging.info(f"Image opened successfully. Format: {image.format}, Size: {image.size}")
+            # Encode image to base64
+            base64_image = base64.b64encode(image_bytes).decode('utf-8')
             
-            # Convert to RGB to ensure compatibility (e.g. if RGBA)
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-                
-            buffered = io.BytesIO()
-            image.save(buffered, format="JPEG")
-            base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
-            data_url = f"data:image/jpeg;base64,{base64_image}"
-
             prompt = """
             You are an expert nutritionist. Analyze this food image and provide a highly accurate nutritional estimate.
             
@@ -81,30 +70,37 @@ class FoodAnalysisService:
             If the image is not food, return {"calories": 0, "description": "Not food detected"}.
             """
 
-            logging.info(f"Sending request to Groq model: {self.model}")
-            chat_completion = self.client.chat.completions.create(
+            logging.info("Sending request to Groq...")
+            
+            # Generate content with Groq
+            completion = self.client.chat.completions.create(
+                model="meta-llama/llama-4-maverick-17b-128e-instruct",
                 messages=[
                     {
                         "role": "user",
                         "content": [
                             {"type": "text", "text": prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": data_url,
-                                },
-                            },
-                        ],
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                        ]
                     }
                 ],
-                model=self.model,
-                temperature=0.1, # Low temperature for more deterministic/structured output
+                temperature=1,
+                max_completion_tokens=1024,
+                top_p=1,
+                stream=True,
+                stop=None
             )
             
+            # Clean up potential markdown code blocks
+            full_response = ""
+            for chunk in completion:
+                content = chunk.choices[0].delta.content or ""
+                full_response += content
+
             logging.info("Groq response received.")
-            result_text = chat_completion.choices[0].message.content
+            result_text = full_response
             
-            # Clean up potential markdown code blocks if the model ignores the instruction
+            # Clean up potential markdown code blocks
             result_text = result_text.replace("```json", "").replace("```", "").strip()
             
             logging.info(f"Raw Response: {result_text}")

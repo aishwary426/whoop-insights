@@ -675,13 +675,16 @@ async def sync_whoop_data(user_id: str, db: Session = Depends(get_db)):
     This endpoint fetches the last 30 days of data to get the latest recovery.
     Uses stored refresh tokens to get a new access token if needed.
     """
+    logger.info(f"DEBUG: Manual sync requested for user_id: {user_id}")
     try:
         from app.models.database import WhoopToken
         from datetime import datetime, timedelta
+        import traceback
         
         # Get stored tokens
         whoop_token = db.query(WhoopToken).filter(WhoopToken.user_id == user_id).first()
         if not whoop_token:
+            logger.error(f"DEBUG: No Whoop token found for user_id: {user_id}")
             raise HTTPException(
                 status_code=404,
                 detail="No Whoop connection found. Please connect your Whoop account first."
@@ -707,18 +710,21 @@ async def sync_whoop_data(user_id: str, db: Session = Depends(get_db)):
                 logger.info(f"DEBUG: Refreshed access token for user: {user_id}")
             except Exception as e:
                 logger.error(f"DEBUG: Failed to refresh token: {e}")
+                logger.error(traceback.format_exc())
                 raise HTTPException(
                     status_code=401,
                     detail="Failed to refresh access token. Please reconnect your Whoop account."
                 )
         
         # Fetch and ingest latest data (last 30 days)
+        logger.info(f"DEBUG: Starting data fetch for user_id: {user_id}")
         sync_result = await _fetch_and_ingest_whoop_data(
             access_token=access_token,
             user_id=user_id,
             db=db,
             days_back=30
         )
+        logger.info(f"DEBUG: Data fetch completed. Result: {sync_result}")
         
         # Update last_sync_at
         whoop_token.last_sync_at = datetime.utcnow()
@@ -737,4 +743,5 @@ async def sync_whoop_data(user_id: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Failed to sync Whoop data: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=400, detail=f"Failed to sync Whoop data: {str(e)}")
