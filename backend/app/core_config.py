@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator
+from pydantic import field_validator, Field
 from functools import lru_cache
 from pathlib import Path
 import os
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     # Database - defaults to SQLite for dev, easy to switch to Postgres
     # On Vercel/serverless, always use SQLite in /tmp since we don't have persistent storage
     # and PostgreSQL requires additional setup
-    database_url: str = _get_default_database_url()
+    database_url: str = Field(default_factory=_get_default_database_url)
     
     @field_validator('database_url', mode='before')
     @classmethod

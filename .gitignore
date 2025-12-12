@@ -63,3 +63,5 @@ backend/whoop.db
 backend/data/raw/
 backend/logs/
 logs/
+*.log
+
