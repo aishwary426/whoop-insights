@@ -1,41 +1,45 @@
 import json
 import os
 import base64
-import io
 from typing import Dict, Any
-import google.generativeai as genai
-from PIL import Image
 import logging
 import re
 
-# Configure debug logging
-logging.basicConfig(filename='ai_debug.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+# Configure logging to stdout for Railway visibility
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class FoodAnalysisService:
     def __init__(self):
         self.api_key = os.getenv("GROQ_API_KEY")
-        logging.info(f"Initializing FoodAnalysisService with Groq. API Key present: {bool(self.api_key)}")
+        logger.info(f"Initializing FoodAnalysisService with Groq. API Key present: {bool(self.api_key)}")
+        print(f"[FoodAnalysis] GROQ_API_KEY present: {bool(self.api_key)}")
         
         if not self.api_key:
             print("⚠️ Warning: GROQ_API_KEY not found. AI features will fail.")
-            logging.error("GROQ_API_KEY not found in environment.")
+            logger.error("GROQ_API_KEY not found in environment.")
             self.client = None
         else:
             try:
                 from groq import Groq
                 self.client = Groq(api_key=self.api_key)
-                logging.info(f"Groq client configured successfully")
+                logger.info("Groq client configured successfully")
+                print("[FoodAnalysis] Groq client configured successfully")
             except Exception as e:
-                logging.error(f"Failed to configure Groq: {e}")
+                logger.error(f"Failed to configure Groq: {e}")
+                print(f"[FoodAnalysis] Failed to configure Groq: {e}")
                 self.client = None
 
     def analyze_food_image(self, image_bytes: bytes) -> Dict[str, Any]:
         """
-        Analyze a food image using Groq (Llama 4) to estimate calories and macros.
+        Analyze a food image using Groq (Llama 4 Maverick) to estimate calories and macros.
         """
-        logging.info(f"Received image for analysis. Size: {len(image_bytes)} bytes")
+        logger.info(f"Received image for analysis. Size: {len(image_bytes)} bytes")
+        print(f"[FoodAnalysis] Received image for analysis. Size: {len(image_bytes)} bytes")
         
         if not self.client:
+            logger.error("No Groq client available")
+            print("[FoodAnalysis] ERROR: No Groq client available - GROQ_API_KEY likely missing")
             return {
                 "calories": 0,
                 "protein": 0,
@@ -70,11 +74,13 @@ class FoodAnalysisService:
             If the image is not food, return {"calories": 0, "description": "Not food detected"}.
             """
 
-            logging.info("Sending request to Groq...")
+            model_name = "meta-llama/llama-4-maverick-17b-128e-instruct"
+            logger.info(f"Sending request to Groq with model: {model_name}")
+            print(f"[FoodAnalysis] Sending request to Groq with model: {model_name}")
             
-            # Generate content with Groq
+            # Generate content with Groq - NON-STREAMING for simpler handling
             completion = self.client.chat.completions.create(
-                model="meta-llama/llama-4-maverick-17b-128e-instruct",
+                model=model_name,
                 messages=[
                     {
                         "role": "user",
@@ -84,30 +90,26 @@ class FoodAnalysisService:
                         ]
                     }
                 ],
-                temperature=1,
+                temperature=0.7,
                 max_completion_tokens=1024,
                 top_p=1,
-                stream=True,
-                stop=None
+                stream=False  # Changed to non-streaming for simpler handling
             )
             
-            # Clean up potential markdown code blocks
-            full_response = ""
-            for chunk in completion:
-                content = chunk.choices[0].delta.content or ""
-                full_response += content
-
-            logging.info("Groq response received.")
-            result_text = full_response
+            result_text = completion.choices[0].message.content
+            
+            logger.info(f"Groq response received. Length: {len(result_text)} chars")
+            print(f"[FoodAnalysis] Groq response received. Length: {len(result_text)} chars")
             
             # Clean up potential markdown code blocks
             result_text = result_text.replace("```json", "").replace("```", "").strip()
             
-            logging.info(f"Raw Response: {result_text}")
+            logger.info(f"Raw Response: {result_text[:500]}")  # Log first 500 chars
+            print(f"[FoodAnalysis] Raw Response: {result_text[:200]}")  # Print first 200 chars
             
             try:
                 data = json.loads(result_text)
-                return {
+                result = {
                     "calories": data.get("calories", 0),
                     "protein": data.get("protein", 0),
                     "carbs": data.get("carbs", 0),
@@ -115,8 +117,13 @@ class FoodAnalysisService:
                     "description": data.get("description", "Analyzed food item"),
                     "confidence": 0.95 
                 }
-            except json.JSONDecodeError:
-                logging.error(f"JSON Decode Error: {result_text}")
+                logger.info(f"Analysis successful: {result['calories']} kcal")
+                print(f"[FoodAnalysis] Analysis successful: {result['calories']} kcal - {result['description']}")
+                return result
+                
+            except json.JSONDecodeError as je:
+                logger.error(f"JSON Decode Error: {je}")
+                print(f"[FoodAnalysis] JSON Decode Error: {je}")
                 # Attempt to extract JSON if it's embedded in text
                 try:
                     json_match = re.search(r'(\{.*\})', result_text, re.DOTALL)
@@ -130,23 +137,30 @@ class FoodAnalysisService:
                             "description": data.get("description", "Analyzed food item"),
                             "confidence": 0.90
                         }
-                except:
-                    pass
+                except Exception as extract_err:
+                    logger.error(f"JSON extraction failed: {extract_err}")
                     
                 return {
                     "calories": 0,
+                    "protein": 0,
+                    "carbs": 0,
+                    "fats": 0,
                     "description": "Analysis failed: Invalid JSON from AI",
                     "error": "json_error"
                 }
 
         except Exception as e:
-            logging.error(f"Exception during analysis: {str(e)}")
-            print(f"Error calling Groq API: {e}")
+            error_msg = str(e)
+            logger.error(f"Exception during analysis: {error_msg}")
+            print(f"[FoodAnalysis] Exception during analysis: {error_msg}")
             
             return {
                 "calories": 0,
-                "description": f"Error: {str(e)}", 
-                "error": str(e)
+                "protein": 0,
+                "carbs": 0,
+                "fats": 0,
+                "description": f"Error: {error_msg}", 
+                "error": error_msg
             }
 
 food_analysis_service = FoodAnalysisService()
