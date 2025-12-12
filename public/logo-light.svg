@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Target icon -->
+  <g transform="translate(256, 256)">
+    <!-- Outer ring -->
+    <circle cx="0" cy="0" r="180" stroke="#00FF8F" stroke-width="20" fill="none" opacity="0.3"/>
+    <!-- Middle ring -->
+    <circle cx="0" cy="0" r="120" stroke="#00FF8F" stroke-width="20" fill="none" opacity="0.5"/>
+    <!-- Inner ring -->
+    <circle cx="0" cy="0" r="60" stroke="#00FF8F" stroke-width="20" fill="none" opacity="0.7"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="15" fill="#00FF8F"/>
+  </g>
+</svg>
+

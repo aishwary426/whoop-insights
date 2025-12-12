@@ -1,0 +1,316 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --neon-glow: rgba(0, 102, 255, 0.18);
+  }
+
+  .dark {
+    --neon-glow: rgba(0, 255, 143, 0.18);
+  }
+
+  body {
+    @apply bg-transparent text-gray-900 dark:text-white antialiased;
+    font-family: var(--font-montserrat), system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Optimize rendering performance */
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    /* Prevent layout shifts */
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-montserrat-bold), var(--font-montserrat), system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-lg dark:shadow-neon-card;
+  }
+
+  .glass-nav {
+    @apply bg-white/80 dark:bg-black/70 backdrop-blur-md border-b border-gray-200 dark:border-white/5;
+  }
+
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center px-3 py-1.5 md:px-5 md:py-2.5 rounded-full font-semibold transition-transform duration-150 ease-apple bg-[rgb(0, 102, 255)] dark:bg-[rgb(0, 255, 143)] text-white dark:text-black shadow-neon-soft-light dark:shadow-neon-soft overflow-hidden group;
+    @apply before:absolute before:-inset-[2px] before:rounded-full before:bg-gradient-to-r before:from-blue-400/0 before:via-blue-400/80 before:to-blue-400/0 dark:before:from-neon/0 dark:before:via-neon/80 dark:before:to-neon/0 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-150 before:animate-border-glow before:-z-10 active:scale-95;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .btn-ghost {
+    @apply relative inline-flex items-center justify-center px-3 py-1.5 md:px-5 md:py-2.5 rounded-full font-semibold transition-transform duration-150 ease-apple bg-transparent border border-gray-300 dark:border-white/15 text-gray-900 dark:text-white overflow-hidden group;
+    @apply before:absolute before:-inset-[2px] before:rounded-full before:bg-gradient-to-r before:from-blue-400/0 before:via-blue-400/70 before:to-blue-400/0 dark:before:from-neon/0 dark:before:via-neon/70 dark:before:to-neon/0 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-150 before:animate-border-glow before:-z-10 active:scale-95;
+    @apply hover:border-blue-600 dark:hover:border-neon-primary/60;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-slate-400 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all;
+  }
+
+  .stat-card {
+    @apply glass-card p-6 transition-transform duration-150 ease-apple hover:scale-[1.01] hover:border-blue-600/40 dark:hover:border-neon-primary/40;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .gradient-blob {
+    @apply absolute blur-3xl opacity-30 rounded-full;
+  }
+
+  .metric-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+  }
+
+  .range-track {
+    @apply w-full h-2 rounded-full bg-gray-200 dark:bg-white/10;
+  }
+
+  .range-thumb {
+    @apply h-5 w-5 rounded-full bg-blue-600 dark:bg-neon-primary border-2 border-white dark:border-black shadow-md shadow-neon-soft-light dark:shadow-neon-soft;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Landing page - transparent background for particle effect */
+.landing-page-wrapper .min-h-screen.bg-white,
+.landing-page-wrapper .min-h-screen.dark\:bg-bgDark {
+  background: transparent !important;
+}
+
+.landing-page-wrapper main {
+  background: transparent !important;
+}
+
+.landing-page-wrapper section {
+  background: transparent !important;
+}
+
+/* Mobile performance optimizations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Optimize rendering on mobile */
+@media (max-width: 768px) {
+  * {
+    /* Reduce repaints */
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Optimize scrolling */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* Prevent text selection during scroll for smoother performance */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Re-enable text selection for interactive elements */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  
+  /* Reduce layout shifts */
+  img, video {
+    content-visibility: auto;
+  }
+  
+  /* Reduce backdrop blur on mobile for better performance */
+  .backdrop-blur-md,
+  .backdrop-blur-xl {
+    backdrop-filter: blur(4px) !important;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Performance hints - GPU acceleration */
+.performance-optimized {
+  will-change: transform;
+  contain: layout style paint;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.chart-container {
+  contain: layout style paint;
+  transform: translateZ(0); /* Force GPU acceleration */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Smooth scrolling and GPU acceleration for cards */
+.neon-card,
+.glass-card,
+.stat-card {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  contain: layout style paint;
+}
+
+/* Optimize transitions - use only GPU-accelerated properties */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce backdrop blur on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    backdrop-filter: none !important;
+  }
+}
+
+/* Optimize hover transitions - use only GPU-accelerated properties */
+button, a, .interactive {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Prevent layout shifts */
+img, video, svg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* Optimize all interactive elements */
+[role="button"], button, a, input, select, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth font rendering */
+* {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce paint complexity */
+section, div, article {
+  contain: layout style;
+}
+
+/* Optimize scroll containers */
+.overflow-auto, .overflow-scroll, .overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* GPU acceleration for transforms */
+.transform, [class*="translate"], [class*="scale"], [class*="rotate"] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Animated glowing border effect */
+@keyframes border-glow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-border-glow {
+  background-size: 400% 100%;
+  animation: border-glow 2.5s ease-in-out infinite;
+  filter: blur(0.5px);
+}

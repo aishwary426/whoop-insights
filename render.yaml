@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: whoop-insights
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RENDER
+        value: true
+      # Note: DATABASE_URL, NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+      # should be set via Render Dashboard Environment Variables (not committed to git)

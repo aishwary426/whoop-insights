@@ -1,0 +1,96 @@
+# Virtual environments (Vercel installs from requirements.txt)
+venv/
+env/
+ENV/
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Node modules
+node_modules/
+.npm/
+.pnpm-store/
+
+# Next.js build cache
+.next/
+out/
+build/
+
+# Git
+.git/
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# Data and model files (too large for serverless)
+backend/data/
+data/
+*.db
+*.sqlite
+*.sqlite3
+whoop.db
+
+# Log files
+backend/logs/
+logs/
+*.log
+
+# Test files
+backend/tests/
+tests/
+test_*.py
+*_test.py
+
+# Documentation
+*.md
+!README.md
+ARCHITECTURE.md
+QUICKSTART.md
+SETUP_GUIDE.md
+PROJECT_PLAN.md
+START_HERE.txt
+
+# Development scripts
+deploy.sh
+fix.sh
+upgrade.sh
+setup-backend.sh
+check_db.py
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Vercel
+.vercel/
+
+# Large model files (if any in root)
+*.joblib
+*.pkl
+*.h5
+*.pth
+*.pt
+
+# Temporary files
+tmp/
+temp/
+*.tmp

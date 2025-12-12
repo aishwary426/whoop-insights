@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+venv
+.venv
+__pycache__
+
+# Testing
+coverage
+__tests__
+tests
+screenshots
+
+# Next.js
+.next
+out
+build
+
+# Version Control
+.git
+.gitignore
+.vercel
+.vscode
+.idea
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# System
+.DS_Store
+Thumbs.db
