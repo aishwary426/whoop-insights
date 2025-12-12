@@ -55,7 +55,18 @@ async def startup_event():
     logger.info(f"  - RENDER_SERVICE_NAME: {os.getenv('RENDER_SERVICE_NAME')}")
     logger.info(f"  - RENDER_SERVICE_ID: {os.getenv('RENDER_SERVICE_ID')}")
     logger.info(f"  - DATABASE_URL: {'Set' if os.getenv('DATABASE_URL') else 'Not Set'}")
+    logger.info(f"  - GROQ_API_KEY: {'Set' if os.getenv('GROQ_API_KEY') else 'NOT SET - Food analysis will fail!'}")
+    logger.info(f"  - GOOGLE_API_KEY: {'Set' if os.getenv('GOOGLE_API_KEY') else 'Not Set'}")
     logger.info("=" * 60)
+    
+    # Test food analysis service initialization
+    try:
+        from app.services.analysis.food_analysis import food_analysis_service
+        logger.info(f"Food Analysis Service initialized. Client available: {food_analysis_service.client is not None}")
+        print(f"[STARTUP] Food Analysis Service OK. Groq client: {food_analysis_service.client is not None}")
+    except Exception as e:
+        logger.error(f"Failed to initialize Food Analysis Service: {e}")
+        print(f"[STARTUP ERROR] Food Analysis Service failed: {e}")
 
 # Create database tables (with error handling for serverless environments)
 try:
