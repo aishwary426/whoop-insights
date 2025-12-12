@@ -21,7 +21,7 @@ RUN --mount=type=cache,id=s/6ef71cb7-63fe-4bdd-a55c-4a6d31fe127a-npm-cache,targe
 
 # Copy source files (order matters for layer caching)
 COPY next.config.js tailwind.config.js postcss.config.js tsconfig.json ./
-COPY jsconfig.json next-env.d.ts ./
+COPY jsconfig.json ./
 COPY public ./public
 COPY lib ./lib
 COPY components ./components
