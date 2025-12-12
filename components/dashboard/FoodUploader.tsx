@@ -72,22 +72,30 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     // Start Analysis
     setIsAnalyzing(true)
     
+    // Use environment variable or default to localhost
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
     try {
+      console.log(`Starting food analysis for file: ${file.name} (${file.size} bytes)`);
       const formData = new FormData()
       formData.append('file', file)
 
+      console.log(`Sending request to: ${apiBaseUrl}/food/analyze`)
       const response = await fetch(`${apiBaseUrl}/food/analyze`, {
         method: 'POST',
         body: formData,
       })
 
+      console.log(`Analysis response status: ${response.status} ${response.statusText}`)
+
       if (!response.ok) {
-        throw new Error('Analysis failed')
+        const errorText = await response.text();
+        console.error(`Analysis failed with status ${response.status}: ${errorText}`);
+        throw new Error(`Analysis failed: ${response.status} ${response.statusText} - ${errorText}`)
       }
 
       const data = await response.json()
+      console.log("Analysis data received:", data)
       
       setCalories(data.calories)
       setProtein(data.protein)
@@ -104,6 +112,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     } catch (error) {
       console.error("Analysis failed:", error)
       setIsAnalyzing(false)
+      // Provide fallback values but indicate error
       setCalories(0)
       setProtein(0)
       setCarbs(0)

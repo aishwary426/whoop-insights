@@ -13,6 +13,7 @@ import { Flame, Utensils, Activity, RefreshCw, Trash2 } from 'lucide-react'
 import ScrollReveal from '../../components/ui/ScrollReveal'
 import { api } from '../../lib/api'
 import { format } from 'date-fns'
+import ErrorBoundary from '../../components/ErrorBoundary'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -142,103 +143,107 @@ export default function DashboardPage() {
 
   return (
     <AppLayout user={user}>
-      <div className="relative z-10 w-full px-4 md:px-6 lg:px-8 pt-24 md:pt-32 lg:pt-32 max-w-5xl mx-auto space-y-8">
-        
-        {/* Header */}
-        <div className="text-center space-y-2">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                <h1 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
-                    Calorie<span className="text-neon">GPS</span>
-                </h1>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleSyncWhoop}
-                        disabled={isSyncing}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon/10 hover:bg-neon/20 border border-neon/30 text-neon font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-neon/20"
-                        title="Sync Whoop data now"
-                    >
-                        <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
-                        <span>Sync Now</span>
-                    </button>
-                    <button
-                        onClick={handleReset}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 font-semibold text-sm transition-all shadow-lg hover:shadow-red-500/20"
-                        title="Reset daily log"
-                    >
-                        <Trash2 size={18} />
-                        <span>Reset</span>
-                    </button>
+      <ErrorBoundary>
+        <div className="relative z-10 w-full px-4 md:px-6 lg:px-8 pt-24 md:pt-32 lg:pt-32 max-w-5xl mx-auto space-y-8">
+            
+            {/* Header */}
+            <div className="text-center space-y-2">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                    <h1 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
+                        Calorie<span className="text-neon">GPS</span>
+                    </h1>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleSyncWhoop}
+                            disabled={isSyncing}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon/10 hover:bg-neon/20 border border-neon/30 text-neon font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-neon/20"
+                            title="Sync Whoop data now"
+                        >
+                            <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
+                            <span>Sync Now</span>
+                        </button>
+                        <button
+                            onClick={handleReset}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 font-semibold text-sm transition-all shadow-lg hover:shadow-red-500/20"
+                            title="Reset daily log"
+                        >
+                            <Trash2 size={18} />
+                            <span>Reset</span>
+                        </button>
+                    </div>
                 </div>
+                <p className="text-gray-500 dark:text-white/60">Real-time Energy Flux Monitoring</p>
+                {syncMessage && (
+                    <div className={`mt-2 px-4 py-2 rounded-lg text-sm font-medium max-w-md mx-auto ${
+                        syncMessage.type === 'success' 
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}>
+                        {syncMessage.text}
+                    </div>
+                )}
             </div>
-            <p className="text-gray-500 dark:text-white/60">Real-time Energy Flux Monitoring</p>
-            {syncMessage && (
-                <div className={`mt-2 px-4 py-2 rounded-lg text-sm font-medium max-w-md mx-auto ${
-                    syncMessage.type === 'success' 
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                }`}>
-                    {syncMessage.text}
-                </div>
-            )}
-        </div>
 
-        {/* Main Ring */}
-        <ScrollReveal>
-             <NeonCard className="py-12 px-4 flex flex-col items-center justify-center bg-white/50 dark:bg-black/40 border-gray-200 dark:border-white/5 backdrop-blur-xl">
-                 <CalorieRing consumed={Number(consumedCalories) || 0} burnt={Number(burntCalories) || 0} goal={2500} />
-                 
-                 <div className="grid grid-cols-2 gap-8 mt-12 w-full max-w-sm">
-                     <div className="text-center p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20">
-                         <div className="flex items-center justify-center gap-2 text-orange-500 mb-2">
-                             <Utensils size={16} />
-                             <span className="text-xs font-bold uppercase tracking-wider">In</span>
-                         </div>
-                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(consumedCalories)}</div>
-                     </div>
-                     <div className="text-center p-4 rounded-2xl bg-neon/10 border border-neon/20">
-                         <div className="flex items-center justify-center gap-2 text-neon mb-2">
-                             <Activity size={16} />
-                             <span className="text-xs font-bold uppercase tracking-wider">Out</span>
-                         </div>
-                         <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(burntCalories)}</div>
-                     </div>
-                 </div>
-             </NeonCard>
-        </ScrollReveal>
-
-        {/* Action Area */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ScrollReveal delay={0.1}>
-                 <FoodUploader onCaloriesAdded={handleCaloriesAdded} userId={user?.id} />
-            </ScrollReveal>
-
-            <ScrollReveal delay={0.2}>
-                <NeonCard className="p-6 h-full flex flex-col justify-center bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10">
-                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                         <Flame className="text-neon" />
-                         Insights
-                     </h3>
-                     <div className="space-y-4">
-                         <div className="p-4 rounded-xl bg-black/20 border border-white/5">
-                             <div className="text-sm text-gray-400 mb-1">Net Balance</div>
-                             <div className={`text-lg font-semibold ${consumedCalories > burntCalories ? 'text-orange-400' : 'text-neon'}`}>
-                                 {consumedCalories > burntCalories ? 'Surplus' : 'Deficit'} of {Math.abs(Math.round(consumedCalories - burntCalories))} kcal
-                             </div>
-                         </div>
-                         <div className="p-4 rounded-xl bg-black/20 border border-white/5">
-                             <div className="text-sm text-gray-400 mb-1">Recommendation</div>
-                             <div className="text-sm font-medium text-white/80">
-                                 {consumedCalories > burntCalories 
-                                    ? "You're in a surplus. Great for recovery, but watch the late snacks." 
-                                    : "You're in a deficit. Ensure you fuel up for tomorrow's strain."}
-                             </div>
-                         </div>
-                     </div>
+            {/* Main Ring */}
+            <ScrollReveal>
+                <NeonCard className="py-12 px-4 flex flex-col items-center justify-center bg-white/50 dark:bg-black/40 border-gray-200 dark:border-white/5 backdrop-blur-xl">
+                    <CalorieRing consumed={Number(consumedCalories) || 0} burnt={Number(burntCalories) || 0} goal={2500} />
+                    
+                    <div className="grid grid-cols-2 gap-8 mt-12 w-full max-w-sm">
+                        <div className="text-center p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20">
+                            <div className="flex items-center justify-center gap-2 text-orange-500 mb-2">
+                                <Utensils size={16} />
+                                <span className="text-xs font-bold uppercase tracking-wider">In</span>
+                            </div>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(consumedCalories)}</div>
+                        </div>
+                        <div className="text-center p-4 rounded-2xl bg-neon/10 border border-neon/20">
+                            <div className="flex items-center justify-center gap-2 text-neon mb-2">
+                                <Activity size={16} />
+                                <span className="text-xs font-bold uppercase tracking-wider">Out</span>
+                            </div>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(burntCalories)}</div>
+                        </div>
+                    </div>
                 </NeonCard>
             </ScrollReveal>
-        </div>
 
-      </div>
+            {/* Action Area */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ScrollReveal delay={0.1}>
+                    <ErrorBoundary>
+                        <FoodUploader onCaloriesAdded={handleCaloriesAdded} userId={user?.id} />
+                    </ErrorBoundary>
+                </ScrollReveal>
+
+                <ScrollReveal delay={0.2}>
+                    <NeonCard className="p-6 h-full flex flex-col justify-center bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <Flame className="text-neon" />
+                            Insights
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="p-4 rounded-xl bg-black/20 border border-white/5">
+                                <div className="text-sm text-gray-400 mb-1">Net Balance</div>
+                                <div className={`text-lg font-semibold ${consumedCalories > burntCalories ? 'text-orange-400' : 'text-neon'}`}>
+                                    {consumedCalories > burntCalories ? 'Surplus' : 'Deficit'} of {Math.abs(Math.round(consumedCalories - burntCalories))} kcal
+                                </div>
+                            </div>
+                            <div className="p-4 rounded-xl bg-black/20 border border-white/5">
+                                <div className="text-sm text-gray-400 mb-1">Recommendation</div>
+                                <div className="text-sm font-medium text-white/80">
+                                    {consumedCalories > burntCalories 
+                                        ? "You're in a surplus. Great for recovery, but watch the late snacks." 
+                                        : "You're in a deficit. Ensure you fuel up for tomorrow's strain."}
+                                </div>
+                            </div>
+                        </div>
+                    </NeonCard>
+                </ScrollReveal>
+            </div>
+
+        </div>
+      </ErrorBoundary>
     </AppLayout>
   )
 }
