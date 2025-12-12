@@ -88,12 +88,10 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Log all incoming requests for debugging."""
-    logger.info(f"Incoming request: {request.method} {request.url.path}")
-    logger.info(f"Request URL: {request.url}")
-    logger.info(f"Request headers: {dict(request.headers)}")
+    """Log incoming requests (reduced verbosity to avoid Railway rate limits)."""
+    # Only log the path, not full headers to reduce log volume
+    logger.info(f"Request: {request.method} {request.url.path}")
     response = await call_next(request)
-    logger.info(f"Request processed: {response.status_code}")
     return response
 
 # Exception handler for validation errors

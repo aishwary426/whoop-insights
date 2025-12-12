@@ -50,11 +50,9 @@ def setup_logging():
         handlers=handlers,
     )
     
-    # Set specific loggers
+    # Set specific loggers - ALWAYS use WARNING for SQLAlchemy to avoid log spam
     logging.getLogger("uvicorn").setLevel(logging.INFO)
-    logging.getLogger("sqlalchemy.engine").setLevel(
-        logging.DEBUG if settings.debug else logging.WARNING
-    )
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)  # Reduce log spam
     
     return logging.getLogger(__name__)
 
