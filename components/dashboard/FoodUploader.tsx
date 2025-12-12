@@ -91,7 +91,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`Analysis failed with status ${response.status}: ${errorText}`);
-        throw new Error(`Analysis failed: ${response.status} ${response.statusText} - ${errorText}`)
+        throw new Error(`${response.status} ${response.statusText}${errorText ? ` - ${errorText.substring(0, 50)}` : ''}`)
       }
 
       const data = await response.json()
@@ -109,7 +109,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
         setShowResult(true)
       }, 1500)
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Analysis failed:", error)
       setIsAnalyzing(false)
       // Provide fallback values but indicate error
@@ -117,7 +117,8 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       setProtein(0)
       setCarbs(0)
       setFats(0)
-      setFoodName("Failed to analyze")
+      // Show actual error in the UI for debugging
+      setFoodName(`Error: ${error.message || 'Unknown error'} (${apiBaseUrl})`)
       setShowResult(true)
     }
   }
