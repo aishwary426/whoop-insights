@@ -72,11 +72,10 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     // Start Analysis
     setIsAnalyzing(true)
     
-    // Use environment variable or default to localhost
-    let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    // Use environment variable or default to relative path (for rewrites)
+    let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
     
     // Ensure URL ends with /v1 to match Next.js rewrite rules
-    // Dockerfile often sets NEXT_PUBLIC_API_URL=/api, which misses the version segment
     if (apiBaseUrl.endsWith('/api')) {
         apiBaseUrl = `${apiBaseUrl}/v1`;
     }
@@ -141,7 +140,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
             return
         }
 
-        let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+        let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
         if (apiBaseUrl.endsWith('/api')) {
             apiBaseUrl = `${apiBaseUrl}/v1`;
         }
