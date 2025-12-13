@@ -10,6 +10,7 @@ import NeonCard from '../../components/ui/NeonCard';
 import ScrollReveal from '../../components/ui/ScrollReveal';
 import { useUser } from '../../lib/contexts/UserContext';
 import { api } from '../../lib/api'; // Assuming there is an api helper or I fetch directly
+import { getApiUrl } from '../../lib/api-config';
 
 // Types
 interface Meal {
@@ -35,7 +36,7 @@ interface TrendsResponse {
     }
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
 
 export default function DailyLogPage() {
   const { user, isLoading: userLoading } = useUser();
@@ -66,7 +67,9 @@ export default function DailyLogPage() {
         const endIso = format(endOfDay(selectedDate), "yyyy-MM-dd'T'HH:mm:ss");
 
         // Add timestamp to prevent caching
-        const mealsRes = await fetch(`${API_BASE_URL}/meals/?user_id=${user.id}&start_time=${startIso}&end_time=${endIso}&_t=${new Date().getTime()}`, {
+        const apiUrl = getApiUrl(`/meals/?user_id=${user.id}&start_time=${startIso}&end_time=${endIso}&_t=${new Date().getTime()}`);
+        
+        const mealsRes = await fetch(apiUrl, {
             headers: {
                  'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -104,7 +107,8 @@ export default function DailyLogPage() {
     if (!confirm('Are you sure you want to delete this meal?')) return;
 
     try {
-        const res = await fetch(`${API_BASE_URL}/meals/${mealId}?user_id=${user?.id}`, {
+        const apiUrl = getApiUrl(`/meals/${mealId}?user_id=${user?.id}`);
+        const res = await fetch(apiUrl, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
