@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.services.analysis.food_analysis import food_analysis_service
+from app.services.rating.food_rating import food_rating_service
 from typing import Dict, Any
 import httpx
 
@@ -19,6 +20,24 @@ async def analyze_food(file: UploadFile = File(...)):
         
         # Analyze
         result = food_analysis_service.analyze_food_image(contents)
+        
+        # Rate the food
+        # Prepare data for rating (matches structure expected by rate_food)
+        rating_data = {
+            "calories": result.get("calories", 0),
+            "protein": result.get("protein", 0),
+            "carbs": result.get("carbs", 0),
+            "fats": result.get("fats", 0),
+            "fiber": result.get("fiber", 0), # AI might not return this yet, defaults to 0
+            "confidence": result.get("confidence", "medium"),
+            "data_source": "ai_estimation"
+        }
+        
+        # TODO: Get actual user goal from profile service/context. Defaulting to 'maintain' for now.
+        user_goal = "maintain" 
+        
+        rating = food_rating_service.rate_food(rating_data, user_goal)
+        result["rating"] = rating
         
         return result
         
@@ -72,15 +91,43 @@ async def get_food_by_barcode(barcode: str):
             if product_name.replace(' ', '').isdigit():
                 product_name = 'Unknown Product'
 
+            # Extract basic macros
+            calories = nutriments.get('energy-kcal_serving', nutriments.get('energy-kcal_100g', 0))
+            protein = nutriments.get('proteins_serving', nutriments.get('proteins_100g', 0))
+            carbs = nutriments.get('carbohydrates_serving', nutriments.get('carbohydrates_100g', 0))
+            fats = nutriments.get('fat_serving', nutriments.get('fat_100g', 0))
+            fiber = nutriments.get('fiber_serving', nutriments.get('fiber_100g', 0))
+            
+            # Use 100g values if serving values are missing/None/0 but 100g exists, to be safe?
+            # Actually the .get(serving, .get(100g)) logic above handles priority.
+            
+            # Rate the food
+            rating_data = {
+                "calories": calories,
+                "protein": protein,
+                "carbs": carbs,
+                "fats": fats,
+                "fiber": fiber,
+                "confidence": "high",
+                "data_source": "barcode"
+            }
+            
+            # TODO: Get actual user goal.
+            user_goal = "maintain"
+            
+            rating = food_rating_service.rate_food(rating_data, user_goal)
+
             return {
                 "description": product_name,
-                "calories": nutriments.get('energy-kcal_serving', nutriments.get('energy-kcal_100g', 0)),
-                "protein": nutriments.get('proteins_serving', nutriments.get('proteins_100g', 0)),
-                "carbs": nutriments.get('carbohydrates_serving', nutriments.get('carbohydrates_100g', 0)),
-                "fats": nutriments.get('fat_serving', nutriments.get('fat_100g', 0)),
+                "calories": calories,
+                "protein": protein,
+                "carbs": carbs,
+                "fats": fats,
+                "fiber": fiber, # Added fiber to response
                 "serving_size": serving_size,
                 "brand": product.get('brands', ''),
-                "image_url": product.get('image_front_url', product.get('image_url', ''))
+                "image_url": product.get('image_front_url', product.get('image_url', '')),
+                "rating": rating
             }
             
         except HTTPException:

@@ -40,6 +40,27 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   const [showResult, setShowResult] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Rating Interface
+  interface RatingBreakdown {
+      score: number;
+      verdict: string;
+      category?: string;
+      nutrient_density?: number;
+  }
+
+  interface FoodRating {
+      overall_score: number;
+      grade: string;
+      confidence: string;
+      breakdown: {
+          macro_profile: RatingBreakdown;
+          caloric_efficiency: RatingBreakdown;
+          satiety_index?: RatingBreakdown;
+      }
+  }
+
+  const [rating, setRating] = useState<FoodRating | null>(null)
+
   const addLog = (msg: string) => {
       console.log(`[Scanner] ${msg}`)
       setDebugLogs(prev => [...prev.slice(-4), msg]) // Keep last 5 logs
@@ -271,6 +292,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       // Reset previous states
       setCalories(null)
       setProtein(null)
+      setRating(null)
         // Sanitize: remove spaces and non-numeric chars (standard EAN/UPC)
         const cleanBarcode = barcode.replace(/\s+/g, '').replace(/[^0-9]/g, '');
         
@@ -287,6 +309,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
         setFoodName('')
         setShowResult(false)
         setPreview(null) // Clear previous preview
+        setRating(null)
 
         setIsAnalyzing(true)
         setShowManualInput(false) // Close manual if open
@@ -317,6 +340,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
             setCarbs(data.carbs)
             setFats(data.fats)
             setFoodName(data.description) // "Unknown Product" if logic falls back
+            setRating(data.rating || null)
             
             if (data.image_url) {
                 setPreview(data.image_url)
@@ -344,6 +368,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     setFats(null)
     setFoodName('')
     setShowResult(false)
+    setRating(null)
 
     // Preview
     const reader = new FileReader()
@@ -385,6 +410,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       setCarbs(data.carbs)
       setFats(data.fats)
       setFoodName(data.description || "Analyzed Food")
+      setRating(data.rating || null)
       
       // Simulate "Scanning" delay slightly if API is too fast
       setTimeout(() => {
@@ -400,6 +426,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       setProtein(0)
       setCarbs(0)
       setFats(0)
+      setRating(null)
       // Show actual error in the UI for debugging
       setFoodName(`Error: ${error.message || 'Unknown error'}`)
       setShowResult(true)
@@ -474,6 +501,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     setCarbs(null)
     setFats(null)
     setFoodName('')
+    setRating(null)
     setIsAnalyzing(false)
     setIsLogging(false)
     setIsScanning(false)
@@ -481,6 +509,22 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  }
+
+  // Calculate colors for grades
+  const getGradeColor = (grade: string) => {
+      const g = grade.charAt(0);
+      if (g === 'A') return 'text-neon';
+      if (g === 'B') return 'text-blue-400';
+      if (g === 'C') return 'text-yellow-400';
+      return 'text-red-400';
+  }
+
+  const getScoreColor = (score: number) => {
+      if (score >= 85) return 'bg-neon text-black';
+      if (score >= 70) return 'bg-blue-500 text-white';
+      if (score >= 50) return 'bg-yellow-500 text-black';
+      return 'bg-red-500 text-white';
   }
 
   return (
@@ -648,6 +692,35 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                              Details Found
                         </div>
                      </div>
+
+                     {/* Rating Card */}
+                     {rating && (
+                        <div className="mb-6 bg-white/5 border border-white/10 rounded-xl p-4 w-full text-left">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Health Score</div>
+                                    <div className={`text-2xl font-black ${getGradeColor(rating.grade)} flex items-baseline gap-2`}>
+                                        {rating.grade} 
+                                        <span className="text-xs text-white/50 font-normal">({rating.overall_score}/100)</span>
+                                    </div>
+                                </div>
+                                <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getScoreColor(rating.overall_score)}`}>
+                                    {rating.breakdown.macro_profile.category || "General"}
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2 border-t border-white/5 pt-3">
+                                <div className="flex justify-between items-start gap-4">
+                                    <span className="text-gray-400 text-xs whitespace-nowrap">Macros</span>
+                                    <span className="text-white text-xs text-right opacity-90">{rating.breakdown.macro_profile.verdict}</span>
+                                </div>
+                                <div className="flex justify-between items-start gap-4">
+                                    <span className="text-gray-400 text-xs whitespace-nowrap">Efficiency</span>
+                                    <span className="text-white text-xs text-right opacity-90">{rating.breakdown.caloric_efficiency.verdict}</span>
+                                </div>
+                            </div>
+                        </div>
+                     )}
 
                      {/* Logging Progress Bar */}
                      {isLogging && (

@@ -68,6 +68,7 @@ class FoodAnalysisService:
                 "protein": <total_protein_grams_int>,
                 "carbs": <total_carbs_grams_int>,
                 "fats": <total_fats_grams_int>,
+                "fiber": <total_fiber_grams_int>,
                 "description": "<short_summary_description>"
             }
             
@@ -114,6 +115,7 @@ class FoodAnalysisService:
                     "protein": data.get("protein", 0),
                     "carbs": data.get("carbs", 0),
                     "fats": data.get("fats", 0),
+                    "fiber": data.get("fiber", 0),
                     "description": data.get("description", "Analyzed food item"),
                     "confidence": 0.95 
                 }
@@ -134,6 +136,7 @@ class FoodAnalysisService:
                             "protein": data.get("protein", 0),
                             "carbs": data.get("carbs", 0),
                             "fats": data.get("fats", 0),
+                            "fiber": data.get("fiber", 0),
                             "description": data.get("description", "Analyzed food item"),
                             "confidence": 0.90
                         }
