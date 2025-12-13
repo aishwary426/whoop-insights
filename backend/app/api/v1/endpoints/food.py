@@ -132,17 +132,22 @@ async def get_food_by_barcode(barcode: str):
             
         except HTTPException:
             raise
-        except Exception as e:
-            # Emergency Logging
-            import traceback
-            import os
-            try:
-                with open("backend_error.log", "a") as f:
-                    f.write(f"\n--- Error for barcode {barcode} ---\n")
-                    f.write(traceback.format_exc())
-            except:
-                pass
-            print(f"Barcode lookup failed: {e}") 
             # Re-raise as 500
             raise HTTPException(status_code=500, detail=f"Barcode lookup failed: {str(e)}")
+
+class CritiqueRequest(dict):
+    # Quick schema for request body
+    pass
+
+@router.post("/critique", response_model=Dict[str, Any])
+async def critique_food(data: Dict[str, Any]):
+    """
+    Generate Zenith's honest critique for a food item.
+    """
+    try:
+        result = food_analysis_service.generate_nutritional_critique(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 

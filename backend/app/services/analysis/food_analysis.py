@@ -54,10 +54,11 @@ class FoodAnalysisService:
             base64_image = base64.b64encode(image_bytes).decode('utf-8')
             
             prompt = """
-            You are an expert nutritionist. Analyze this food image and provide a highly accurate nutritional estimate.
+            You are Zenith, an expert AI nutritionist. Analyze this food image and provide a highly accurate nutritional estimate.
             
             First, identify every ingredient and its approximate portion size.
             Then, calculate the macros for each component and sum them up.
+            Finally, provide a nutritional assessment.
             
             Return ONLY a valid JSON object with the final totals and a concise description. 
             Do NOT include markdown formatting (like ```json ... ```) or any reasoning text in the output. Just the raw JSON string.
@@ -69,7 +70,9 @@ class FoodAnalysisService:
                 "carbs": <total_carbs_grams_int>,
                 "fats": <total_fats_grams_int>,
                 "fiber": <total_fiber_grams_int>,
-                "description": "<short_summary_description>"
+                "description": "<short_summary_description>",
+                "pros": ["<nutritional_benefit_1>", "<nutritional_benefit_2>", "<nutritional_benefit_3>"],
+                "cons": ["<nutritional_downside_1>", "<nutritional_downside_2>", "<nutritional_downside_3>"]
             }
             
             If the image is not food, return {"calories": 0, "description": "Not food detected"}.
@@ -117,6 +120,8 @@ class FoodAnalysisService:
                     "fats": data.get("fats", 0),
                     "fiber": data.get("fiber", 0),
                     "description": data.get("description", "Analyzed food item"),
+                    "pros": data.get("pros", []),
+                    "cons": data.get("cons", []),
                     "confidence": 0.95 
                 }
                 logger.info(f"Analysis successful: {result['calories']} kcal")
@@ -138,6 +143,8 @@ class FoodAnalysisService:
                             "fats": data.get("fats", 0),
                             "fiber": data.get("fiber", 0),
                             "description": data.get("description", "Analyzed food item"),
+                            "pros": data.get("pros", []),
+                            "cons": data.get("cons", []),
                             "confidence": 0.90
                         }
                 except Exception as extract_err:
@@ -164,6 +171,74 @@ class FoodAnalysisService:
                 "fats": 0,
                 "description": f"Error: {error_msg}", 
                 "error": error_msg
+            }
+
+    def generate_nutritional_critique(self, food_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate honest feedback (Pros/Cons/Verdict) based on food name and nutrition data.
+        """
+        if not self.client:
+            return {"verdict": "AI Unavailable", "pros": [], "cons": []}
+
+        try:
+            food_name = food_data.get("name", "Unknown Food")
+            calories = food_data.get("calories", 0)
+            protein = food_data.get("protein", 0)
+            carbs = food_data.get("carbs", 0)
+            fats = food_data.get("fats", 0)
+
+            prompt = f"""
+            You are Zenith, a brutally honest but helpful nutrition expert.
+            
+            Critique this food item:
+            Name: {food_name}
+            Stats: {calories}kcal, {protein}g Protein, {carbs}g Carbs, {fats}g Fats.
+            
+            Provide:
+            1. A honest, 1-sentence verdict.
+            2. 3 short Pros.
+            3. 3 short Cons.
+            
+            Return raw JSON:
+            {{
+                "verdict": "string",
+                "pros": ["string", "string", "string"],
+                "cons": ["string", "string", "string"]
+            }}
+            """
+            
+            model_name = "meta-llama/llama-4-maverick-17b-128e-instruct"
+            logger.info(f"Generating critique for {food_name}")
+            
+            completion = self.client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_completion_tokens=500,
+                top_p=1,
+                stream=False
+            )
+            
+            result_text = completion.choices[0].message.content
+            # Clean cleanup
+            result_text = result_text.replace("```json", "").replace("```", "").strip()
+            
+            # Simple fallback regex if json parsing fails
+            try:
+                return json.loads(result_text)
+            except:
+                # Try regex find
+                match = re.search(r'(\{.*\})', result_text, re.DOTALL)
+                if match:
+                    return json.loads(match.group(1))
+                raise Exception("Failed to parse JSON")
+                
+        except Exception as e:
+            logger.error(f"Critique failed: {e}")
+            return {
+                "verdict": "Could not analyze at this moment.",
+                "pros": [],
+                "cons": []
             }
 
 food_analysis_service = FoodAnalysisService()

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { DragEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Camera, Check, X, Loader2, ScanBarcode, Bug, Edit3, SwitchCamera } from 'lucide-react'
+import { Upload, Camera, Check, X, Loader2, ScanBarcode, Bug, Edit3, SwitchCamera, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
 import NeonCard from '../ui/NeonCard'
 import { getApiUrl } from '../../lib/api-config'
@@ -37,6 +37,10 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   const [carbs, setCarbs] = useState<number | null>(null)
   const [fats, setFats] = useState<number | null>(null)
   const [foodName, setFoodName] = useState<string>('')
+  const [pros, setPros] = useState<string[]>([])
+  const [cons, setCons] = useState<string[]>([])
+  const [verdict, setVerdict] = useState<string>('')
+  const [isCritiquing, setIsCritiquing] = useState(false)
   const [showResult, setShowResult] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -292,6 +296,9 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       // Reset previous states
       setCalories(null)
       setProtein(null)
+      setPros([])
+      setCons([])
+      setVerdict('')
       setRating(null)
         // Sanitize: remove spaces and non-numeric chars (standard EAN/UPC)
         const cleanBarcode = barcode.replace(/\s+/g, '').replace(/[^0-9]/g, '');
@@ -310,6 +317,9 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
         setShowResult(false)
         setPreview(null) // Clear previous preview
         setRating(null)
+        setPros([])
+        setCons([])
+        setVerdict('')
 
         setIsAnalyzing(true)
         setShowManualInput(false) // Close manual if open
@@ -341,6 +351,9 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
             setFats(data.fats)
             setFoodName(data.description) // "Unknown Product" if logic falls back
             setRating(data.rating || null)
+            setPros(data.pros || [])
+            setCons(data.cons || [])
+            setVerdict(data.verdict || '')
             
             if (data.image_url) {
                 setPreview(data.image_url)
@@ -369,6 +382,8 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     setFoodName('')
     setShowResult(false)
     setRating(null)
+    setPros([])
+    setCons([])
 
     // Preview
     const reader = new FileReader()
@@ -411,6 +426,9 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       setFats(data.fats)
       setFoodName(data.description || "Analyzed Food")
       setRating(data.rating || null)
+      setPros(data.pros || [])
+      setCons(data.cons || [])
+      setVerdict(data.verdict || '')
       
       // Simulate "Scanning" delay slightly if API is too fast
       setTimeout(() => {
@@ -426,10 +444,47 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       setProtein(0)
       setCarbs(0)
       setFats(0)
+      setFats(0)
       setRating(null)
+      setPros([])
+      setCons([])
+      setVerdict('')
       // Show actual error in the UI for debugging
       setFoodName(`Error: ${error.message || 'Unknown error'}`)
       setShowResult(true)
+    }
+  }
+
+
+
+  const handleZenithCritique = async () => {
+    setIsCritiquing(true)
+    try {
+        const apiUrl = getApiUrl('/food/critique');
+        const payload = {
+            name: foodName,
+            calories: calories || 0,
+            protein: protein || 0,
+            carbs: carbs || 0,
+            fats: fats || 0
+        }
+        
+        const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        
+        const data = await res.json()
+        setPros(data.pros || [])
+        setCons(data.cons || [])
+        setVerdict(data.verdict || '')
+        
+    } catch (e) {
+        console.error("Critique failed", e)
+        alert("Zenith is offline right now.")
+    } finally {
+        setIsCritiquing(false)
     }
   }
 
@@ -502,6 +557,9 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     setFats(null)
     setFoodName('')
     setRating(null)
+    setPros([])
+    setCons([])
+    setVerdict('')
     setIsAnalyzing(false)
     setIsLogging(false)
     setIsScanning(false)
@@ -719,6 +777,68 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                                     <span className="text-white text-xs text-right opacity-90">{rating.breakdown.caloric_efficiency.verdict}</span>
                                 </div>
                             </div>
+                        </div>
+                     )}
+
+                     {/* Zenith AI Insights */}
+                     {(pros.length > 0 || cons.length > 0) ? (
+                        <div className="mb-6 w-full text-left">
+                            <h4 className="text-xs text-neon uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-neon animate-pulse"></span>
+                                Zenith's Honest Take
+                            </h4>
+                            
+                            {verdict && (
+                                <div className="mb-3 p-3 bg-neon/5 border-l-2 border-neon text-sm text-gray-200 italic">
+                                    "{verdict}"
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 gap-3">
+                                {pros.length > 0 && (
+                                    <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-3">
+                                        <div className="text-[10px] text-green-400 uppercase tracking-wider mb-2 font-bold">Pros</div>
+                                        <ul className="space-y-1.5">
+                                            {pros.map((p, i) => (
+                                                <li key={i} className="text-xs text-white/80 flex items-start gap-2">
+                                                    <span className="text-green-400 mt-0.5">✓</span>
+                                                    <span>{p}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                
+                                {cons.length > 0 && (
+                                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-3">
+                                        <div className="text-[10px] text-red-400 uppercase tracking-wider mb-2 font-bold">Cons</div>
+                                        <ul className="space-y-1.5">
+                                            {cons.map((c, i) => (
+                                                <li key={i} className="text-xs text-white/80 flex items-start gap-2">
+                                                    <span className="text-red-400 mt-0.5">×</span>
+                                                    <span>{c}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                     ) : (
+                        /* "Analyze with Zenith" Button if no insights yet */
+                        <div className="mb-6">
+                             <button
+                                onClick={handleZenithCritique}
+                                disabled={isCritiquing}
+                                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 text-purple-200 text-sm font-semibold flex items-center justify-center gap-2 hover:border-purple-500/60 transition-all"
+                             >
+                                 {isCritiquing ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                 ) : (
+                                    <Sparkles size={16} className="text-purple-400" />
+                                 )}
+                                 {isCritiquing ? "Consulting Zenith..." : "Analyze with Zenith"}
+                             </button>
                         </div>
                      )}
 
