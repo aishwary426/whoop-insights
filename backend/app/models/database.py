@@ -264,13 +264,11 @@ class Meal(Base):
     fats = Column(Integer, nullable=True)
     image_url = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    date = Column(Date, nullable=True)  # Denormalized date field for easier querying
     
     user = relationship("User", back_populates="meals")
 
     __table_args__ = (
         Index('idx_meal_user_date', 'user_id', 'timestamp'),
-        Index('idx_meal_user_date_field', 'user_id', 'date'),
     )
 
 

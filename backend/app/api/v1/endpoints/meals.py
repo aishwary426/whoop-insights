@@ -43,8 +43,17 @@ def create_meal(
     if not user:
         # If user doesn't exist, we might create it or fail.
         # For now, let's fail if strict, or just allow it (since we hardcoded fallback).
-        # Given the "single user" fallback in webhook, let's just proceed.
-        pass
+        # Auto-create user to satisfy FK
+        # Use placeholder data since we don't have profile info here
+        user = User(
+            id=meal.user_id, 
+            email=f"{meal.user_id}@placeholder.com", 
+            name="New User",
+            goal="maintain"
+        )
+        db.add(user)
+        # Flush to ensure the user exists before adding the meal
+        db.flush()
 
     # Ensure previous days are archived before adding new meal
     ensure_today_meals_only(db, meal.user_id)
@@ -60,8 +69,7 @@ def create_meal(
         carbs=meal.carbs,
         fats=meal.fats,
         image_url=meal.image_url,
-        timestamp=meal_time,
-        date=meal_time.date()  # Set the date field from the timestamp
+        timestamp=meal_time
     )
     db.add(new_meal)
     db.commit()
