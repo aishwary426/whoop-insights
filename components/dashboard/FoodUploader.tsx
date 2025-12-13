@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { DragEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Camera, Check, X, Loader2 } from 'lucide-react'
+import { Upload, Camera, Check, X, Loader2, ScanBarcode, Bug, Edit3 } from 'lucide-react'
 import { format } from 'date-fns'
 import NeonCard from '../ui/NeonCard'
 import { getApiUrl } from '../../lib/api-config'
+import { Html5Qrcode } from 'html5-qrcode'
 
 interface FoodUploaderProps {
   onCaloriesAdded: (calories: number) => void
@@ -17,6 +18,14 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   const [isDragging, setIsDragging] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isLogging, setIsLogging] = useState(false)
+  // Scanner States
+  const [isScanning, setIsScanning] = useState(false)
+  const [showManualInput, setShowManualInput] = useState(false)
+  const [manualBarcode, setManualBarcode] = useState("")
+  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const isScannerRunning = useRef(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
   const [preview, setPreview] = useState<string | null>(null)
   const [calories, setCalories] = useState<number | null>(null)
   const [protein, setProtein] = useState<number | null>(null)
@@ -25,6 +34,129 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   const [foodName, setFoodName] = useState<string>('')
   const [showResult, setShowResult] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const addLog = (msg: string) => {
+      console.log(`[Scanner] ${msg}`)
+      setDebugLogs(prev => [...prev.slice(-4), msg]) // Keep last 5 logs
+  }
+
+  // Helper to stop scanner
+  const handleStopScanner = async () => {
+      if (scannerRef.current && isScannerRunning.current) {
+          try {
+              await scannerRef.current.stop();
+              isScannerRunning.current = false;
+              addLog("Scanner stopped");
+          } catch (e) {
+              addLog(`Stop error: ${e}`);
+          }
+      }
+      setIsScanning(false);
+  }
+
+  useEffect(() => {
+    let mounted = true;
+
+    const startScanner = async () => {
+        if (!mounted) return;
+        
+        // Poll for the reader element
+        let attempts = 0;
+        const maxAttempts = 15; 
+        
+        while (attempts < maxAttempts) {
+            if (document.getElementById('reader')) break;
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+        }
+
+        if (!document.getElementById('reader')) {
+            addLog("Reader element not found.")
+            setCameraError("Scanner failed to load. Please try again.");
+            return;
+        }
+
+        if (scannerRef.current) {
+            // Already initialized
+            return;
+        }
+
+        try {
+            addLog("Initializing Html5Qrcode...")
+            const html5QrCode = new Html5Qrcode("reader", { 
+                formatsToSupport: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                verbose: false,
+                useBarCodeDetectorIfSupported: true 
+            });
+            scannerRef.current = html5QrCode;
+
+            addLog("Starting camera stream...")
+            
+            const config = { 
+                fps: 10, // Lower FPS can sometimes reduce blur by allowing more exposure time logic in some browsers
+                qrbox: { width: 250, height: 250 }, // strict box helps user focus and library optimize
+                aspectRatio: 1.0
+            };
+            
+            // We explicitly try environment first.
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } }, // Pass config directly here if needed, or use the object
+                (decodedText) => {
+                    handleStopScanner()
+                    processBarcode(decodedText)
+                },
+                (errorMessage) => {
+                    // unexpected error or just no code found in frame
+                }
+            ).catch(async (err) => {
+                 console.warn("Back camera failed, trying user camera...", err);
+                 // Fallback to any camera
+                 await html5QrCode.start(
+                    {},
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    (decodedText) => {
+                        handleStopScanner()
+                        processBarcode(decodedText)
+                    },
+                    (error) => {}
+                 );
+            });
+            isScannerRunning.current = true;
+            addLog("Camera started successfully")
+
+        } catch (err: any) {
+             addLog(`Start failed: ${err}`);
+             setCameraError("Camera failed to start. Please check permissions.");
+        }
+    }
+
+    if (isScanning) {
+        setCameraError(null);
+        setDebugLogs([]);
+        startScanner();
+    } else {
+        // Cleanup if isScanning becomes false
+         if (scannerRef.current && isScannerRunning.current) {
+            scannerRef.current.stop().catch(console.error).then(() => {
+                isScannerRunning.current = false;
+                if (scannerRef.current) {
+                    scannerRef.current.clear();
+                    scannerRef.current = null;
+                }
+            });
+         }
+    }
+
+    return () => {
+        mounted = false;
+        // Urgent cleanup on unmount
+        if (scannerRef.current && isScannerRunning.current) {
+             scannerRef.current.stop().catch(console.error);
+             isScannerRunning.current = false;
+        }
+    }
+  }, [isScanning])
 
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault()
@@ -51,6 +183,74 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   const handleFile = async (file: File) => {
       await processFile(file)
   }
+
+  const processBarcode = async (barcode: string) => {
+      setIsScanning(false); // UI switch
+      // Reset previous states
+      setCalories(null)
+      setProtein(null)
+        // Sanitize: remove spaces and non-numeric chars (standard EAN/UPC)
+        const cleanBarcode = barcode.replace(/\s+/g, '').replace(/[^0-9]/g, '');
+        
+        if (!cleanBarcode) {
+            alert("Invalid barcode detected.")
+            return;
+        }
+
+        // Reset previous states
+        setCalories(null)
+        setProtein(null)
+        setCarbs(null)
+        setFats(null)
+        setFoodName('')
+        setShowResult(false)
+        setPreview(null) // Clear previous preview
+
+        setIsAnalyzing(true)
+        setShowManualInput(false) // Close manual if open
+        
+        // Use the cleaned barcode for display and API
+        setManualBarcode(cleanBarcode) 
+        // Or better, just pass it to API. We don't display "manualBarcode" state in the success view directly, 
+        // we use it for input binding.
+        
+        try {
+            const apiUrl = getApiUrl(`/food/barcode/${cleanBarcode}`);
+            const res = await fetch(apiUrl);
+            
+            if (!res.ok) {
+                if (res.status === 404) {
+                    alert("Product not found in database.")
+                } else {
+                    alert(`Error fetching product data (Status: ${res.status})`)
+                }
+                setIsAnalyzing(false)
+                return
+            }
+            
+            const data = await res.json()
+            
+            setCalories(data.calories)
+            setProtein(data.protein)
+            setCarbs(data.carbs)
+            setFats(data.fats)
+            setFoodName(data.description) // "Unknown Product" if logic falls back
+            
+            if (data.image_url) {
+                setPreview(data.image_url)
+            } else {
+                setPreview(null) // Or keep null
+            }
+            
+            setShowResult(true)
+            
+        } catch (e) {
+            console.error("Barcode lookup failed", e)
+            alert("Network error looking up barcode.")
+        } finally {
+            setIsAnalyzing(false)
+        }
+    }
 
   const processFile = async (file: File) => {
     if (!file.type.startsWith('image/')) return
@@ -125,19 +325,38 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   }
 
   const handleAddParams = async () => {
-    if (calories === null || calories === 0 || isLogging) return;
+    // Allow logging 0 calories (e.g., Water, Diet Coke)
+    if (calories === null || isLogging) return;
 
     setIsLogging(true)
 
     try {
         if (!userId) {
             console.error("User ID missing, cannot save meal")
+            alert("Unable to save: User ID missing. Please refresh the page.")
             setIsLogging(false)
             return
         }
 
         const apiUrl = getApiUrl('/meals/');
         
+        // Prepare payload
+        const payload: any = {
+            user_id: userId,
+            name: foodName,
+            // Ensure values are integers
+            calories: Math.round(Number(calories) || 0),
+            protein: Math.round(Number(protein) || 0),
+            carbs: Math.round(Number(carbs) || 0),
+            fats: Math.round(Number(fats) || 0),
+            timestamp: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss")
+        };
+
+        // Only attach image_url if it's a remote URL (not a base64 data URI from local upload)
+        if (preview && preview.startsWith('http')) {
+            payload.image_url = preview;
+        }
+
         // Ensure trailing slash to prevent 307 Redirects
         const res = await fetch(apiUrl, {
             method: 'POST',
@@ -145,28 +364,23 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
-            body: JSON.stringify({
-                user_id: userId,
-                name: foodName,
-                calories: calories,
-                protein: protein,
-                carbs: carbs,
-                fats: fats,
-                timestamp: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss")
-            })
+            body: JSON.stringify(payload)
         })
         
         if (res.ok) {
             // Small delay to show success feedback
             await new Promise(resolve => setTimeout(resolve, 500))
-            onCaloriesAdded(calories)
+            onCaloriesAdded(Number(calories) || 0)
             reset()
         } else {
-            console.error("Failed to save meal")
+            const errorText = await res.text();
+            console.error("Failed to save meal", res.status, errorText)
+            alert(`Failed to save meal (Status: ${res.status}).\nDetails: ${errorText.substring(0, 100)}`)
             setIsLogging(false)
         }
-    } catch (e) {
+    } catch (e: any) {
         console.error("Error saving meal:", e)
+        alert(`An error occurred while saving: ${e.message}`)
         setIsLogging(false)
     }
   }
@@ -180,6 +394,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     setFoodName('')
     setIsAnalyzing(false)
     setIsLogging(false)
+    setIsScanning(false)
     setShowResult(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -187,15 +402,50 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   }
 
   return (
-    <NeonCard className="p-6 overflow-hidden relative">
+    <NeonCard className="p-6 overflow-hidden relative min-h-[300px]">
       <AnimatePresence mode="wait">
-        {!preview ? (
+        {isScanning ? (
+             <motion.div
+                key="scanner"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full flex flex-col items-center"
+             >
+                 {cameraError ? (
+                     <div className="text-center p-4 text-red-400 bg-red-400/10 rounded-xl mb-4 w-full">
+                         <p className="text-sm font-semibold">{cameraError}</p>
+                     </div>
+                 ) : (
+                    <div className="relative w-full max-w-sm rounded-xl overflow-hidden mb-4 border-2 border-neon bg-black">
+                        <div id="reader" className="w-full min-h-[250px]"></div>
+                        {/* Overlay debug logs */}
+                        <div className="absolute top-0 left-0 w-full p-2 pointer-events-none">
+                            {debugLogs.map((log, i) => (
+                                <div key={i} className="text-[10px] text-neon/80 bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded mb-1 w-fit max-w-full truncate">
+                                    {log}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                 )}
+                 <button 
+                    onClick={() => {
+                        setIsScanning(false);
+                        setCameraError(null);
+                    }}
+                    className="mt-4 text-white hover:text-neon transition-colors flex items-center gap-2"
+                 >
+                     <X size={20} /> Cancel Scan
+                 </button>
+             </motion.div>
+        ) : !preview ? (
           <motion.div
             key="upload"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all h-full flex flex-col items-center justify-center gap-6 ${
               isDragging
                 ? 'border-neon bg-neon/10'
                 : 'border-gray-300 dark:border-white/20 hover:border-neon dark:hover:border-neon'
@@ -203,7 +453,6 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
           >
             <input
               type="file"
@@ -212,17 +461,42 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
               accept="image/*"
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             />
-            <div className="flex flex-col items-center gap-4 cursor-pointer">
-              <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center">
-                <Camera size={32} className="text-gray-500 dark:text-white/60" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Snap or Upload Food</h3>
-                <p className="text-xs text-gray-500 dark:text-white/50 mt-1">
-                  AI will detect calories instantly
-                </p>
-              </div>
+            
+            <div className="flex gap-4 w-full">
+                {/* Image Upload Option */}
+                <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex flex-col items-center gap-3 cursor-pointer p-4 rounded-xl hover:bg-white/5 transition-colors group"
+                >
+                    <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
+                        <Camera size={28} className="text-gray-500 dark:text-white/60 group-hover:text-neon" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">Snap Photo</h3>
+                        <p className="text-[10px] text-gray-500 dark:text-white/50">AI Analysis</p>
+                    </div>
+                </div>
+
+                <div className="w-[1px] bg-white/10 my-2"></div>
+
+                {/* Barcode Scan Option */}
+                <div 
+                    onClick={() => setIsScanning(true)}
+                    className="flex-1 flex flex-col items-center gap-3 cursor-pointer p-4 rounded-xl hover:bg-white/5 transition-colors group"
+                >
+                    <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
+                        <ScanBarcode size={28} className="text-gray-500 dark:text-white/60 group-hover:text-neon" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">Scan Barcode</h3>
+                        <p className="text-[10px] text-gray-500 dark:text-white/50">Details Lookup</p>
+                    </div>
+                </div>
             </div>
+            
+            <p className="text-xs text-gray-400 dark:text-white/30 mt-2">
+                Drag & Drop generic food images here
+            </p>
           </motion.div>
         ) : (
           <motion.div
@@ -246,7 +520,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                                 transition={{ duration: 2, ease: "easeInOut" }}
                             />
                          </div>
-                         <div className="text-white font-mono text-sm animate-pulse">Scanning Bio-Markers...</div>
+                         <div className="text-white font-mono text-sm animate-pulse">Processing Data...</div>
                     </div>
                 )}
              </div>
@@ -260,9 +534,19 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                      <div className="text-center mb-6">
                         <div className="text-sm text-gray-500 dark:text-white/60 uppercase tracking-widest text-xs mb-1">Detected</div>
                         <div className="text-5xl font-bold text-white mb-2">{calories} <span className="text-xl text-neon">kcal</span></div>
-                        <div className="text-sm text-white/80 italic mb-3">"{foodName}"</div>
+                        
+                        {/* Editable Food Name */}
+                        <div className="relative max-w-xs mx-auto mb-3">
+                             <input 
+                                value={foodName}
+                                onChange={(e) => setFoodName(e.target.value)}
+                                className="w-full bg-transparent text-center text-white/80 italic border-b border-white/10 focus:border-neon focus:outline-none py-1 transition-colors"
+                                placeholder="Enter product name..."
+                             />
+                        </div>
+
                         <div className="text-xs text-neon border border-neon/30 bg-neon/10 px-3 py-1 rounded-full inline-block">
-                             High Confidence Match
+                             Details Found
                         </div>
                      </div>
 
@@ -322,3 +606,4 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     </NeonCard>
   )
 }
+
