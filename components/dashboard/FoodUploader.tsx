@@ -26,6 +26,11 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
   const isScannerRunning = useRef(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
+  
+  // Camera Selection States
+  const [cameras, setCameras] = useState<Array<{ id: string, label: string }>>([])
+  const [currentCameraId, setCurrentCameraId] = useState<string | null>(null)
+
   const [preview, setPreview] = useState<string | null>(null)
   const [calories, setCalories] = useState<number | null>(null)
   const [protein, setProtein] = useState<number | null>(null)
@@ -54,12 +59,40 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       setIsScanning(false);
   }
 
-  useEffect(() => {
-    let mounted = true;
+  const handleSwitchCamera = async () => {
+    if (cameras.length < 2 || !currentCameraId) return;
 
-    const startScanner = async () => {
-        if (!mounted) return;
-        
+    const currentIndex = cameras.findIndex(c => c.id === currentCameraId);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    const nextCameraId = cameras[nextIndex].id;
+
+    addLog(`Switching to camera: ${cameras[nextIndex].label}`);
+
+    if (scannerRef.current && isScannerRunning.current) {
+        try {
+            await scannerRef.current.stop();
+            isScannerRunning.current = false;
+            
+            // Wait a bit before restarting
+            await new Promise(r => setTimeout(r, 200));
+
+            setCurrentCameraId(nextCameraId); 
+            // The useEffect will trigger restart or we can call startScanner directly.
+            // But since currentCameraId is state, let's let state drive it or call start manually with new ID.
+            // Actually, we are inside useEffect dependence on isScanning. 
+            // Switching camera while scanning is tricky if dependencies aren't set up.
+            // Let's manually restart here to be safe and fast.
+            
+            startScanner(nextCameraId);
+        } catch (e) {
+            addLog(`Switch error: ${e}`);
+            setCameraError("Failed to switch camera");
+        }
+    }
+  }
+
+  // Refactored startScanner to accept optional cameraId override
+  const startScanner = async (cameraIdOverride?: string) => {
         // Poll for the reader element
         let attempts = 0;
         const maxAttempts = 15; 
@@ -76,32 +109,83 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
             return;
         }
 
-        if (scannerRef.current) {
-            // Already initialized
-            return;
+        if (scannerRef.current && isScannerRunning.current) {
+             // If we are just switching cameras, we might have stopped it above.
+             // But if called from useEffect, it might be running.
+             // For simplicity, if running, don't re-init unless we force stop first.
         }
 
-        try {
-            addLog("Initializing Html5Qrcode...")
-            const html5QrCode = new Html5Qrcode("reader", { 
-                formatsToSupport: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-                verbose: false,
-                useBarCodeDetectorIfSupported: true 
-            });
-            scannerRef.current = html5QrCode;
+        if (!scannerRef.current) {
+             addLog("Initializing Html5Qrcode...")
+             const html5QrCode = new Html5Qrcode("reader", { 
+                 formatsToSupport: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                 verbose: false,
+                 useBarCodeDetectorIfSupported: true 
+             });
+             scannerRef.current = html5QrCode;
+        }
 
-            addLog("Starting camera stream...")
+        const html5QrCode = scannerRef.current; // safely cast
+
+        try {
+            let targetCameraId = cameraIdOverride || currentCameraId;
+
+            // If we don't have a specific camera yet, find the best one
+            if (!targetCameraId) {
+                addLog("Getting cameras...");
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length > 0) {
+                    setCameras(devices);
+                    
+                    // Logic to find 'Main' back camera
+                    // 1. Filter for back/environment
+                    const backCameras = devices.filter(d => 
+                        d.label.toLowerCase().includes('back') || 
+                        d.label.toLowerCase().includes('rear') ||
+                        d.label.toLowerCase().includes('environment')
+                    );
+
+                    // 2. Try to avoid 'wide', '0.5x', 'ultra' if possible, unless it's the only one
+                    // Many phones label main as just "Back Camera 0" or similar.
+                    // Ultra wide often has "0.5x" or "Wide" explicitly.
+                    let bestCamera = backCameras.find(d => {
+                        const label = d.label.toLowerCase();
+                        return !label.includes('0.5') && !label.includes('wide') && !label.includes('ultra');
+                    });
+
+                    // Fallback to first back camera
+                    if (!bestCamera && backCameras.length > 0) {
+                        bestCamera = backCameras[0];
+                    }
+                    
+                    // Fallback to first available if no back camera found
+                    if (!bestCamera) {
+                        bestCamera = devices[0];
+                    }
+
+                    targetCameraId = bestCamera.id;
+                    setCurrentCameraId(targetCameraId);
+                    addLog(`Selected: ${bestCamera.label}`);
+                } else {
+                    addLog("No cameras found via API");
+                    // Fallback to facing mode if enumeration fails
+                }
+            }
+
+            addLog(`Starting stream on ${targetCameraId ? 'specific ID' : 'facing mode'}...`)
             
             const config = { 
-                fps: 10, // Lower FPS can sometimes reduce blur by allowing more exposure time logic in some browsers
-                qrbox: { width: 250, height: 250 }, // strict box helps user focus and library optimize
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
                 aspectRatio: 1.0
             };
             
-            // We explicitly try environment first.
+            // If we have a specific ID, use it. Otherwise fall back to mode.
+            const cameraConfig = targetCameraId ? { deviceId: { exact: targetCameraId } } : { facingMode: "environment" };
+
             await html5QrCode.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } }, // Pass config directly here if needed, or use the object
+                cameraConfig,
+                config, 
                 (decodedText) => {
                     handleStopScanner()
                     processBarcode(decodedText)
@@ -109,32 +193,28 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                 (errorMessage) => {
                     // unexpected error or just no code found in frame
                 }
-            ).catch(async (err) => {
-                 console.warn("Back camera failed, trying user camera...", err);
-                 // Fallback to any camera
-                 await html5QrCode.start(
-                    {},
-                    { fps: 10, qrbox: { width: 250, height: 250 } },
-                    (decodedText) => {
-                        handleStopScanner()
-                        processBarcode(decodedText)
-                    },
-                    (error) => {}
-                 );
-            });
+            );
+            
             isScannerRunning.current = true;
             addLog("Camera started successfully")
 
         } catch (err: any) {
              addLog(`Start failed: ${err}`);
+             console.error("Camera start error", err);
              setCameraError("Camera failed to start. Please check permissions.");
         }
-    }
+  }
+
+  useEffect(() => {
+    let mounted = true;
 
     if (isScanning) {
         setCameraError(null);
         setDebugLogs([]);
-        startScanner();
+        // We delay slightly to ensure DOM is ready
+        setTimeout(() => {
+            if (mounted) startScanner();
+        }, 100);
     } else {
         // Cleanup if isScanning becomes false
          if (scannerRef.current && isScannerRunning.current) {
@@ -142,6 +222,8 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                 isScannerRunning.current = false;
                 if (scannerRef.current) {
                     scannerRef.current.clear();
+                    // Don't nullify ref eagerly if we want to reuse instance, 
+                    // but for clean unmount/remount often better to clear.
                     scannerRef.current = null;
                 }
             });
@@ -419,6 +501,28 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                  ) : (
                     <div className="relative w-full max-w-sm rounded-xl overflow-hidden mb-4 border-2 border-neon bg-black">
                         <div id="reader" className="w-full min-h-[250px]"></div>
+                        
+                        {/* Switch Camera Button Overlay */}
+                        {cameras.length > 1 && (
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleSwitchCamera();
+                                }}
+                                className="absolute top-2 right-2 p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:text-neon transition-colors z-10 border border-white/10"
+                                title="Switch Camera"
+                            >
+                                <div className="animate-spin-slow"> 
+                                    {/* Using a simple rotate icon, assuming RotateCcw or similar is available or generic icon */}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                        <path d="M3 3v5h5"/>
+                                    </svg>
+                                </div>
+                            </button>
+                        )}
+
                         {/* Overlay debug logs */}
                         <div className="absolute top-0 left-0 w-full p-2 pointer-events-none">
                             {debugLogs.map((log, i) => (
@@ -433,6 +537,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                     onClick={() => {
                         setIsScanning(false);
                         setCameraError(null);
+                        setCurrentCameraId(null);
                     }}
                     className="mt-4 text-white hover:text-neon transition-colors flex items-center gap-2"
                  >
