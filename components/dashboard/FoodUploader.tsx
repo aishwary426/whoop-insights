@@ -73,7 +73,13 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     setIsAnalyzing(true)
     
     // Use environment variable or default to localhost
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    
+    // Ensure URL ends with /v1 to match Next.js rewrite rules
+    // Dockerfile often sets NEXT_PUBLIC_API_URL=/api, which misses the version segment
+    if (apiBaseUrl.endsWith('/api')) {
+        apiBaseUrl = `${apiBaseUrl}/v1`;
+    }
 
     try {
       console.log(`Starting food analysis for file: ${file.name} (${file.size} bytes)`);
