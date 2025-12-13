@@ -29,8 +29,9 @@ export default function DashboardPage() {
         if (!confirm('Are you sure you want to clear all food logs for today?')) return;
         
         try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
             const today = format(new Date(), 'yyyy-MM-dd');
-            const res = await fetch(`http://localhost:8000/api/v1/meals/reset?user_id=${user?.id}&date_filter=${today}`, {
+            const res = await fetch(`${apiBaseUrl}/meals/reset?user_id=${user?.id}&date_filter=${today}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -59,9 +60,8 @@ export default function DashboardPage() {
       const result = await api.syncWhoopDataNow()
       
       // Clear cache and refresh dashboard data
-      const apiBaseUrl = typeof window !== 'undefined' 
-        ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1')
-        : 'http://localhost:8000/api/v1'
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+      
       await fetch(`${apiBaseUrl}/dashboard/clear-cache`, { method: 'POST' }).catch(() => {})
       await refreshSummary()
       
@@ -90,9 +90,10 @@ export default function DashboardPage() {
     if (!user?.id) return
 
     try {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
         const today = format(new Date(), 'yyyy-MM-dd');
         // Add timestamp to prevent caching
-        const res = await fetch(`http://localhost:8000/api/v1/meals?user_id=${user.id}&date_filter=${today}&_t=${new Date().getTime()}`, {
+        const res = await fetch(`${apiBaseUrl}/meals?user_id=${user.id}&date_filter=${today}&_t=${new Date().getTime()}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}` 
             }
