@@ -33,6 +33,7 @@ class MealResponse(BaseModel):
         from_attributes = True
 
 @router.post("/", response_model=MealResponse)
+@router.post("", response_model=MealResponse, include_in_schema=False)
 def create_meal(
     meal: MealCreate,
     db: Session = Depends(get_db)
@@ -68,6 +69,7 @@ def create_meal(
     return new_meal
 
 @router.get("/", response_model=List[MealResponse])
+@router.get("", response_model=List[MealResponse], include_in_schema=False)
 def get_meals(
     user_id: str,
     date_filter: Optional[date] = None,

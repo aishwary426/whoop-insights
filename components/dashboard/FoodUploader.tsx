@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, Camera, Check, X, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import NeonCard from '../ui/NeonCard'
+import { getApiUrl } from '../../lib/api-config'
 
 interface FoodUploaderProps {
   onCaloriesAdded: (calories: number) => void
@@ -73,20 +74,15 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
     setIsAnalyzing(true)
     
     // Use environment variable or default to relative path (for rewrites)
-    let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-    
-    // Ensure URL ends with /v1 to match Next.js rewrite rules
-    if (apiBaseUrl.endsWith('/api')) {
-        apiBaseUrl = `${apiBaseUrl}/v1`;
-    }
+    const apiUrl = getApiUrl('/food/analyze');
 
     try {
       console.log(`Starting food analysis for file: ${file.name} (${file.size} bytes)`);
       const formData = new FormData()
       formData.append('file', file)
 
-      console.log(`Sending request to: ${apiBaseUrl}/food/analyze`)
-      const response = await fetch(`${apiBaseUrl}/food/analyze`, {
+      console.log(`Sending request to: ${apiUrl}`)
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
       })
@@ -123,7 +119,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
       setCarbs(0)
       setFats(0)
       // Show actual error in the UI for debugging
-      setFoodName(`Error: ${error.message || 'Unknown error'} (${apiBaseUrl})`)
+      setFoodName(`Error: ${error.message || 'Unknown error'}`)
       setShowResult(true)
     }
   }
@@ -140,12 +136,10 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
             return
         }
 
-        let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-        if (apiBaseUrl.endsWith('/api')) {
-            apiBaseUrl = `${apiBaseUrl}/v1`;
-        }
+        const apiUrl = getApiUrl('/meals/');
+        
         // Ensure trailing slash to prevent 307 Redirects
-        const res = await fetch(`${apiBaseUrl}/meals/`, {
+        const res = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

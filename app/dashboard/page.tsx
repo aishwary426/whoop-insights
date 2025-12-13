@@ -14,6 +14,7 @@ import ScrollReveal from '../../components/ui/ScrollReveal'
 import { api } from '../../lib/api'
 import { format } from 'date-fns'
 import ErrorBoundary from '../../components/ErrorBoundary'
+import { getApiUrl } from '../../lib/api-config'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -29,13 +30,11 @@ export default function DashboardPage() {
         if (!confirm('Are you sure you want to clear all food logs for today?')) return;
         
         try {
-            let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-            if (apiBaseUrl.endsWith('/api')) {
-                apiBaseUrl = `${apiBaseUrl}/v1`;
-            }
             const today = format(new Date(), 'yyyy-MM-dd');
+            const apiUrl = getApiUrl(`/meals/reset/?user_id=${user?.id}&date_filter=${today}`);
+            
             // Ensure trailing slash to prevent 307 Redirects
-            const res = await fetch(`${apiBaseUrl}/meals/reset/?user_id=${user?.id}&date_filter=${today}`, {
+            const res = await fetch(apiUrl, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -64,13 +63,10 @@ export default function DashboardPage() {
       const result = await api.syncWhoopDataNow()
       
       // Clear cache and refresh dashboard data
-      let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-      if (apiBaseUrl.endsWith('/api')) {
-          apiBaseUrl = `${apiBaseUrl}/v1`;
-      }
+      const apiUrl = getApiUrl('/dashboard/clear-cache/');
       
       // Ensure trailing slash to prevent 307 Redirects
-      await fetch(`${apiBaseUrl}/dashboard/clear-cache/`, { method: 'POST' }).catch(() => {})
+      await fetch(apiUrl, { method: 'POST' }).catch(() => {})
       await refreshSummary()
       
       setSyncMessage({
@@ -98,13 +94,11 @@ export default function DashboardPage() {
     if (!user?.id) return
 
     try {
-        let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
-        if (apiBaseUrl.endsWith('/api')) {
-            apiBaseUrl = `${apiBaseUrl}/v1`;
-        }
         const today = format(new Date(), 'yyyy-MM-dd');
-        // Add timestamp to prevent caching & Ensure trailing slash
-        const res = await fetch(`${apiBaseUrl}/meals/?user_id=${user.id}&date_filter=${today}&_t=${new Date().getTime()}`, {
+        // Add timestamp to prevent caching
+        const apiUrl = getApiUrl(`/meals/?user_id=${user.id}&date_filter=${today}&_t=${new Date().getTime()}`);
+        
+        const res = await fetch(apiUrl, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}` 
             }
