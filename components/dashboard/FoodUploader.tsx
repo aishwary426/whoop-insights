@@ -141,7 +141,10 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
             return
         }
 
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+        let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+        if (apiBaseUrl.endsWith('/api')) {
+            apiBaseUrl = `${apiBaseUrl}/v1`;
+        }
         const res = await fetch(`${apiBaseUrl}/meals`, {
             method: 'POST',
             headers: {
