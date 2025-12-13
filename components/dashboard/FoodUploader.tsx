@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { DragEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, Camera, Check, X, Loader2, ScanBarcode, Bug, Edit3 } from 'lucide-react'
+import { Upload, Camera, Check, X, Loader2, ScanBarcode, Bug, Edit3, SwitchCamera } from 'lucide-react'
 import { format } from 'date-fns'
 import NeonCard from '../ui/NeonCard'
 import { getApiUrl } from '../../lib/api-config'
@@ -513,13 +513,7 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
                                 className="absolute top-2 right-2 p-2 bg-black/50 backdrop-blur-sm rounded-full text-white hover:text-neon transition-colors z-10 border border-white/10"
                                 title="Switch Camera"
                             >
-                                <div className="animate-spin-slow"> 
-                                    {/* Using a simple rotate icon, assuming RotateCcw or similar is available or generic icon */}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                                        <path d="M3 3v5h5"/>
-                                    </svg>
-                                </div>
+                                <SwitchCamera size={20} />
                             </button>
                         )}
 
