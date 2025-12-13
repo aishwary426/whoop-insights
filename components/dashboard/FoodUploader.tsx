@@ -144,7 +144,8 @@ export default function FoodUploader({ onCaloriesAdded, userId }: FoodUploaderPr
         if (apiBaseUrl.endsWith('/api')) {
             apiBaseUrl = `${apiBaseUrl}/v1`;
         }
-        const res = await fetch(`${apiBaseUrl}/meals`, {
+        // Ensure trailing slash to prevent 307 Redirects
+        const res = await fetch(`${apiBaseUrl}/meals/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

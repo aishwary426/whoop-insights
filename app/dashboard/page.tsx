@@ -29,12 +29,13 @@ export default function DashboardPage() {
         if (!confirm('Are you sure you want to clear all food logs for today?')) return;
         
         try {
-            let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+            let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
             if (apiBaseUrl.endsWith('/api')) {
                 apiBaseUrl = `${apiBaseUrl}/v1`;
             }
             const today = format(new Date(), 'yyyy-MM-dd');
-            const res = await fetch(`${apiBaseUrl}/meals/reset?user_id=${user?.id}&date_filter=${today}`, {
+            // Ensure trailing slash to prevent 307 Redirects
+            const res = await fetch(`${apiBaseUrl}/meals/reset/?user_id=${user?.id}&date_filter=${today}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -63,12 +64,13 @@ export default function DashboardPage() {
       const result = await api.syncWhoopDataNow()
       
       // Clear cache and refresh dashboard data
-      let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+      let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
       if (apiBaseUrl.endsWith('/api')) {
           apiBaseUrl = `${apiBaseUrl}/v1`;
       }
       
-      await fetch(`${apiBaseUrl}/dashboard/clear-cache`, { method: 'POST' }).catch(() => {})
+      // Ensure trailing slash to prevent 307 Redirects
+      await fetch(`${apiBaseUrl}/dashboard/clear-cache/`, { method: 'POST' }).catch(() => {})
       await refreshSummary()
       
       setSyncMessage({
@@ -96,13 +98,13 @@ export default function DashboardPage() {
     if (!user?.id) return
 
     try {
-        let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+        let apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
         if (apiBaseUrl.endsWith('/api')) {
             apiBaseUrl = `${apiBaseUrl}/v1`;
         }
         const today = format(new Date(), 'yyyy-MM-dd');
-        // Add timestamp to prevent caching
-        const res = await fetch(`${apiBaseUrl}/meals?user_id=${user.id}&date_filter=${today}&_t=${new Date().getTime()}`, {
+        // Add timestamp to prevent caching & Ensure trailing slash
+        const res = await fetch(`${apiBaseUrl}/meals/?user_id=${user.id}&date_filter=${today}&_t=${new Date().getTime()}`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}` 
             }
